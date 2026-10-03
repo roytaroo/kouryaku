@@ -1,0 +1,741 @@
+<title>攻略・受験編</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 攻略本のHUD。上に本番までのカウントダウン、その下に「ラスボスHP（1,612h）」「今日」「時間割」「記録」を2列グリッド（スマホは1列）。
+   色は 明治の紫紺／東洋の鉄紺 を地に、法政のオレンジを一点の差し色に。 */
+:root{
+  --bg:#f2f0f6; --surface:#ffffff; --ink:#1b1630; --muted:#666079; --line:#dcd6e7;
+  --shikon:#3d2b78; --orange:#e3601a; --good:#16805a; --bad:#c3352b; --game:#2370a8;
+  --display:"Dela Gothic One","Hiragino Kaku Gothic StdN","Yu Gothic",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13101d; --surface:#1d1830; --ink:#ece8f7; --muted:#a39cba; --line:#342c4d;
+  --shikon:#a896f2; --orange:#ff8b40; --good:#4fc98d; --bad:#ff6d60; --game:#5fb0ea; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13101d; --surface:#1d1830; --ink:#ece8f7; --muted:#a39cba; --line:#342c4d;
+  --shikon:#a896f2; --orange:#ff8b40; --good:#4fc98d; --bad:#ff6d60; --game:#5fb0ea; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{margin:0;text-wrap:balance}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.num,.tab{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);font-weight:700}
+
+/* top bar */
+.top{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand .mark{font-family:var(--display);font-size:26px;color:var(--shikon);letter-spacing:.04em}
+.brand .sub{font-size:13px;color:var(--muted);font-weight:500}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync[data-s="db"]::before{background:var(--good)}
+.sync[data-s="local"]::before{background:var(--orange)}
+.sync[data-s="err"]::before{background:var(--bad)}
+
+/* hero countdown */
+.hero{background:var(--shikon);color:var(--bg);border-radius:var(--r);padding:22px 22px 18px;display:grid;gap:12px;position:relative;overflow:hidden}
+.hero .eyebrow{color:color-mix(in srgb,var(--bg) 75%,transparent)}
+.hero .eyebrow b{color:var(--bg)}
+.count{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px;font-family:var(--display);line-height:1}
+.count .big{font-size:clamp(64px,15vw,128px);color:var(--bg)}
+.count .seg{display:flex;align-items:baseline;gap:4px}
+.count .n{font-size:clamp(28px,6vw,48px)}
+.count .u{font-family:var(--body);font-weight:700;font-size:14px;opacity:.8}
+.hero-meta{font-size:13px;opacity:.85}
+.exams{list-style:none;margin:0;padding:10px 0 0;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px}
+.exams li{display:flex;gap:8px;align-items:baseline}
+.exams .d{font-family:var(--display);font-size:16px}
+.exams .past{opacity:.45;text-decoration:line-through}
+
+/* quote */
+.quote{display:grid;gap:10px;padding:6px 4px 4px}
+.quote blockquote{margin:0;font-family:var(--display);font-size:clamp(20px,3.6vw,28px);line-height:1.45;text-wrap:balance;max-width:34em}
+.quote cite{font-style:normal;color:var(--muted);font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--shikon)}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.minis{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.minis li{display:flex;gap:8px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-block:4px}
+.minis li span{min-width:0}
+
+/* grid of cards */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h2{font-family:var(--display);font-weight:400;font-size:22px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+
+/* boss */
+.hp{font-family:var(--display);font-size:30px;line-height:1;text-align:right}
+.hp small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:700}
+.hpbar{position:relative;height:22px;border-radius:4px;background:color-mix(in srgb,var(--ink) 8%,var(--surface));border:1px solid var(--line);overflow:visible}
+.hpfill{position:absolute;inset:0 auto 0 0;border-radius:3px;background:linear-gradient(90deg,var(--bad),var(--orange));transition:width .6s ease}
+.pace{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:4px 0 0}
+.stats div{display:grid;gap:0}
+.stats dt{font-size:12px;color:var(--muted);font-weight:700}
+.stats dd{margin:0;font-family:var(--display);font-size:22px;line-height:1.3}
+.stats dd small{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:500}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.note{font-size:12px;color:var(--muted)}
+
+/* today */
+.seg-toggle{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg-toggle button{border:0;background:transparent;padding:9px 8px;font-size:13px;font-weight:700;color:var(--muted);line-height:1.35}
+.seg-toggle button[aria-checked="true"]{background:var(--shikon);color:var(--surface)}
+.seg-toggle button span{display:block;font-weight:500;font-size:11px}
+.timer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.timer .clock{font-family:var(--display);font-size:clamp(36px,7vw,48px);line-height:1}
+.timer .clock[data-on="1"]{color:var(--orange)}
+.go{border:0;border-radius:10px;padding:14px 22px;font-weight:700;font-size:16px;background:var(--orange);color:#fff;min-width:170px}
+.go[data-on="1"]{background:var(--ink);color:var(--surface)}
+.bar{height:10px;border-radius:999px;background:color-mix(in srgb,var(--ink) 8%,var(--surface));overflow:hidden}
+.bar i{display:block;height:100%;background:var(--shikon);border-radius:inherit;transition:width .4s}
+.bar i.done{background:var(--good)}
+.adjust{border-top:1px dashed var(--line);padding-top:12px;display:grid;gap:8px}
+.adjust .row input{width:6.5em;border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg)}
+
+/* schedule */
+.sched{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.sched li{display:grid;grid-template-columns:7.2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 10px;border-radius:6px;font-size:14px;position:relative}
+.sched .t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.sched .k{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid currentColor}
+.sched li.study .k{color:var(--shikon)}
+.sched li.rest{color:var(--muted)}
+.sched li.rest .k{color:var(--muted)}
+.sched li.game .k{color:var(--game)}
+.sched li.game{font-weight:700;color:var(--game)}
+.sched li.past{opacity:.45}
+.sched li.now{background:color-mix(in srgb,var(--orange) 14%,var(--surface));opacity:1}
+.sched li.now::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--orange)}
+.nowline{font-size:13px;font-weight:700}
+.nowline b{color:var(--orange)}
+
+/* heatmap */
+.heat-wrap{overflow-x:auto}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);grid-auto-columns:14px;gap:3px;padding:2px}
+.heat button{width:14px;height:14px;padding:0;border-radius:3px;border:0;background:color-mix(in srgb,var(--ink) 7%,var(--surface))}
+.heat button[disabled]{cursor:default;background:transparent;border:1px solid var(--line)}
+.heat .l1{background:color-mix(in srgb,var(--shikon) 25%,var(--surface))}
+.heat .l2{background:color-mix(in srgb,var(--shikon) 45%,var(--surface))}
+.heat .l3{background:color-mix(in srgb,var(--shikon) 70%,var(--surface))}
+.heat .l4{background:var(--shikon)}
+.heat .l5{background:var(--orange)}
+.heat .today{outline:2px solid var(--ink);outline-offset:1px}
+.heat .sel{outline:2px solid var(--orange);outline-offset:1px}
+.heat .pad{visibility:hidden}
+.legend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block}
+
+/* settings */
+details.settings{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px}
+details.settings summary{cursor:pointer;font-weight:700}
+.form{display:grid;gap:14px;margin-top:14px}
+.form label{display:grid;gap:4px;font-size:13px;font-weight:700}
+.form label span{font-weight:400;color:var(--muted);font-size:12px}
+.form input,.form textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);font-weight:400;min-width:0}
+.form textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;resize:vertical}
+.form .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.form .cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.form .cols,.form .cols2{grid-template-columns:minmax(0,1fr)}}
+#quoteForm{display:grid;gap:8px;max-width:640px}
+#quoteForm input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);min-width:0}
+
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:8px 16px;border-radius:999px;font-size:13px;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand"><span class="mark">攻略</span><span class="sub">受験編　明治・法政・東洋</span></div>
+  <div class="sync" id="sync" data-s="">接続中</div>
+</header>
+
+<main class="wrap">
+  <section class="hero" aria-labelledby="heroName">
+    <div class="eyebrow">本番まで ／ <b id="heroName">試験日を読み込み中</b></div>
+    <div class="count" aria-live="off">
+      <div class="seg"><span class="big num" id="cdD">--</span><span class="u">日</span></div>
+      <div class="seg"><span class="n num" id="cdH">--</span><span class="u">時間</span></div>
+      <div class="seg"><span class="n num" id="cdM">--</span><span class="u">分</span></div>
+      <div class="seg"><span class="n num" id="cdS">--</span><span class="u">秒</span></div>
+    </div>
+    <div class="hero-meta" id="heroMeta"></div>
+    <ul class="exams" id="examList"></ul>
+  </section>
+
+  <section class="quote" aria-label="今日の言葉">
+    <div class="eyebrow" id="quoteTag">今日の言葉</div>
+    <blockquote id="quoteText">為せば成る　為さねば成らぬ何事も</blockquote>
+    <cite id="quoteBy">上杉鷹山</cite>
+    <div class="row">
+      <button class="btn" id="quoteNext" type="button">次の言葉</button>
+      <button class="btn ghost" id="quoteAddToggle" type="button" aria-expanded="false">自分の言葉を足す</button>
+    </div>
+    <form id="quoteForm" hidden>
+      <input id="qText" placeholder="例：2月の俺は、今日の俺に感謝してる" maxlength="140" required>
+      <input id="qBy" placeholder="誰の言葉？（空欄なら「自分」）" maxlength="40">
+      <div class="row"><button class="btn primary" type="submit">追加する</button><span class="note">自分の言葉は、名言の2倍の確率で出ます</span></div>
+      <ul class="minis" id="myQuotes"></ul>
+    </form>
+  </section>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="bossTitle">
+      <div class="head">
+        <div><div class="eyebrow">ラスボス</div><h2 id="bossTitle">合格（1,612時間）</h2></div>
+        <div class="hp"><span class="num" id="hpNow">1,612.0</span><br><small>残りHP（時間）</small></div>
+      </div>
+      <div class="hpbar" role="img" id="hpBar" aria-label="残りHP"><div class="hpfill" id="hpFill" style="width:100%"></div><div class="pace" id="paceMark" style="left:100%"></div></div>
+      <dl class="stats">
+        <div><dt>与えたダメージ（累計）</dt><dd class="num" id="stTotal">0.0<small> h</small></dd></div>
+        <div><dt>進捗</dt><dd class="num" id="stPct">0.0<small> %</small></dd></div>
+        <div><dt>ペース線との差</dt><dd class="num" id="stDiff">±0.0<small> h</small></dd></div>
+        <div><dt>残りを割ると1日あたり</dt><dd class="num" id="stNeed">--<small> h</small></dd></div>
+      </dl>
+      <p class="note" id="bossNote">バーの縦線がペース線。「1,612時間を期限まで毎日均等に積んだら、昨日までにここまで削れているはず」の位置です。</p>
+    </section>
+
+    <section class="card" aria-labelledby="todayTitle">
+      <div class="head">
+        <div><div class="eyebrow" id="todayDate">今日</div><h2 id="todayTitle">今日の勉強</h2></div>
+        <div class="note">1日の区切りは朝4時</div>
+      </div>
+      <div class="timer">
+        <div class="clock num" id="clock" data-on="0">0:00:00</div>
+        <button class="go" id="goBtn" type="button" data-on="0">▶ 勉強スタート</button>
+      </div>
+      <div>
+        <div class="row" style="justify-content:space-between"><span class="nowline" id="todaySum">今日 0.0h / 13.5h</span><span class="note" id="streak">連続達成 0日</span></div>
+        <div class="bar" aria-hidden="true"><i id="todayBar" style="width:0%"></i></div>
+      </div>
+      <div class="adjust">
+        <div class="note" id="adjLabel">記録を直す：今日（合計 0.0h）</div>
+        <div class="row">
+          <button class="btn" type="button" data-adj="-15">−15分</button>
+          <button class="btn" type="button" data-adj="15">＋15分</button>
+          <button class="btn" type="button" data-adj="30">＋30分</button>
+          <button class="btn" type="button" data-adj="60">＋1時間</button>
+        </div>
+        <form class="row" id="setForm">
+          <label class="note" for="setHours">合計を直接入力</label>
+          <input id="setHours" type="number" min="0" max="24" step="0.25" inputmode="decimal" placeholder="例 13.5">
+          <span class="note">時間</span>
+          <button class="btn" type="submit">保存</button>
+        </form>
+        <div class="note">下の「記録」のマスを押すと、過去の日も直せます。</div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="schedTitle">
+      <div class="head">
+        <div><div class="eyebrow">スケジュール</div><h2 id="schedTitle">本日のモード</h2></div>
+        <button class="btn ghost" id="editSched" type="button">時間割を編集</button>
+      </div>
+      <div class="seg-toggle" role="radiogroup" aria-label="本日のモード">
+        <button type="button" role="radio" data-mode="normal" aria-checked="true">通常日<span id="mNormal">13.5h</span></button>
+        <button type="button" role="radio" data-mode="refresh" aria-checked="false">リフレッシュ日<span id="mRefresh">10h＋ゲーム4.5h</span></button>
+      </div>
+      <div class="nowline" id="nowLine"></div>
+      <ul class="sched" id="schedList"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="logTitle">
+      <div class="head">
+        <div><div class="eyebrow">記録</div><h2 id="logTitle">毎日の積み上げ</h2></div>
+        <div class="legend" aria-hidden="true">少<i style="background:color-mix(in srgb,var(--shikon) 25%,var(--surface))"></i><i style="background:color-mix(in srgb,var(--shikon) 45%,var(--surface))"></i><i style="background:color-mix(in srgb,var(--shikon) 70%,var(--surface))"></i><i style="background:var(--shikon)"></i><i style="background:var(--orange)"></i>達成</div>
+      </div>
+      <div class="heat-wrap"><div class="heat" id="heat"></div></div>
+      <dl class="stats">
+        <div><dt>目標達成した日</dt><dd class="num" id="stHit">0<small> 日</small></dd></div>
+        <div><dt>1日平均（記録した日）</dt><dd class="num" id="stAvg">0.0<small> h</small></dd></div>
+      </dl>
+      <p class="note">縦が月〜日、横が週。オレンジはその日のモードの目標時間を達成した日。</p>
+    </section>
+  </div>
+
+  <details class="settings" id="settings">
+    <summary>設定（試験日・目標・時間割）</summary>
+    <form class="form" id="settingsForm">
+      <div class="cols">
+        <label>目標時間<input id="sGoal" type="number" min="1" step="1"><span>時間</span></label>
+        <label>スタート日<input id="sStart" type="date"></label>
+        <label>目標の期限<input id="sDeadline" type="date"><span>この日までに目標時間を達成</span></label>
+      </div>
+      <label>試験日<textarea id="sExams" rows="5"></textarea><span>1行に1つ。「2027-02-04 明治 全学部統一」の形。時刻を入れるなら「2027-02-04 10:00 明治…」。時刻なしは9:00開始とみなします。必ず入試要項で確認して書き換えてください。</span></label>
+      <div class="cols2">
+        <label>通常日の時間割<textarea id="sNormal" rows="13"></textarea></label>
+        <label>リフレッシュ日の時間割<textarea id="sRefresh" rows="13"></textarea></label>
+      </div>
+      <p class="note">時間割は1行に「07:00-09:00 英単語・英文法」の形。「ゲーム」を含む行はゲーム、「休憩・食・風呂・起床・就寝」を含む行は休み、それ以外は勉強として数えます。勉強の合計がその日の目標時間になります。</p>
+      <div class="row"><button class="btn primary" type="submit">設定を保存</button><button class="btn ghost" type="button" id="sReset">初期値に戻す（保存はまだ）</button></div>
+    </form>
+  </details>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+const DAY_START_HOUR = 4;
+const DEFAULTS = {
+  goalHours: 1612,
+  startDate: "2026-10-03",
+  deadline: "2027-02-03",
+  exams: [
+    "2027-01-16 共通テスト（仮・要確認）",
+    "2027-02-04 明治 全学部統一（仮・要確認）",
+    "2027-02-05 法政 T日程（仮・要確認）",
+    "2027-02-08 東洋 一般前期（仮・要確認）"
+  ].join("\n"),
+  normal: [
+    "06:30-07:00 起床・朝食",
+    "07:00-09:00 英単語・英文法",
+    "09:00-09:10 休憩",
+    "09:10-12:10 英語長文",
+    "12:10-13:00 昼食・休憩",
+    "13:00-16:00 国語（現代文・古文）",
+    "16:00-16:15 休憩",
+    "16:15-19:15 政経（一問一答＋問題演習）",
+    "19:15-20:15 夕食・風呂",
+    "20:15-22:45 過去問・今日の復習",
+    "22:45-23:30 就寝準備",
+    "23:30-06:30 就寝"
+  ].join("\n"),
+  refresh: [
+    "06:30-07:00 起床・朝食",
+    "07:00-09:00 英単語・英文法",
+    "09:00-09:15 休憩",
+    "09:15-12:15 英語長文",
+    "12:15-13:00 昼食・休憩",
+    "13:00-17:30 ゲーム",
+    "17:30-20:30 政経・国語",
+    "20:30-21:15 夕食・風呂",
+    "21:15-23:15 今週の復習",
+    "23:15-23:30 就寝準備",
+    "23:30-06:30 就寝"
+  ].join("\n")
+};
+
+const QUOTES = [
+  {t:"g", q:"為せば成る　為さねば成らぬ何事も　成らぬは人の為さぬなりけり", by:"上杉鷹山"},
+  {t:"g", q:"千里の道も一歩から", by:"老子"},
+  {t:"g", q:"天才とは、1%のひらめきと99%の努力である", by:"トーマス・エジソン"},
+  {t:"g", q:"あきらめたらそこで試合終了ですよ", by:"安西先生『SLAM DUNK』"},
+  {t:"g", q:"明日死ぬかのように生きよ。永遠に生きるかのように学べ。", by:"マハトマ・ガンディー"},
+  {t:"g", q:"It always seems impossible until it's done.", by:"ネルソン・マンデラ"},
+  {t:"g", q:"Stay hungry, stay foolish.", by:"スティーブ・ジョブズ"},
+  {t:"g", q:"努力は必ず報われる。もし報われない努力があるのならば、それはまだ努力と呼べない。", by:"王貞治"},
+  {t:"g", q:"今日の1時間は、2月の1点になる。", by:"攻略メモ"},
+  {t:"g", q:"単語1個は小さい。でも全部覚えたら、それが合格ラインだ。", by:"攻略メモ"},
+  {t:"g", q:"才能の差より、続けた日数の差のほうがでかい。", by:"攻略メモ"},
+  {t:"g", q:"試験会場で頼れるのは、今日までに積んだものだけだ。", by:"攻略メモ"},
+  {t:"g", q:"10月スタートは遅い。だから1日も無駄にしない。それだけの話だ。", by:"攻略メモ"},
+  {t:"g", q:"合格発表の日の自分に、胸を張って会いに行け。", by:"攻略メモ"},
+  {t:"g", q:"眠い時は寝ろ。起きたら全力。中途半端が一番もったいない。", by:"攻略メモ"},
+  {t:"g", q:"迷ったら英語をやれ。", by:"攻略メモ"},
+  {t:"g", q:"やる気は待っても来ない。机に座った5分後に来る。", by:"攻略メモ"},
+  {t:"push", q:"遅れは今日なら取り返せる。明日に回すと倍になる。", by:"攻略メモ"},
+  {t:"push", q:"計画通りにいかない日もある。大事なのは、今からの1時間だ。", by:"攻略メモ"},
+  {t:"push", q:"ペースが落ちてる。スマホを置いて、スタートを押せ。", by:"攻略メモ"},
+  {t:"push", q:"差は開くほど詰めにくい。今日のうちに詰めろ。", by:"攻略メモ"},
+  {t:"push", q:"後悔するのは、やらなかった時間のほうだ。", by:"攻略メモ"},
+  {t:"praise", q:"ペース線を超えてる。この貯金が本番の余裕になる。", by:"攻略メモ"},
+  {t:"praise", q:"いい流れだ。このまま淡々と積め。", by:"攻略メモ"},
+  {t:"praise", q:"昨日の自分には勝ってる。今日も勝て。", by:"攻略メモ"},
+  {t:"praise", q:"積み上げた時間は裏切らない。ちゃんと進んでる。", by:"攻略メモ"}
+];
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const WD = ["日","月","火","水","木","金","土"];
+const hrs = min => (Math.round(min / 6) / 10).toFixed(1);
+const trimH = min => String(Number((min / 60).toFixed(2)));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function keyOf(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+function dayKey(t = Date.now()){ return keyOf(new Date(t - DAY_START_HOUR * 3600e3)); }
+function parseDate(s){ const [y,m,d] = String(s).split("-").map(Number); return new Date(y, (m||1)-1, d||1); }
+function addDays(k, n){ const d = parseDate(k); d.setDate(d.getDate() + n); return keyOf(d); }
+function daysBetween(a, b){ return Math.round((parseDate(b) - parseDate(a)) / 864e5); }
+function labelDay(k){ const d = parseDate(k); return (d.getMonth()+1) + "/" + d.getDate() + "（" + WD[d.getDay()] + "）"; }
+
+function parseExams(text){
+  const out = [];
+  for (const line of String(text || "").split("\n")) {
+    const m = line.trim().match(/^(\d{4}-\d{1,2}-\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?\s+(.+)$/);
+    if (!m) continue;
+    const d = parseDate(m[1]);
+    d.setHours(m[2] ? +m[2] : 9, m[3] ? +m[3] : 0, 0, 0);
+    if (!isNaN(d)) out.push({ at: d, label: m[4].trim(), key: keyOf(parseDate(m[1])) });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+function kindOf(label){
+  if (/ゲーム|game/i.test(label)) return "game";
+  if (/休憩|食|風呂|起床|就寝|休み|睡眠/.test(label)) return "rest";
+  return "study";
+}
+function shift(m){ return m < DAY_START_HOUR * 60 ? m + 1440 : m; }
+function parseSchedule(text){
+  const out = [];
+  for (const line of String(text || "").split("\n")) {
+    const m = line.trim().match(/^(\d{1,2}):(\d{2})\s*[-–~〜ー]\s*(\d{1,2}):(\d{2})\s+(.+)$/);
+    if (!m) continue;
+    const s = shift(+m[1] * 60 + +m[2]);
+    let e = shift(+m[3] * 60 + +m[4]);
+    if (e <= s) e += 1440;
+    out.push({ s, e, label: m[5].trim(), kind: kindOf(m[5]), text: pad(+m[1]) + ":" + m[2] + "–" + pad(+m[3]) + ":" + m[4] });
+  }
+  return out.sort((a, b) => a.s - b.s);
+}
+function sums(blocks){
+  let study = 0, game = 0;
+  for (const b of blocks) { if (b.kind === "study") study += b.e - b.s; if (b.kind === "game") game += b.e - b.s; }
+  return { study, game };
+}
+
+/* ---------- state ---------- */
+const state = { days: {}, timer: { running: false }, settings: { ...DEFAULTS }, quotes: [] };
+let backend = null, quotePicked = false, curQuote = null, selectedDay = dayKey(), lastToday = dayKey(), lastMinute = -1;
+
+function modeOf(k){ return (state.days[k] && state.days[k].mode) || "normal"; }
+function targetFor(mode){ return sums(parseSchedule(mode === "refresh" ? state.settings.refresh : state.settings.normal)).study || 1; }
+function runningMin(){
+  const t = state.timer;
+  return t && t.running && t.startedAt ? Math.max(0, (Date.now() - t.startedAt) / 60000) : 0;
+}
+function minOf(k){
+  let m = (state.days[k] && state.days[k].min) || 0;
+  if (state.timer.running && state.timer.day === k) m += runningMin();
+  return m;
+}
+
+/* ---------- storage backends ---------- */
+function localBackend(onChange){
+  const KEY = "kouryaku-juken-v1";
+  let data = { days: {}, timer: { running: false }, settings: null, quotes: [] };
+  try { const raw = localStorage.getItem(KEY); if (raw) data = Object.assign(data, JSON.parse(raw)); } catch (e) {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} onChange(data); return Promise.resolve(); };
+  setTimeout(() => onChange(data), 0);
+  return {
+    kind: "local",
+    saveDay(k, v){ data.days[k] = v; return persist(); },
+    saveTimer(v){ data.timer = v; return persist(); },
+    saveSettings(v){ data.settings = v; return persist(); },
+    addQuote(v){ data.quotes.push({ id: "q" + Date.now(), ...v }); return persist(); },
+    deleteQuote(id){ data.quotes = data.quotes.filter(q => q.id !== id); return persist(); }
+  };
+}
+function dbBackend(db, onChange){
+  const data = { days: {}, timer: { running: false }, settings: null, quotes: [] };
+  const chains = {};
+  const write = (path, fn) => {
+    chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => {
+      console.warn(e); toast("保存できませんでした。通信を確認して、もう一度押してください。");
+    });
+    return chains[path];
+  };
+  const fail = e => { console.warn(e); setSync("err"); };
+  db.collection("days").onSnapshot(s => { const d = {}; s.docs.forEach(x => { d[x.id] = x.data(); }); data.days = d; onChange(data); }, fail);
+  db.doc("state/timer").onSnapshot(s => { data.timer = s.exists ? s.data() : { running: false }; onChange(data); }, fail);
+  db.doc("settings/main").onSnapshot(s => { data.settings = s.exists ? s.data() : null; onChange(data); }, fail);
+  db.collection("quotes").onSnapshot(s => { data.quotes = s.docs.map(x => ({ id: x.id, ...x.data() })); onChange(data); }, fail);
+  return {
+    kind: "db",
+    saveDay: (k, v) => write("days/" + k, () => db.doc("days/" + k).set(v)),
+    saveTimer: v => write("state/timer", () => db.doc("state/timer").set(v)),
+    saveSettings: v => write("settings/main", () => db.doc("settings/main").set(v)),
+    addQuote: v => db.collection("quotes").add(v).catch(() => toast("言葉を保存できませんでした。もう一度押してください。")),
+    deleteQuote: id => write("quotes/" + id, () => db.doc("quotes/" + id).delete())
+  };
+}
+function onData(data){
+  state.days = data.days || {};
+  state.timer = data.timer || { running: false };
+  state.settings = { ...DEFAULTS, ...(data.settings || {}) };
+  state.quotes = data.quotes || [];
+  if (!quotePicked) { quotePicked = true; pickQuote(); }
+  renderData();
+  renderLive();
+}
+function setSync(s){
+  const el = $("sync"); el.dataset.s = s;
+  el.textContent = s === "db" ? "保存先：クラウド（スマホとPCで同期）" : s === "local" ? "保存先：この端末だけ" : s === "err" ? "同期エラー。再読み込みしてください" : "接続中";
+}
+let toastT = 0;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+function needBackend(){ if (!backend) { toast("読み込み中です。少し待ってから押してください。"); return false; } return true; }
+
+/* ---------- actions ---------- */
+function setDayMin(k, min){
+  const cur = state.days[k] || {};
+  return backend.saveDay(k, { ...cur, date: k, min: Math.round(clamp(min, 0, 24 * 60)), mode: cur.mode || "normal" });
+}
+function toggleTimer(){
+  if (!needBackend()) return;
+  const t = state.timer;
+  if (t.running) {
+    const add = runningMin();
+    const k = t.day || dayKey(t.startedAt);
+    const base = (state.days[k] && state.days[k].min) || 0;
+    setDayMin(k, base + add);
+    backend.saveTimer({ running: false });
+    toast(hrs(add) + "時間 記録した。ボスに" + hrs(add) + "ダメージ。");
+  } else {
+    backend.saveTimer({ running: true, startedAt: Date.now(), day: dayKey() });
+  }
+}
+function setMode(mode){
+  if (!needBackend()) return;
+  const k = dayKey(), cur = state.days[k] || {};
+  backend.saveDay(k, { ...cur, date: k, min: cur.min || 0, mode });
+}
+
+/* ---------- quotes ---------- */
+function paceDiffMin(){
+  const s = state.settings, today = dayKey();
+  const total = Object.keys(state.days).reduce((a, k) => a + ((state.days[k] && state.days[k].min) || 0), 0) + runningMin();
+  const totalDays = Math.max(1, daysBetween(s.startDate, s.deadline) + 1);
+  const idx = clamp(daysBetween(s.startDate, today), 0, totalDays);
+  return total - (s.goalHours * 60) * idx / totalDays;
+}
+function pickQuote(){
+  const diff = paceDiffMin();
+  const mood = diff < -60 ? "push" : diff > 60 ? "praise" : "g";
+  let pool = QUOTES.filter(q => q.t === "g" || q.t === mood);
+  const mine = state.quotes.map(q => ({ t: "mine", q: q.text, by: q.by || "自分" }));
+  pool = pool.concat(mine, mine);
+  let q; let guard = 0;
+  do { q = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && curQuote && q.q === curQuote.q && guard++ < 10);
+  curQuote = q;
+  $("quoteText").textContent = q.q;
+  $("quoteBy").textContent = "— " + q.by;
+  $("quoteTag").textContent = q.t === "mine" ? "自分の言葉" : q.t === "push" ? "今日の言葉　ペース線より遅れ気味" : q.t === "praise" ? "今日の言葉　ペース線を上回ってる" : "今日の言葉";
+}
+
+/* ---------- render (data-driven) ---------- */
+function renderData(){
+  const s = state.settings, today = dayKey();
+  // exams list
+  const exams = parseExams(s.exams), now = Date.now();
+  $("examList").innerHTML = "";
+  exams.forEach(e => {
+    const li = document.createElement("li");
+    const d = daysBetween(dayKey(now), e.key);
+    if (e.at < now) li.className = "past";
+    const dd = document.createElement("span"); dd.className = "d num"; dd.textContent = e.at < now ? "済" : "D-" + Math.max(0, Math.ceil((e.at - now) / 864e5));
+    const lb = document.createElement("span"); lb.textContent = labelDay(e.key) + " " + e.label;
+    li.append(dd, lb); $("examList").append(li);
+  });
+  // mode toggle
+  const mode = modeOf(today);
+  const nb = sums(parseSchedule(s.normal)), rb = sums(parseSchedule(s.refresh));
+  $("mNormal").textContent = trimH(nb.study) + "h" + (nb.game ? "＋ゲーム" + trimH(nb.game) + "h" : "");
+  $("mRefresh").textContent = trimH(rb.study) + "h" + (rb.game ? "＋ゲーム" + trimH(rb.game) + "h" : "");
+  document.querySelectorAll(".seg-toggle button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  const ms = mode === "refresh" ? rb : nb;
+  $("schedTitle").textContent = "本日のモード：" + (mode === "refresh" ? "リフレッシュ日" : "通常日") + "（" + trimH(ms.study) + "h" + (ms.game ? "＋ゲーム" + trimH(ms.game) + "h" : "") + "）";
+  renderSchedule();
+  renderHeat();
+  // my quotes
+  const ul = $("myQuotes"); ul.innerHTML = "";
+  state.quotes.forEach(q => {
+    const li = document.createElement("li");
+    const sp = document.createElement("span"); sp.textContent = q.text + (q.by ? "（" + q.by + "）" : "");
+    const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost danger"; del.textContent = "削除";
+    del.onclick = () => { if (needBackend()) backend.deleteQuote(q.id); };
+    li.append(sp, del); ul.append(li);
+  });
+  // settings form (don't clobber while editing)
+  if (!$("settings").open) fillSettings(s);
+}
+function fillSettings(s){
+  $("sGoal").value = s.goalHours; $("sStart").value = s.startDate; $("sDeadline").value = s.deadline;
+  $("sExams").value = s.exams; $("sNormal").value = s.normal; $("sRefresh").value = s.refresh;
+}
+function renderSchedule(){
+  const mode = modeOf(dayKey());
+  const blocks = parseSchedule(mode === "refresh" ? state.settings.refresh : state.settings.normal);
+  const d = new Date(), nowM = shift(d.getHours() * 60 + d.getMinutes());
+  const ul = $("schedList"); ul.innerHTML = "";
+  let cur = null, next = null;
+  blocks.forEach(b => {
+    const li = document.createElement("li");
+    const on = nowM >= b.s && nowM < b.e;
+    if (on) cur = b; else if (!next && b.s > nowM) next = b;
+    li.className = b.kind + (on ? " now" : nowM >= b.e ? " past" : "");
+    const t = document.createElement("span"); t.className = "t"; t.textContent = b.text;
+    const l = document.createElement("span"); l.textContent = b.label;
+    const k = document.createElement("span"); k.className = "k"; k.textContent = { study: "勉強 " + trimH(b.e - b.s) + "h", rest: "休み", game: "ゲーム " + trimH(b.e - b.s) + "h" }[b.kind];
+    li.append(t, l, k); ul.append(li);
+  });
+  const nl = $("nowLine");
+  if (cur) nl.innerHTML = "今は <b></b>　残り " + (cur.e - nowM) + "分" + (next ? "　→ 次：" : "");
+  else if (next) nl.innerHTML = "次は <b></b>　あと " + (next.s - nowM) + "分";
+  else nl.textContent = "";
+  const b = nl.querySelector("b"); if (b) b.textContent = (cur || next).label;
+  if (cur && next) nl.append(document.createTextNode(next.label));
+}
+function renderHeat(){
+  const s = state.settings, today = dayKey();
+  const end = s.deadline >= today ? s.deadline : today;
+  const start = s.startDate;
+  const heat = $("heat"); heat.innerHTML = "";
+  const lead = (parseDate(start).getDay() + 6) % 7; // Monday first
+  for (let i = 0; i < lead; i++) { const p = document.createElement("span"); p.className = "pad"; heat.append(p); }
+  let hit = 0, logged = 0, loggedMin = 0;
+  for (let k = start, guard = 0; k <= end && guard < 800; k = addDays(k, 1), guard++) {
+    const b = document.createElement("button"); b.type = "button";
+    const m = minOf(k), tg = targetFor(modeOf(k));
+    const future = k > today;
+    if (future) b.disabled = true;
+    const r = m / tg;
+    if (!future && m > 0) { logged++; loggedMin += m; }
+    if (!future && r >= 1) hit++;
+    b.className = (m <= 0 ? "" : r >= 1 ? "l5" : r >= .75 ? "l4" : r >= .5 ? "l3" : r >= .25 ? "l2" : "l1") + (k === today ? " today" : "") + (k === selectedDay ? " sel" : "");
+    const lab = labelDay(k) + " " + hrs(m) + "時間" + (modeOf(k) === "refresh" ? "（リフレッシュ日）" : "");
+    b.title = lab; b.setAttribute("aria-label", lab);
+    if (!future) b.onclick = () => { selectedDay = k; renderHeat(); renderLive(); };
+    heat.append(b);
+  }
+  $("stHit").innerHTML = hit + "<small> 日</small>";
+  $("stAvg").innerHTML = (logged ? hrs(loggedMin / logged) : "0.0") + "<small> h</small>";
+}
+
+/* ---------- render (every second) ---------- */
+function renderLive(){
+  const s = state.settings, now = Date.now(), today = dayKey(now);
+  if (today !== lastToday) { if (selectedDay === lastToday) selectedDay = today; lastToday = today; renderData(); }
+  const minute = Math.floor(now / 60000);
+  if (minute !== lastMinute) { lastMinute = minute; renderSchedule(); }
+  // countdown
+  const exams = parseExams(s.exams), nxt = exams.find(e => e.at > now);
+  if (nxt) {
+    let ms = nxt.at - now;
+    const D = Math.floor(ms / 864e5); ms -= D * 864e5;
+    const H = Math.floor(ms / 36e5); ms -= H * 36e5;
+    const M = Math.floor(ms / 6e4); ms -= M * 6e4;
+    $("cdD").textContent = D; $("cdH").textContent = pad(H); $("cdM").textContent = pad(M); $("cdS").textContent = pad(Math.floor(ms / 1000));
+    $("heroName").textContent = nxt.label;
+    const avg = (6 * targetFor("normal") + targetFor("refresh")) / 7;
+    $("heroMeta").textContent = labelDay(nxt.key) + " " + nxt.at.getHours() + ":" + pad(nxt.at.getMinutes()) + " 開始として計算。今の時間割のペースだと、ここまでに勉強できるのは残り約" + Math.round(avg * (nxt.at - now) / 864e5 / 60).toLocaleString() + "時間。";
+  } else {
+    ["cdD","cdH","cdM","cdS"].forEach(id => $(id).textContent = "--");
+    $("heroName").textContent = "次の試験日が未設定";
+    $("heroMeta").textContent = "下の設定で試験日を入れてください。";
+  }
+  // boss
+  const goal = s.goalHours * 60;
+  const total = Object.keys(state.days).reduce((a, k) => a + ((state.days[k] && state.days[k].min) || 0), 0) + runningMin();
+  const totalDays = Math.max(1, daysBetween(s.startDate, s.deadline) + 1);
+  const idx = clamp(daysBetween(s.startDate, today), 0, totalDays);
+  const line = goal * idx / totalDays;
+  const diff = total - line;
+  const beforeToday = total - minOf(today);
+  const remainDays = Math.max(1, totalDays - idx);
+  const left = Math.max(0, goal - total);
+  $("hpNow").textContent = (left / 60).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  $("bossTitle").textContent = "合格（" + Number(s.goalHours).toLocaleString() + "時間）";
+  $("hpFill").style.width = (100 * left / goal) + "%";
+  $("paceMark").style.left = (100 * (1 - line / goal)) + "%";
+  $("hpBar").setAttribute("aria-label", "残りHP " + hrs(left) + "時間 / " + s.goalHours + "時間");
+  $("stTotal").innerHTML = hrs(total) + "<small> h</small>";
+  $("stPct").innerHTML = (100 * total / goal).toFixed(1) + "<small> %</small>";
+  const dEl = $("stDiff");
+  dEl.innerHTML = (diff >= 0 ? "＋" : "−") + hrs(Math.abs(diff)) + "<small> h</small>";
+  dEl.className = "num " + (diff >= 0 ? "pos" : "neg");
+  $("stNeed").innerHTML = (idx >= totalDays ? "--" : hrs(Math.max(0, goal - beforeToday) / remainDays)) + "<small> h</small>";
+  // today
+  const tm = minOf(today), tg = targetFor(modeOf(today));
+  $("todayDate").textContent = "今日 " + labelDay(today);
+  $("todaySum").textContent = "今日 " + hrs(tm) + "h / " + trimH(tg) + "h" + (tm >= tg ? "　達成" : "　あと" + hrs(tg - tm) + "h");
+  const tb = $("todayBar"); tb.style.width = clamp(100 * tm / tg, 0, 100) + "%"; tb.className = tm >= tg ? "done" : "";
+  const on = !!state.timer.running;
+  const r = runningMin() * 60;
+  $("clock").textContent = Math.floor(r / 3600) + ":" + pad(Math.floor(r / 60) % 60) + ":" + pad(Math.floor(r) % 60);
+  $("clock").dataset.on = on ? "1" : "0";
+  $("goBtn").dataset.on = on ? "1" : "0";
+  $("goBtn").textContent = on ? "■ 終了して記録" : "▶ 勉強スタート";
+  // streak
+  let k = minOf(today) >= tg ? today : addDays(today, -1), streak = 0;
+  while (k >= s.startDate && minOf(k) >= targetFor(modeOf(k)) && streak < 999) { streak++; k = addDays(k, -1); }
+  $("streak").textContent = "目標達成 " + streak + "日連続";
+  // adjust label
+  $("adjLabel").textContent = "記録を直す：" + (selectedDay === today ? "今日" : labelDay(selectedDay)) + "（合計 " + hrs(minOf(selectedDay)) + "h）";
+}
+
+/* ---------- events ---------- */
+$("goBtn").onclick = toggleTimer;
+document.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => {
+  if (!needBackend()) return;
+  const k = selectedDay, base = (state.days[k] && state.days[k].min) || 0;
+  setDayMin(k, base + Number(b.dataset.adj));
+});
+$("setForm").onsubmit = e => {
+  e.preventDefault();
+  if (!needBackend()) return;
+  const v = parseFloat($("setHours").value);
+  if (isNaN(v) || v < 0 || v > 24) { toast("0〜24の数字で入れてください。"); return; }
+  const k = selectedDay;
+  const runningHere = state.timer.running && state.timer.day === k ? runningMin() : 0;
+  setDayMin(k, v * 60 - runningHere);
+  $("setHours").value = "";
+  toast((k === dayKey() ? "今日" : labelDay(k)) + "を " + v + "時間 にした。");
+};
+document.querySelectorAll(".seg-toggle button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("quoteNext").onclick = pickQuote;
+$("quoteAddToggle").onclick = () => {
+  const f = $("quoteForm"); f.hidden = !f.hidden;
+  $("quoteAddToggle").setAttribute("aria-expanded", String(!f.hidden));
+  if (!f.hidden) $("qText").focus();
+};
+$("quoteForm").onsubmit = e => {
+  e.preventDefault();
+  if (!needBackend()) return;
+  const text = $("qText").value.trim(); if (!text) return;
+  backend.addQuote({ text, by: $("qBy").value.trim(), at: Date.now() });
+  $("qText").value = ""; $("qBy").value = "";
+  toast("言葉を追加した。");
+};
+$("editSched").onclick = () => { $("settings").open = true; $("sNormal").focus(); $("settings").scrollIntoView({ behavior: "smooth", block: "start" }); };
+$("settings").addEventListener("toggle", () => { if ($("settings").open) fillSettings(state.settings); });
+$("sReset").onclick = () => { fillSettings(DEFAULTS); toast("初期値を入れた。保存を押すと反映される。"); };
+$("settingsForm").onsubmit = e => {
+  e.preventDefault();
+  if (!needBackend()) return;
+  const v = {
+    goalHours: Math.max(1, parseInt($("sGoal").value, 10) || DEFAULTS.goalHours),
+    startDate: $("sStart").value || DEFAULTS.startDate,
+    deadline: $("sDeadline").value || DEFAULTS.deadline,
+    exams: $("sExams").value, normal: $("sNormal").value, refresh: $("sRefresh").value
+  };
+  if (v.deadline < v.startDate) { toast("期限はスタート日より後にしてください。"); return; }
+  const bad = ["normal", "refresh"].filter(m => !parseSchedule(v[m]).length);
+  if (bad.length) { toast("時間割が読み取れません。「07:00-09:00 英単語」の形で書いてください。"); return; }
+  backend.saveSettings(v).then(() => { toast("設定を保存した。"); $("settings").open = false; renderData(); renderLive(); });
+};
+
+/* ---------- boot ---------- */
+pickQuote();
+renderData();
+renderLive();
+setInterval(renderLive, 1000);
+(async () => {
+  let db = null;
+  try { if (window.claude && window.claude.use) db = await window.claude.use("db"); } catch (e) { db = null; }
+  backend = db ? dbBackend(db, onData) : localBackend(onData);
+  setSync(db ? "db" : "local");
+})();
+})();
+</script>
