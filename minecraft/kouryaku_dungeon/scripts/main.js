@@ -106,7 +106,8 @@ function st() {
       cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3, range: "p1" }, loadJSON("kr:cfg", {})),
       dun: loadJSON("kr:dun", null),
       camp: loadJSON("kr:camp", null),
-      prog: Object.assign({ max: 0 }, loadJSON("kr:prog", {}))
+      prog: Object.assign({ max: 0 }, loadJSON("kr:prog", {})),
+      run: loadJSON("kr:run", null)
     };
     // 1.1系の「その場の地下に作るダンジョン」は階層ダンジョンに置き換えたので捨てる
     if (S.dun && !S.dun.floor) S.dun = null;
@@ -122,6 +123,7 @@ function saveAll() {
   saveJSON("kr:dun", S.dun);
   saveJSON("kr:camp", S.camp);
   saveJSON("kr:prog", S.prog);
+  saveJSON("kr:run", S.run);
 }
 system.runInterval(() => {
   if (!dirty) return;
@@ -413,7 +415,8 @@ async function askOne(p, i, opt = {}) {
   if (ok) addStat(p, "ok");
   if (fast) { addStat(p, "fast"); setBest(p, "combo", s.stats.combo); }
   if (!wasLearned && (s.box[word] ?? 0) >= 4) addStat(p, "learned");
-  const earn = opt.reward === false ? 0 : fast ? COIN.fast + (s.stats.combo % 5 === 0 ? COIN.combo5 : 0) : ok ? COIN.slow : 0;
+  onAnswer(p, ok, fast, s.stats.combo);
+  const earn = Math.round((opt.reward === false ? 0 : fast ? COIN.fast + (s.stats.combo % 5 === 0 ? COIN.combo5 : 0) : ok ? COIN.slow : 0) * coinMult());
   const coinText = earn ? "  §e+" + earn + "コイン" : "";
   if (earn) addCoinsQuiet(p, earn);
 
@@ -433,7 +436,7 @@ async function askOne(p, i, opt = {}) {
     sound(p, "note.bass");
     p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + inline(meaning));
     p.sendMessage("§c× §f" + word + " §7= §f" + inline(meaning));
-    hurtSafely(p, opt.dmg ?? s.cfg.dmg);
+    hurtSafely(p, Math.ceil((opt.dmg ?? s.cfg.dmg) * missDmgMult()));
     // 意味をまだ見ていない時（わからない・時間切れ・4択のミス）は、その場で答えを見せる
     if (!revealed && p.isValid) {
       const fa = new ActionFormData()
@@ -766,11 +769,12 @@ world.afterEvents.playerSpawn.subscribe(ev => {
     if (ev.initialSpawn) {
       ensureWorld(p);
       if (!hasCompass(p)) giveCompass(p);
-      p.sendMessage("§6[攻略ダンジョン] §f床の色で行き先が決まる：§8黒§f=ダンジョン  §6金§f=ショップ  §9青§f=ミッション  §d紫§f=単語の書。コンパスでもメニューが開く。");
+      p.sendMessage("§6[攻略ダンジョン] §fShiftを2回すばやく押すとメニュー。床の色で行き先が決まる：§8黒§f=ダンジョン  §6金§f=ショップ  §9青§f=ミッション  §d紫§f=単語の書。コンパスでもメニューが開く。");
       const judged = judgedCount(), total = rangeList().length;
       if (judged < total) p.sendMessage("§e最初に「単語の書」→「セットアップ」で、知らない単語を選別しておくのがおすすめ（" + range().label + " 済 " + judged + " / " + total + "）。");
     } else if (st().camp) {
-      // 倒れたらキャンプに戻ってくる
+      // 倒れたらキャンプに戻ってくる。祝福は消える
+      if (st().run) { st().run = null; dirty = true; p.sendMessage("§c倒れた……祝福は消えた。"); }
       p.teleport(campSpawn(), { dimension: ow() });
     }
     setupPlayer(p);
@@ -823,6 +827,7 @@ function roomAt(d, loc) {
   return d.rooms.findIndex(r => loc.x >= r.x1 + 1 && loc.x < r.x2 && loc.z >= r.z1 + 1 && loc.z < r.z2 && loc.y >= d.Y && loc.y <= d.Y + 6);
 }
 function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 /** グリッド上を、同じマスを通らずに len マス歩く道順 */
 function randomPath(len) {
   for (let attempt = 0; attempt < 80; attempt++) {
@@ -841,49 +846,105 @@ function randomPath(len) {
   }
   return Array.from({ length: Math.min(len, GRID_W) }, (_, k) => [k, 1]);
 }
-function roomCount(n) { return Math.min(3 + Math.floor((n - 1) / 2), 7); }
+function roomCount(n) { return Math.min(4 + Math.floor((n - 1) / 2), 8); }
+
+// 階ごとの雰囲気（壁・床・明かり・柱）。ブロックが無かった時のために予備も持つ
+const THEMES = [
+  { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave" },
+  { from: 4, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "mossy_cobblestone", "cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave" },
+  { from: 7, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood" },
+  { from: 10, name: "深淵", shell: ["obsidian"], floors: ["sculk", "deepslate_tiles", "crying_obsidian"], light: "sea_lantern", pillar: "crying_obsidian", sound: "ambient.warped_forest.mood" }
+];
+const themeOf = n => [...THEMES].reverse().find(t => n >= t.from) ?? THEMES[0];
+/** fill を試して、失敗したら次の候補ブロックで試す */
+function fillAny(dim, a, blocks) {
+  for (const b of blocks) {
+    try { dim.runCommand(`fill ${a} ${b}`); return; } catch (e) {}
+  }
+  cmd(dim, `fill ${a} deepslate_bricks`);
+}
+
+// 部屋の種類
+const ROOM_INFO = {
+  battle:   { name: "戦いの間",   sub: "敵を全員倒すと扉が開く" },
+  elite:    { name: "精鋭の間",   sub: "強敵がいる。倒せば祝福とコイン" },
+  treasure: { name: "宝物庫",     sub: "中央の宝箱に近づけ" },
+  fountain: { name: "癒しの泉",   sub: "中央の光に触れると全回復" },
+  shrine:   { name: "単語の祭壇", sub: "中央の祭壇で試練に挑める" },
+  boss:     { name: "門番の間",   sub: "門番を倒せ。最後に5問の試練" }
+};
+function roomTypes(len, n) {
+  const types = ["battle"];
+  let fountain = false;
+  for (let k = 1; k < len - 1; k++) {
+    /** @type {Array<[string, number]>} */
+    const bag = [["battle", 50], ["elite", n >= 2 ? 16 : 0], ["treasure", 12], ["fountain", fountain ? 0 : 9], ["shrine", 13]];
+    let r = Math.random() * bag.reduce((a, [, w]) => a + w, 0), t = "battle";
+    for (const [name, w] of bag) { r -= w; if (r <= 0) { t = name; break; } }
+    if (t === "fountain") fountain = true;
+    types.push(t);
+  }
+  types.push("boss");
+  return types;
+}
 const POOLS = [
   { from: 1, mobs: ["minecraft:zombie", "minecraft:skeleton", "minecraft:spider"] },
   { from: 3, mobs: ["minecraft:husk", "minecraft:stray"] },
-  { from: 4, mobs: ["minecraft:witch"] },
+  { from: 4, mobs: ["minecraft:witch", "minecraft:bogged"] },
   { from: 5, mobs: ["minecraft:vindicator", "minecraft:pillager", "minecraft:cave_spider"] },
-  { from: 8, mobs: ["minecraft:wither_skeleton"] }
+  { from: 7, mobs: ["minecraft:blaze", "minecraft:wither_skeleton"] },
+  { from: 10, mobs: ["minecraft:evoker", "minecraft:ravager"] }
 ];
-function waveFor(n, boss) {
-  const pool = POOLS.filter(x => n >= x.from).flatMap(x => x.mobs);
-  const count = boss ? 2 + Math.min(3, Math.floor(n / 3)) : Math.min(3 + Math.floor(n / 2), 8);
-  const out = Array.from({ length: count }, () => pool[Math.floor(Math.random() * pool.length)]);
-  if (boss) out.unshift(n <= 3 ? "minecraft:husk" : n <= 7 ? "minecraft:wither_skeleton" : "minecraft:ravager");
-  return out;
+const poolFor = n => POOLS.filter(x => n >= x.from).flatMap(x => x.mobs);
+function waveFor(n, type) {
+  const pool = poolFor(n);
+  if (type === "boss") {
+    const boss = n <= 3 ? "minecraft:husk" : n <= 6 ? "minecraft:vindicator" : n <= 9 ? "minecraft:wither_skeleton" : "minecraft:ravager";
+    return [boss, ...Array.from({ length: 2 + Math.min(3, Math.floor(n / 3)) }, () => pick(pool))];
+  }
+  if (type === "elite") return [pick(poolFor(n + 3)), pick(pool), pick(pool)];
+  return Array.from({ length: Math.min(3 + Math.floor(n / 2), 8) }, () => pick(pool));
 }
 
 /** n階を作る（前の階は消して作り直す） */
 function genFloor(n) {
-  const s = st(), sl = s.camp.slot, Y = sl.Y, dim = ow();
+  const s = st(), sl = s.camp.slot, Y = sl.Y, dim = ow(), th = themeOf(n);
   for (const e of dim.getEntities({ tags: ["kr_wave"] })) { try { e.remove(); } catch (err) {} }
   const mid = Math.floor((sl.X1 + sl.X2) / 2);
-  cmd(dim, `fill ${sl.X1 - 1} ${Y - 1} ${sl.Z1 - 1} ${mid} ${Y + 7} ${sl.Z2 + 1} deepslate_bricks`);
-  cmd(dim, `fill ${mid + 1} ${Y - 1} ${sl.Z1 - 1} ${sl.X2 + 1} ${Y + 7} ${sl.Z2 + 1} deepslate_bricks`);
+  fillAny(dim, `${sl.X1 - 1} ${Y - 1} ${sl.Z1 - 1} ${mid} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
+  fillAny(dim, `${mid + 1} ${Y - 1} ${sl.Z1 - 1} ${sl.X2 + 1} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
 
   const path = randomPath(roomCount(n) + 1);
-  const floors = ["polished_deepslate", "deepslate_tiles", "polished_blackstone", "mossy_stone_bricks", "cracked_deepslate_tiles"];
+  const types = roomTypes(path.length, n);
   const rooms = path.map(([gx, gz], k) => {
-    const boss = k === path.length - 1;
-    const size = boss ? 15 : 9 + 2 * randInt(0, 2), h = (size - 1) / 2;
+    const type = types[k], big = type === "boss";
+    const size = big ? 15 : type === "battle" || type === "elite" ? 9 + 2 * randInt(0, 2) : 9, h = (size - 1) / 2;
     const cx = sl.X1 + gx * CELL + 9, cz = sl.Z1 + gz * CELL + 9;
-    return { x1: cx - h, x2: cx + h, z1: cz - h, z2: cz + h, cx, cz, state: "idle", boss, door: /** @type {number[] | null} */ (null) };
+    return { x1: cx - h, x2: cx + h, z1: cz - h, z2: cz + h, cx, cz, state: "idle", type, boss: big, used: false, door: /** @type {number[] | null} */ (null) };
   });
   rooms.forEach((r, k) => {
-    const floor = r.boss ? "polished_blackstone_bricks" : floors[randInt(0, floors.length - 1)];
     cmd(dim, `fill ${r.x1 + 1} ${Y + 1} ${r.z1 + 1} ${r.x2 - 1} ${Y + 5} ${r.z2 - 1} air`);
-    cmd(dim, `fill ${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1} ${floor}`);
-    const light = r.boss ? "shroomlight" : "sea_lantern";
+    fillAny(dim, `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`, [r.boss ? "polished_blackstone_bricks" : pick(th.floors), "polished_deepslate"]);
     for (const [lx, lz] of [[r.x1 + 2, r.z1 + 2], [r.x2 - 2, r.z1 + 2], [r.x1 + 2, r.z2 - 2], [r.x2 - 2, r.z2 - 2], [r.cx, r.cz]]) {
-      cmd(dim, `setblock ${lx} ${Y + 6} ${lz} ${light}`);
+      cmd(dim, `setblock ${lx} ${Y + 6} ${lz} ${r.boss ? "shroomlight" : th.light}`);
     }
-    // 柱：門番の間は4本、ふつうの部屋はときどき
     const pillars = r.boss ? [[4, 4], [-4, 4], [4, -4], [-4, -4]] : (r.x2 - r.x1 >= 12 && Math.random() < 0.6 ? [[3, 3], [-3, -3]] : []);
-    for (const [ox, oz] of pillars) cmd(dim, `fill ${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 5} ${r.cz + oz} deepslate_tiles`);
+    for (const [ox, oz] of pillars) fillAny(dim, `${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 5} ${r.cz + oz}`, [th.pillar, "deepslate_tiles"]);
+    // 部屋の種類ごとの目印
+    if (r.type === "treasure") {
+      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} chest`);
+      for (const [ox, oz] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) cmd(dim, `setblock ${r.cx + ox} ${Y + 1} ${r.cz + oz} gold_block`);
+    }
+    if (r.type === "fountain") {
+      cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} prismarine`);
+      cmd(dim, `setblock ${r.cx} ${Y} ${r.cz} sea_lantern`);
+      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} soul_lantern`);
+    }
+    if (r.type === "shrine") {
+      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} enchanting_table`);
+      for (const [ox, oz] of [[2, 2], [-2, 2], [2, -2], [-2, -2]]) cmd(dim, `fill ${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 2} ${r.cz + oz} bookshelf`);
+    }
+    if (r.type === "elite") cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} redstone_block`);
     const next = rooms[k + 1];
     if (!next) return;
     if (next.cz === r.cz) {
@@ -899,7 +960,7 @@ function genFloor(n) {
     }
     setDoor(dim, r, "iron_bars");
   });
-  s.dun = { floor: n, Y, rooms };
+  s.dun = { floor: n, Y, rooms, theme: th.name, stat: { start: Date.now(), ans: 0, fast: 0, ok: 0 } };
   saveNow();
 }
 function setDoor(dim, r, block) {
@@ -912,11 +973,15 @@ function enterRoom(p, k) {
   const d = st().dun, r = d.rooms[k];
   p.teleport({ x: r.cx + 0.5, y: d.Y + 1, z: r.cz + 0.5 }, { dimension: ow() });
 }
-/** @param {Player} p @param {number} n */
-function startFloor(p, n) {
+/** @param {Player} p @param {number} n @param {boolean} [keepRun] 続けて潜る時は祝福を引き継ぐ */
+function startFloor(p, n, keepRun = false) {
+  const s = st();
+  if (!keepRun || !s.run) s.run = { bless: {}, feverUntil: 0 };
   genFloor(n);
   enterRoom(p, 0);
-  title(p, "§6§l" + n + "階", "敵を全員倒すと扉が開く");
+  const th = themeOf(n);
+  title(p, "§6§l" + th.name + " " + n + "階", "部屋：" + s.dun.rooms.map(r => ROOM_INFO[r.type].name.slice(0, 2)).join(" > "));
+  sound(p, th.sound);
 }
 /** @param {Player} p */
 function goToDungeon(p) {
@@ -925,9 +990,13 @@ function goToDungeon(p) {
   if (k < 0) k = d.rooms.length - 1;
   enterRoom(p, k);
 }
-/** @param {Player} p */
+/** 祝福を失ってキャンプへ @param {Player} p */
 function backToCamp(p) {
-  if (!st().camp) return;
+  const s = st();
+  if (!s.camp) return;
+  if (s.run && Object.keys(s.run.bless).length) p.sendMessage("§7キャンプに戻った。祝福は消えた。");
+  s.run = null;
+  dirty = true;
   p.teleport(campSpawn(), { dimension: ow() });
 }
 /** @param {Player} p */
@@ -937,19 +1006,100 @@ async function floorMenu(p) {
   const items = [];
   if (d && d.rooms.some(r => r.state !== "cleared")) {
     const done = d.rooms.filter(r => r.state === "cleared").length;
-    items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length + " クリア", ICON.resume, () => goToDungeon(p)]);
+    items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length, ICON.resume, () => goToDungeon(p)]);
   }
-  items.push(["§l" + (max + 1) + "階に挑戦\n§8まだ誰も踏み入れていない", ICON.boss, () => startFloor(p, max + 1)]);
-  for (let f = max; f >= Math.max(1, max - 7); f--) items.push(["§l" + f + "階\n§8クリア済み", ICON.dungeon, () => startFloor(p, f)]);
+  items.push(["§l" + (max + 1) + "階に挑戦\n§8" + themeOf(max + 1).name, ICON.boss, () => startFloor(p, max + 1)]);
+  for (let f = max; f >= Math.max(1, max - 7); f--) items.push(["§l" + f + "階\n§8" + themeOf(f).name + " クリア済み", ICON.dungeon, () => startFloor(p, f)]);
   items.push(["やめる", ICON.back, () => {}]);
-  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7深い階ほど敵が強く、部屋が増える", items);
+  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7続けて潜るほど祝福がたまる。キャンプに戻ると消える", items);
 }
 
+/* ---------- 祝福（ローグライク）：部屋を突破するたびに3つから1つ選ぶ ---------- */
+const BLESSINGS = [
+  { id: "str",   name: "剛力",   icon: "textures/items/blaze_powder",  desc: "攻撃力アップ" },
+  { id: "spd",   name: "疾風",   icon: "textures/items/feather",       desc: "移動が速くなる" },
+  { id: "res",   name: "鉄壁",   icon: "textures/items/iron_ingot",    desc: "受けるダメージを減らす" },
+  { id: "regen", name: "再生",   icon: "textures/items/ghast_tear",    desc: "即答するとHP回復" },
+  { id: "guard", name: "守護",   icon: "textures/items/iron_chestplate",        desc: "単語のミスのダメージ半減" },
+  { id: "gold",  name: "錬金",   icon: "textures/items/gold_nugget",   desc: "獲得コイン+50%" },
+  { id: "vamp",  name: "吸血",   icon: "textures/items/redstone_dust", desc: "敵を倒すとHP回復" },
+  { id: "fever", name: "熱狂",   icon: "textures/items/blaze_rod",     desc: "フィーバーまでのコンボ-3" }
+];
+const MAX_BLESS = 3;
+const blessLv = id => (st().run?.bless?.[id]) ?? 0;
+/** @param {Player} p */
+async function chooseBlessing(p, why) {
+  const run = st().run;
+  if (!run) return;
+  const options = BLESSINGS.filter(b => blessLv(b.id) < MAX_BLESS).sort(() => Math.random() - 0.5).slice(0, 3);
+  if (!options.length) return;
+  const owned = BLESSINGS.filter(b => blessLv(b.id)).map(b => b.name + blessLv(b.id)).join(" ") || "なし";
+  sound(p, "random.orb");
+  await menu(p, "§l祝福を選べ", "§6" + why + "  §7今の祝福: " + owned,
+    options.map(b => ["§l" + b.name + "\n§8" + b.desc + "\n§8Lv" + blessLv(b.id) + " > " + (blessLv(b.id) + 1), b.icon, () => {
+      const r2 = st().run;
+      if (!r2) return;
+      r2.bless[b.id] = (r2.bless[b.id] ?? 0) + 1;
+      dirty = true;
+      applyBlessings(p);
+      p.sendMessage("§6祝福「" + b.name + "」Lv" + r2.bless[b.id] + " §fを手に入れた");
+    }]));
+}
+/** 祝福の効果（エフェクト）をかけ直す @param {Player} p */
+function applyBlessings(p) {
+  const run = st().run;
+  if (!run || !isInDungeon(p)) return;
+  const fever = Date.now() < (run.feverUntil ?? 0);
+  const eff = (id, lv) => { if (lv > 0) { try { p.addEffect(id, 20 * 8, { amplifier: lv - 1, showParticles: false }); } catch (e) {} } };
+  eff("strength", blessLv("str") + (fever ? 1 : 0));
+  eff("speed", blessLv("spd") + (fever ? 1 : 0));
+  eff("resistance", blessLv("res"));
+}
+system.runInterval(() => { for (const p of world.getPlayers()) applyBlessings(p); }, 20 * 5);
+function healPlayer(p, amount) {
+  try {
+    const hp = /** @type {any} */ (p.getComponent("minecraft:health"));
+    if (hp) hp.setCurrentValue(Math.min(hp.effectiveMax, hp.currentValue + amount));
+  } catch (e) {}
+}
+/** 獲得コインの倍率（錬金・フィーバー） */
+function coinMult() {
+  const run = st().run;
+  if (!run) return 1;
+  return (1 + 0.5 * blessLv("gold")) * (Date.now() < (run.feverUntil ?? 0) ? 2 : 1);
+}
+/** 単語のミスのダメージ倍率（守護） */
+function missDmgMult() { return blessLv("guard") ? Math.pow(0.5, blessLv("guard")) : 1; }
+/** 回答のあとの処理：階の成績、再生、フィーバー @param {Player} p */
+function onAnswer(p, ok, fast, combo) {
+  const s = st();
+  if (!s.run || !s.dun || !isInDungeon(p)) return;
+  const stt = s.dun.stat;
+  stt.ans++; if (ok) stt.ok++; if (fast) stt.fast++;
+  if (fast && blessLv("regen")) healPlayer(p, blessLv("regen") * 2);
+  const need = 10 - 3 * blessLv("fever");
+  if (fast && combo > 0 && combo % Math.max(4, need) === 0) {
+    s.run.feverUntil = Date.now() + 20000;
+    title(p, "§c§lFEVER!!", "20秒間 コイン2倍・攻撃と速さアップ");
+    sound(p, "mob.blaze.shoot");
+    applyBlessings(p);
+  }
+  dirty = true;
+}
+// 吸血：敵を倒すとHP回復
+world.afterEvents.entityDie.subscribe(ev => {
+  const p = ev.damageSource.damagingEntity;
+  if (!(p instanceof Player) || !blessLv("vamp")) return;
+  try { if (!ev.deadEntity.hasTag("kr_wave")) return; } catch (e) { return; }
+  healPlayer(p, 2 * blessLv("vamp"));
+});
+
+/* ---------- 部屋の中身 ---------- */
 function startWave(k) {
   const d = st().dun, r = d.rooms[k], n = d.floor, dim = ow();
   r.state = "active";
   saveNow();
-  waveFor(n, r.boss).forEach((type, idx) => {
+  waveFor(n, r.type).forEach((type, idx) => {
     const loc = { x: r.x1 + 2 + Math.random() * (r.x2 - r.x1 - 3), y: d.Y + 1, z: r.z1 + 2 + Math.random() * (r.z2 - r.z1 - 3) };
     try {
       const e = dim.spawnEntity(type, loc);
@@ -957,20 +1107,39 @@ function startWave(k) {
       e.addTag("kr_r" + k);
       if (n >= 6) e.addEffect("strength", 20 * 3600, { amplifier: 0, showParticles: false });
       if (n >= 10) e.addEffect("resistance", 20 * 3600, { amplifier: 0, showParticles: false });
-      if (r.boss && idx === 0) {
+      if (r.type === "boss" && idx === 0) {
         e.addTag("kr_boss");
         e.nameTag = "§4§l" + n + "階の門番";
         e.addEffect("resistance", 20 * 3600, { amplifier: Math.min(2, 1 + Math.floor(n / 6)), showParticles: false });
-        e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(4, n - 1), showParticles: false });
-        e.addEffect("regeneration", 20 * 5, { amplifier: 4, showParticles: false });
+        e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(4, n), showParticles: false });
+        e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
+      }
+      if (r.type === "elite" && idx === 0) {
+        e.addTag("kr_elite");
+        e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(3, 1 + Math.floor(n / 3)), showParticles: false });
+        e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
+        e.addEffect("speed", 20 * 3600, { amplifier: 0, showParticles: false });
       }
       tagWord(e, pickWord());
+      if (r.type === "elite" && idx === 0) e.nameTag = "§6§l精鋭 §r§e" + WORDS[mobWord.get(e.id) ?? 0][0];
     } catch (err) { console.warn("[kouryaku] spawn failed: " + err); }
   });
   for (const p of world.getPlayers()) {
     if (!isInDungeon(p)) continue;
-    title(p, "§6" + (r.boss ? n + "階 門番の間" : n + "階 第" + (k + 1) + "の間"), r.boss ? "門番を倒せ。最後に5問の試練がある" : "敵を全員倒すと扉が開く");
-    if (r.boss) sound(p, "mob.wither.spawn");
+    title(p, "§6" + ROOM_INFO[r.type].name, ROOM_INFO[r.type].sub);
+    sound(p, r.boss ? "mob.wither.spawn" : r.type === "elite" ? "mob.evocation_illager.prepare_summon" : "mob.zombie.say");
+  }
+}
+/** 戦わない部屋（宝物庫・泉・祭壇）は入った時点で扉を開ける */
+function enterPeacefulRoom(k) {
+  const d = st().dun, r = d.rooms[k];
+  r.state = "cleared";
+  saveNow();
+  setDoor(ow(), r, "air");
+  for (const p of world.getPlayers()) {
+    if (!isInDungeon(p)) continue;
+    title(p, "§b" + ROOM_INFO[r.type].name, ROOM_INFO[r.type].sub);
+    sound(p, "random.chestopen");
   }
 }
 function clearRoom(k) {
@@ -978,16 +1147,131 @@ function clearRoom(k) {
   r.state = "cleared";
   saveNow();
   setDoor(ow(), r, "air");
+  if (r.boss) return;
+  const elite = r.type === "elite";
   for (const p of world.getPlayers()) {
     if (!isInDungeon(p)) continue;
-    if (r.boss) continue;
     addStat(p, "clear");
-    addCoins(p, COIN.room, "部屋クリア");
-    title(p, "§a扉が開いた", "次の部屋へ進め");
+    addCoins(p, Math.round((elite ? COIN.room * 2 : COIN.room) * coinMult()), elite ? "精鋭撃破" : "部屋クリア");
+    title(p, "§a扉が開いた", elite ? "精鋭を倒した！ 祝福を選べ" : "祝福を選べ");
     sound(p, "random.door_open");
+    enqueue(p, () => chooseBlessing(p, elite ? "精鋭を倒した！" : "部屋を突破した！"));
+  }
+}
+// 宝物庫・泉・祭壇：中央に近づくと発動（1回だけ）
+system.runInterval(() => {
+  const d = st().dun;
+  if (!d) return;
+  for (const p of world.getPlayers()) {
+    if (!isInDungeon(p) || running.has(p.id)) continue;
+    const k = roomAt(d, p.location);
+    const r = d.rooms[k];
+    if (!r || r.used || !["treasure", "fountain", "shrine"].includes(r.type)) continue;
+    if (Math.hypot(p.location.x - (r.cx + 0.5), p.location.z - (r.cz + 0.5)) > 1.8) continue;
+    r.used = true;
+    saveNow();
+    if (r.type === "treasure") openTreasure(p, r);
+    if (r.type === "fountain") {
+      healPlayer(p, 40);
+      try { p.addEffect("regeneration", 20 * 10, { amplifier: 1 }); p.addEffect("absorption", 20 * 120, { amplifier: 1 }); } catch (e) {}
+      title(p, "§b癒された", "HP全回復＋守りの加護");
+      sound(p, "beacon.activate");
+    }
+    if (r.type === "shrine") enqueue(p, () => shrineTrial(p));
+  }
+}, 5);
+/** @param {Player} p */
+function openTreasure(p, r) {
+  cmd(ow(), `setblock ${r.cx} ${st().dun.Y + 1} ${r.cz} air`);
+  sound(p, "random.chestopen");
+  const roll = Math.random();
+  if (roll < 0.45) {
+    const n = Math.round(randInt(30, 60 + 10 * st().dun.floor) * coinMult());
+    addCoins(p, n, "宝箱");
+    title(p, "§6§l宝箱！", "+" + n + "コイン");
+  } else if (roll < 0.7) {
+    try { p.dimension.spawnItem(new ItemStack("minecraft:golden_apple", randInt(1, 2)), p.location); } catch (e) {}
+    title(p, "§6§l宝箱！", "金のリンゴ");
+  } else {
+    title(p, "§d§l宝箱！", "祝福を見つけた");
+    enqueue(p, () => chooseBlessing(p, "宝箱から祝福が出た！"));
+  }
+}
+/** 単語の祭壇：5問連続（ダメージなし）。全問即答なら大きな報酬 @param {Player} p */
+async function shrineTrial(p) {
+  let fast = 0;
+  const used = new Set();
+  for (let q = 0; q < 5; q++) {
+    const i = pickWord(used);
+    used.add(i);
+    const r = await askOne(p, i, { title: "§l§d単語の祭壇 " + (q + 1) + "/5", dmg: 0, progress: "即答 " + fast + "/" + q });
+    if (r.fast) fast++;
+    if (!p.isValid) return;
+  }
+  const n = Math.round(fast * 10 * coinMult());
+  if (n) addCoins(p, n, "祭壇");
+  if (fast === 5) {
+    title(p, "§d§l完璧！", "全問即答。祝福を授かる");
+    sound(p, "random.levelup");
+    await chooseBlessing(p, "祭壇の試練を完璧に突破！");
+  } else {
+    title(p, "§d祭壇の試練", "即答 " + fast + "/5");
   }
 }
 
+/* ---------- 門番 ---------- */
+// 門番のHPが 2/3・1/3 を切るたびに「門番の問い」。正解で門番がひるむ、ミスで門番が回復
+world.afterEvents.entityHurt.subscribe(ev => {
+  const e = ev.hurtEntity;
+  const p = ev.damageSource.damagingEntity;
+  if (!(p instanceof Player)) return;
+  try {
+    if (!e.hasTag("kr_boss")) return;
+    const hp = /** @type {any} */ (e.getComponent("minecraft:health"));
+    if (!hp || hp.currentValue <= 0) return;
+    const ratio = hp.currentValue / hp.effectiveMax;
+    const phase = Number(e.getDynamicProperty("kr:phase") ?? 0);
+    const next = ratio < 1 / 3 ? 2 : ratio < 2 / 3 ? 1 : 0;
+    if (next <= phase) return;
+    e.setDynamicProperty("kr:phase", next);
+    enqueue(p, async () => {
+      title(p, "§4§l門番の問い", "答えられなければ門番が力を取り戻す");
+      const r = await askOne(p, weakest(1)[0], { title: "§l§4門番の問い", dmg: 6, reward: false });
+      if (!e.isValid) return;
+      if (r.ok) {
+        try { e.addEffect("slowness", 20 * 8, { amplifier: 3 }); e.addEffect("weakness", 20 * 8, { amplifier: 1 }); } catch (err) {}
+        title(p, "§a§l門番がひるんだ！", "8秒間 動きが鈍る");
+        sound(p, "mob.irongolem.hit");
+      } else {
+        try { const h = /** @type {any} */ (e.getComponent("minecraft:health")); h.setCurrentValue(Math.min(h.effectiveMax, h.currentValue + h.effectiveMax * 0.25)); } catch (err) {}
+        title(p, "§c§l門番が回復した", "");
+        sound(p, "mob.wither.ambient");
+      }
+    });
+  } catch (err) {}
+});
+// 門番と戦っている間はHPをアクションバーに出す
+system.runInterval(() => {
+  const d = st().dun;
+  if (!d) return;
+  const last = d.rooms[d.rooms.length - 1];
+  if (last.state !== "active") return;
+  const boss = ow().getEntities({ tags: ["kr_boss"] })[0];
+  if (!boss) return;
+  try {
+    const hp = /** @type {any} */ (boss.getComponent("minecraft:health"));
+    const line = "§4§l門番 §r" + bar(hp.currentValue / hp.effectiveMax, 20) + " §7" + Math.ceil(hp.currentValue) + "/" + Math.ceil(hp.effectiveMax);
+    for (const p of world.getPlayers()) if (isInDungeon(p) && roomAt(d, p.location) === d.rooms.length - 1 && !running.has(p.id)) p.onScreenDisplay.setActionBar(line);
+  } catch (e) {}
+}, 10);
+
+/** @returns {[string, number]} */
+function floorRank(stt) {
+  const mins = (Date.now() - stt.start) / 60000;
+  const rate = stt.ans ? stt.fast / stt.ans : 0;
+  const score = rate * 100 - Math.max(0, mins - 5) * 3;
+  return score >= 75 ? ["S", 60] : score >= 55 ? ["A", 35] : score >= 35 ? ["B", 15] : ["C", 0];
+}
 /** @param {Player} p */
 async function bossTrial(p) {
   const d = st().dun;
@@ -1013,14 +1297,19 @@ async function bossTrial(p) {
   const first = n > s.prog.max;
   s.prog.max = Math.max(s.prog.max, n);
   saveNow();
+  const [rank, bonus] = floorRank(d.stat);
+  const coins = Math.round((COIN.boss + bonus) * coinMult());
   addStat(p, "boss");
-  addCoins(p, COIN.boss, n + "階クリア");
-  title(p, "§6§l" + n + "階 攻略！", first ? (n + 1) + "階が開いた" : ids.length + "問中" + ok + "問正解");
-  sound(p, "random.levelup");
+  addCoins(p, coins, n + "階クリア");
+  const mins = Math.floor((Date.now() - d.stat.start) / 60000), secs = Math.floor((Date.now() - d.stat.start) / 1000) % 60;
+  const rankColor = { S: "§6", A: "§a", B: "§b", C: "§7" }[rank];
+  title(p, rankColor + "§lRANK " + rank, n + "階 攻略！" + (first ? " " + (n + 1) + "階が開いた" : ""));
+  sound(p, rank === "S" ? "ui.toast.challenge_complete" : "random.levelup");
   await menu(p, "§l" + n + "階 攻略",
-    "§6§l― 門番を倒した！ ―§r\n\n§f試練  " + bar(ok / ids.length) + " §e" + ok + "/" + ids.length + "\n§e+" + COIN.boss + "コイン" + (first ? "\n§a" + (n + 1) + "階が開いた！" : ""), [
-      ["§l" + (n + 1) + "階へ進む\n§8敵がさらに強くなる", ICON.boss, () => startFloor(p, n + 1)],
-      ["§lキャンプに戻る\n§8ショップで装備を整える", ICON.camp, () => backToCamp(p)]
+    rankColor + "§lRANK " + rank + "§r  §f時間 " + mins + "分" + secs + "秒  即答 " + d.stat.fast + "/" + d.stat.ans +
+    "\n§f試練 " + bar(ok / ids.length) + " §e" + ok + "/" + ids.length + "  §e+" + coins + "コイン" + (first ? "  §a" + (n + 1) + "階が開いた" : ""), [
+      ["§l" + (n + 1) + "階へ進む\n§8祝福を持ったまま\n§8" + themeOf(n + 1).name, ICON.boss, () => startFloor(p, n + 1, true)],
+      ["§lキャンプに戻る\n§8祝福は消える", ICON.camp, () => backToCamp(p)]
     ]);
 }
 
@@ -1033,7 +1322,10 @@ system.runInterval(() => {
   d.rooms.forEach((r, k) => {
     if (r.state === "idle") {
       const prevClear = k === 0 || d.rooms[k - 1].state === "cleared";
-      if (prevClear && players.some(p => roomAt(d, p.location) === k)) startWave(k);
+      if (prevClear && players.some(p => roomAt(d, p.location) === k)) {
+        if (["treasure", "fountain", "shrine"].includes(r.type)) enterPeacefulRoom(k);
+        else startWave(k);
+      }
       return;
     }
     if (r.state !== "active") return;
@@ -1060,3 +1352,19 @@ system.runTimeout(() => {
     }
   } catch (e) {}
 }, 20);
+
+/* ---------- PC向け：しゃがみ（Shift）を2回すばやく押すとメニュー ---------- */
+const sneakState = new Map();
+system.runInterval(() => {
+  const now = Date.now();
+  for (const p of world.getPlayers()) {
+    const was = sneakState.get(p.id) ?? { on: false, last: 0 };
+    const on = p.isSneaking;
+    if (on && !was.on) {
+      if (now - was.last < 400 && !running.has(p.id)) { openMenu(p); was.last = 0; }
+      else was.last = now;
+    }
+    was.on = on;
+    sneakState.set(p.id, was);
+  }
+}, 2);
