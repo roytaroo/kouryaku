@@ -18,7 +18,15 @@ const GAP = 3;
 const MAX_QUEUE = 5;
 const BOSS_QUESTIONS = 5;
 const BOSS_PASS = 4;
-const SETUP_PAGE = 10;
+const SETUP_PAGE = 100;
+// 出題範囲（単語番号）。ターゲット1900の Part 分けに合わせている
+const RANGES = [
+  { id: "p1", label: "Part1（1〜800）", lo: 1, hi: 800 },
+  { id: "p12", label: "Part1〜2（1〜1500）", lo: 1, hi: 1500 },
+  { id: "p2", label: "Part2（801〜1500）", lo: 801, hi: 1500 },
+  { id: "p3", label: "Part3（1501〜1900）", lo: 1501, hi: 1900 },
+  { id: "all", label: "全部", lo: 1, hi: 1e9 }
+];
 const FAST_MS = 2000; // これより速く意味が出たら「即答」
 // 出やすさ: 未出題 / 箱0（間違えた）〜箱5（完全に覚えた）
 const WEIGHT = { n: 3, 0: 10, 1: 6, 2: 3, 3: 2, 4: 1, 5: 0.4 };
@@ -87,7 +95,7 @@ function st() {
       box: loadJSON("kr:box", {}),
       miss: loadJSON("kr:miss", {}),
       stats: Object.assign({ ans: 0, ok: 0, best: 0, combo: 0, clears: 0 }, loadJSON("kr:stats", {})),
-      cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3 }, loadJSON("kr:cfg", {})),
+      cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3, range: "p1" }, loadJSON("kr:cfg", {})),
       dun: loadJSON("kr:dun", null)
     };
   }
@@ -108,6 +116,20 @@ system.runInterval(() => {
 }, 40);
 
 /* ---------- word selection ---------- */
+function numOf(i) {
+  const n = parseInt(WORDS[i][2], 10);
+  return isNaN(n) ? i + 1 : n;
+}
+function range() {
+  return RANGES.find(r => r.id === st().cfg.range) ?? RANGES[0];
+}
+function inRange(i) {
+  const r = range(), n = numOf(i);
+  return n >= r.lo && n <= r.hi;
+}
+function rangeList() {
+  return WORDS.map((_, i) => i).filter(inRange);
+}
 function weightOf(i) {
   const b = st().box[WORDS[i][0]];
   return b === undefined ? WEIGHT.n : WEIGHT[b] ?? 1;
@@ -117,11 +139,14 @@ function pickWord(avoid) {
   let total = 0;
   const ws = new Array(WORDS.length);
   for (let i = 0; i < WORDS.length; i++) {
-    const w = avoid && avoid.has(i) ? 0 : weightOf(i);
+    const w = (avoid && avoid.has(i)) || !inRange(i) ? 0 : weightOf(i);
     ws[i] = w;
     total += w;
   }
-  if (total <= 0) return Math.floor(Math.random() * WORDS.length);
+  if (total <= 0) {
+    const list = rangeList();
+    return list.length ? list[Math.floor(Math.random() * list.length)] : Math.floor(Math.random() * WORDS.length);
+  }
   let r = Math.random() * total;
   for (let i = 0; i < WORDS.length; i++) {
     r -= ws[i];
@@ -137,7 +162,7 @@ function isWeak(i) {
 function weakest(n) {
   const s = st();
   const ranked = WORDS.map((_, i) => i)
-    .filter(i => (s.miss[WORDS[i][0]] ?? 0) > 0)
+    .filter(i => inRange(i) && (s.miss[WORDS[i][0]] ?? 0) > 0)
     .sort((a, b) => {
       const ba = s.box[WORDS[a][0]] ?? 0, bb = s.box[WORDS[b][0]] ?? 0;
       if (ba !== bb) return ba - bb;
@@ -145,7 +170,8 @@ function weakest(n) {
     })
     .slice(0, n);
   const used = new Set(ranked);
-  while (ranked.length < n && used.size < WORDS.length) {
+  const size = rangeList().length;
+  while (ranked.length < n && used.size < size) {
     const i = pickWord(used);
     used.add(i);
     ranked.push(i);
@@ -264,7 +290,7 @@ async function runQueue(p) {
 async function askOne(p, i, opt = {}) {
   const s = st();
   const [word, meaning] = WORDS[i];
-  const head = (opt.progress ? opt.progress + "　" : "") + "コンボ " + s.stats.combo;
+  const head = (opt.progress ? opt.progress + "  " : "") + "コンボ " + s.stats.combo;
   const no = WORDS[i][2] ? "§7No." + WORDS[i][2] + "§r\n" : "";
   let ok = false, ms = 0, missLabel = "§cミス！ ";
 
@@ -285,7 +311,7 @@ async function askOne(p, i, opt = {}) {
     const limitMs = s.cfg.limit * 1000;
     const f1 = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body("\n" + no + "§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒　" + head + "\n ")
+      .body("\n" + no + "§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒  " + head + "\n ")
       .button("§2浮かんだ")
       .button("§4わからない");
     let r1 = null, timedOut = false;
@@ -347,7 +373,7 @@ async function askOne(p, i, opt = {}) {
   } else {
     sound(p, "note.bass");
     p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + meaning);
-    p.sendMessage("§c✗ §f" + word + " §7= §f" + meaning);
+    p.sendMessage("§c× §f" + word + " §7= §f" + meaning);
     hurtSafely(p, opt.dmg ?? s.cfg.dmg);
   }
   return { ok, fast };
@@ -408,8 +434,8 @@ world.afterEvents.playerSpawn.subscribe(ev => {
     if (!p.isValid) return;
     if (!hasCompass(p)) giveCompass(p);
     p.sendMessage("§6[攻略ダンジョン] §f「攻略コンパス」を使うとメニューが開く。敵を倒すと英単語の4択が出る。");
-    const judged = judgedCount();
-    if (judged < WORDS.length) p.sendMessage("§e最初にメニューの「セットアップ」で、知らない単語を選別しておくのがおすすめ（済 " + judged + " / " + WORDS.length + "）。");
+    const judged = judgedCount(), total = rangeList().length;
+    if (judged < total) p.sendMessage("§e最初にメニューの「セットアップ」で、知らない単語を選別しておくのがおすすめ（" + range().label + " 済 " + judged + " / " + total + "）。");
   }, 40);
 });
 
@@ -434,8 +460,8 @@ async function openMenu(p) {
   const inDun = d && isInDungeon(p);
   /** @type {Array<[string, () => any]>} */
   const items = [];
-  const judged = judgedCount();
-  items.push(["セットアップ（全単語を選別）\n§8" + (judged >= WORDS.length ? "完了" : "済 " + judged + " / " + WORDS.length), () => setupMenu(p)]);
+  const judged = judgedCount(), total = rangeList().length;
+  items.push(["セットアップ（単語の選別）\n§8" + range().label + "  " + (judged >= total ? "完了" : "済 " + judged + " / " + total), () => setupMenu(p)]);
   items.push(["単語テスト（10問）", () => wordTest(p)]);
   if (!d) items.push(["ダンジョンを作る", () => confirmBuild(p)]);
   else {
@@ -448,7 +474,7 @@ async function openMenu(p) {
   items.push(["成績を見る", () => showStats(p)]);
   items.push(["設定", () => settings(p)]);
 
-  const f = new ActionFormData().title("§l攻略コンパス").body("§7単語 " + WORDS.length + "語 ／ 正答率 " + rate() + "\n ");
+  const f = new ActionFormData().title("§l攻略コンパス").body("§7出題範囲 " + range().label + " ／ 正答率 " + rate() + "\n ");
   items.forEach(([label]) => f.button(label));
   const r = await showForm(p, f);
   if (r.canceled || r.selection === undefined) return;
@@ -463,20 +489,20 @@ function rate() {
 function judgedCount() {
   const box = st().box;
   let n = 0;
-  for (const [w] of WORDS) if (box[w] !== undefined) n++;
+  for (const i of rangeList()) if (box[WORDS[i][0]] !== undefined) n++;
   return n;
 }
 /** @param {Player} p */
 async function setupMenu(p) {
-  const judged = judgedCount(), left = WORDS.length - judged;
+  const total = rangeList().length, judged = judgedCount(), left = total - judged;
   const f = new ActionFormData()
     .title("§lセットアップ")
     .body("英単語を" + SETUP_PAGE + "語ずつ表示する。\n知らない・自信がない単語だけONにして「決定」。OFFのままの単語は「分かる」になる。\n\n" +
-      "・苦手にした単語：よく出る。敵の名前が赤くなる\n・分かるにした単語：たまに確認で出る。間違えたら苦手に戻る\n\n途中でやめても、続きから再開できる。\n§7選別済み " + judged + " / " + WORDS.length + "\n ");
+      "・苦手にした単語：よく出る。敵の名前が赤くなる\n・分かるにした単語：たまに確認で出る。間違えたら苦手に戻る\n\n途中でやめても、続きから再開できる。範囲は「設定」で変えられる。\n§7" + range().label + "  選別済み " + judged + " / " + total + "\n ");
   /** @type {Array<[string, () => any]>} */
   const items = [];
   if (left > 0) items.push(["未選別の単語から（残り" + left + "語）", () => runSetup(p, false)]);
-  items.push(["全部やり直す（" + WORDS.length + "語）", () => runSetup(p, true)]);
+  items.push(["この範囲を全部やり直す（" + total + "語）", () => runSetup(p, true)]);
   items.push(["戻る", () => openMenu(p)]);
   items.forEach(([label]) => f.button(label));
   const r = await showForm(p, f);
@@ -486,7 +512,7 @@ async function setupMenu(p) {
 /** @param {Player} p @param {boolean} all */
 async function runSetup(p, all) {
   const s = st();
-  const list = WORDS.map((_, i) => i).filter(i => all || s.box[WORDS[i][0]] === undefined);
+  const list = rangeList().filter(i => all || s.box[WORDS[i][0]] === undefined);
   let known = 0, weak = 0;
   running.add(p.id);
   try {
@@ -495,12 +521,12 @@ async function runSetup(p, all) {
       const f = new ModalFormData()
         .title("§lセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length)
         .label("知らない・自信がない単語だけON");
-      page.forEach(i => f.toggle("§l" + WORDS[i][0], { defaultValue: false }));
+      page.forEach(i => f.toggle("§l" + WORDS[i][0] + " §r§7" + numOf(i), { defaultValue: false }));
       f.submitButton("決定して次へ");
       const r = await showForm(p, f);
       if (!p.isValid) return;
       if (r.canceled || !r.formValues) {
-        p.sendMessage("§6[セットアップ] §fここで中断。次は続きから再開できる（済 " + judgedCount() + " / " + WORDS.length + "）。");
+        p.sendMessage("§6[セットアップ] §fここで中断。次は続きから再開できる（済 " + judgedCount() + " / " + rangeList().length + "）。");
         return;
       }
       // label の分だけ formValues の先頭がずれる場合があるので、真偽値だけを順に拾う
@@ -511,7 +537,7 @@ async function runSetup(p, all) {
         else { s.box[w] = 3; known++; }
       });
       dirty = true;
-      p.onScreenDisplay.setActionBar("§aセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length + "　§f分かる " + known + "　§c苦手 " + weak);
+      p.onScreenDisplay.setActionBar("§aセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length + "  §f分かる " + known + "  §c苦手 " + weak);
     }
     saveNow();
     sound(p, "random.levelup");
@@ -546,16 +572,17 @@ async function wordTest(p) {
 /** @param {Player} p */
 async function showStats(p) {
   const s = st();
+  const list = rangeList();
   let learned = 0;
-  for (const [w] of WORDS) if ((s.box[w] ?? -1) >= 4) learned++;
+  for (const i of list) if ((s.box[WORDS[i][0]] ?? -1) >= 4) learned++;
   const weak = weakest(10).filter(i => (s.miss[WORDS[i][0]] ?? 0) > 0);
   const lines = [
-    "回答数： " + s.stats.ans + "　正答率： " + rate(),
+    "回答数： " + s.stats.ans + "  正答率： " + rate(),
     "ベストコンボ： " + s.stats.best,
     "ダンジョン攻略： " + s.stats.clears + "回",
-    "覚えた単語： " + learned + " / " + WORDS.length,
+    "覚えた単語（" + range().label + "）： " + learned + " / " + list.length,
     "",
-    "§l苦手TOP10§r"
+    "§l苦手TOP10（" + range().label + "）§r"
   ];
   if (!weak.length) lines.push("§7まだなし");
   weak.forEach((i, k) => lines.push((k + 1) + ". §e" + WORDS[i][0] + "§r " + short(WORDS[i][1], 20) + " §7(ミス" + s.miss[WORDS[i][0]] + ")"));
@@ -569,6 +596,7 @@ async function settings(p) {
   const r = new ActionFormData()
     .title("§l設定")
     .body("ボタンを押すと切り替わる\n ")
+    .button("出題範囲： " + range().label)
     .button("出題形式： " + (c.mode === "choice" ? "4択" : "瞬間想起（おすすめ）"))
     .button("瞬間想起の制限時間： " + c.limit + "秒")
     .button("ダンジョンの外でも出題： " + (c.outside ? "§aON" : "§cOFF"))
@@ -576,11 +604,17 @@ async function settings(p) {
     .button("戻る");
   const r2 = await showForm(p, r);
   if (r2.canceled) return;
-  if (r2.selection === 0) { c.mode = c.mode === "choice" ? "recall" : "choice"; dirty = true; return settings(p); }
-  if (r2.selection === 1) { c.limit = c.limit >= 5 ? 2 : c.limit + 1; dirty = true; return settings(p); }
-  if (r2.selection === 2) { c.outside = !c.outside; dirty = true; return settings(p); }
-  if (r2.selection === 3) { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; dirty = true; return settings(p); }
-  if (r2.selection === 4) return openMenu(p);
+  if (r2.selection === 0) {
+    const k = RANGES.findIndex(x => x.id === range().id);
+    c.range = RANGES[(k + 1) % RANGES.length].id;
+    dirty = true;
+    return settings(p);
+  }
+  if (r2.selection === 1) { c.mode = c.mode === "choice" ? "recall" : "choice"; dirty = true; return settings(p); }
+  if (r2.selection === 2) { c.limit = c.limit >= 5 ? 2 : c.limit + 1; dirty = true; return settings(p); }
+  if (r2.selection === 3) { c.outside = !c.outside; dirty = true; return settings(p); }
+  if (r2.selection === 4) { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; dirty = true; return settings(p); }
+  if (r2.selection === 5) return openMenu(p);
 }
 
 /* ---------- dungeon ---------- */
