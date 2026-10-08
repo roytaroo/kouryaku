@@ -1,7 +1,7 @@
 import { world, system, Player, ItemStack } from "@minecraft/server";
 import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason, uiManager } from "@minecraft/server-ui";
 import { WORDS } from "./words.js";
-import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu } from "./yarikomi.js";
+import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu, getData } from "./yarikomi.js";
 import { showShop } from "./shop.js";
 import "./pets.js";
 
@@ -246,6 +246,36 @@ async function showForm(p, form) {
   return res;
 }
 
+/* ---------- UI（ICE BOW のやり込みキットと同じ見た目：アイコン付きボタン、太字＋灰色の補足、ゲージ） ---------- */
+const bar = (r, n = 10) => { const f = Math.max(0, Math.min(n, Math.floor(r * n))); return "§a" + "|".repeat(f) + "§8" + "|".repeat(n - f) + "§r"; };
+const ICON = {
+  camp: "textures/items/bed_red", dungeon: "textures/items/iron_sword", boss: "textures/items/diamond_sword",
+  resume: "textures/items/ender_pearl", book: "textures/items/book_enchanted", setup: "textures/items/book_writable",
+  test: "textures/items/paper", stats: "textures/items/map_filled", settings: "textures/items/redstone_dust",
+  yarikomi: "textures/items/nether_star", shop: "textures/items/emerald", back: "textures/items/arrow",
+  ok: "textures/items/dye_powder_lime", ng: "textures/items/dye_powder_red", think: "textures/items/glowstone_dust",
+  range: "textures/items/map_empty", mode: "textures/items/book_normal", clock: "textures/items/clock_item",
+  heart: "textures/items/apple_golden"
+};
+/** @param {Player} p */
+function profileLine(p) {
+  const d = getData(p);
+  return "§fLv." + d.lv + "  §eコイン " + d.coin;
+}
+/**
+ * アイコン付きボタンのメニューを出して、押されたボタンの処理を実行する
+ * @param {Player} p @param {string} titleText @param {string} body
+ * @param {Array<[string, string | null, () => any]>} items
+ */
+async function menu(p, titleText, body, items) {
+  const f = new ActionFormData().title(titleText).body(body + "\n ");
+  items.forEach(([label, icon]) => { if (icon) f.button(label, icon); else f.button(label); });
+  const r = await showForm(p, f);
+  if (r.canceled || r.selection === undefined) return;
+  await items[r.selection][2]();
+}
+const comboGauge = c => "§6コンボ " + c + " " + bar((c % 5) / 5, 5);
+
 /* ---------- word tags on mobs ---------- */
 const mobWord = new Map(); // entity id -> word index
 function tagWord(e, i) {
@@ -303,8 +333,8 @@ async function runQueue(p) {
 async function askOne(p, i, opt = {}) {
   const s = st();
   const [word, meaning] = WORDS[i];
-  const head = (opt.progress ? opt.progress + "  " : "") + "コンボ " + s.stats.combo;
-  const no = WORDS[i][2] ? "§7No." + WORDS[i][2] + "§r\n" : "";
+  const head = (opt.progress ? "§f" + opt.progress + "   " : "") + comboGauge(s.stats.combo);
+  const no = WORDS[i][2] ? "§8No." + WORDS[i][2] + "§r\n" : "";
   let ok = false, ms = 0, missLabel = "§cミス！ ", revealed = false;
 
   if (s.cfg.mode === "choice") {
@@ -312,7 +342,7 @@ async function askOne(p, i, opt = {}) {
     const ch = choicesFor(i);
     const form = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body("\n" + no + "§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + head + "\n ");
+      .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§7この単語の意味は？\n ");
     ch.list.forEach(m => form.button(short(inline(m))));
     const t0 = Date.now();
     const res = await showForm(p, form);
@@ -324,9 +354,9 @@ async function askOne(p, i, opt = {}) {
     const limitMs = s.cfg.limit * 1000;
     const f1 = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body("\n" + no + "§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒  " + head + "\n ")
-      .button("§2浮かんだ")
-      .button("§4わからない");
+      .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§7見た瞬間に意味を思い浮かべて押せ  §8制限 " + s.cfg.limit + "秒\n ")
+      .button("§l§2浮かんだ", ICON.think)
+      .button("§4わからない", ICON.ng);
     let r1 = null, timedOut = false;
     for (let tries = 0; tries < 60 && p.isValid; tries++) {
       timedOut = false;
@@ -343,9 +373,9 @@ async function askOne(p, i, opt = {}) {
     if (!r1.canceled && r1.selection === 0 && !timedOut) {
       const f2 = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body("\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
-        .button("§2○ 合ってた")
-        .button("§4× 違った");
+        .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n\n§7思い浮かべた意味は合ってた？  §8" + (ms / 1000).toFixed(1) + "秒\n ")
+        .button("§l§2○ 合ってた", ICON.ok)
+        .button("§4× 違った", ICON.ng);
       const r2 = await showForm(p, f2);
       ok = !r2.canceled && r2.selection === 0;
       revealed = true;
@@ -397,8 +427,8 @@ async function askOne(p, i, opt = {}) {
     if (!revealed && p.isValid) {
       const fa = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body("\n" + missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n ")
-        .button("次へ");
+        .body(missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n ")
+        .button("§l次へ", ICON.back);
       await showForm(p, fa);
     }
   }
@@ -470,19 +500,15 @@ system.afterEvents.scriptEventReceive.subscribe(ev => {
 /** @param {Player} p */
 async function openMenu(p) {
   if (running.has(p.id)) return;
-  const inDun = st().dun && isInDungeon(p);
-  /** @type {Array<[string, () => any]>} */
+  const s = st(), inDun = s.dun && isInDungeon(p), judged = judgedCount(), total = rangeList().length;
+  /** @type {Array<[string, string | null, () => any]>} */
   const items = [];
-  if (inDun) items.push(["キャンプに戻る", () => backToCamp(p)]);
-  else if (st().camp) items.push(["ダンジョンへ", () => floorMenu(p)]);
-  items.push(["単語の書（セットアップ・テスト・設定）", () => bookMenu(p)]);
-  items.push(["やり込み（ミッション・バッジ）", () => showYarikomiMenu(p)]);
-  items.push(["ショップ", () => showShop(p)]);
-  const f = new ActionFormData().title("§l攻略コンパス").body("§7出題範囲 " + range().label + " ／ 正答率 " + rate() + "\n ");
-  items.forEach(([label]) => f.button(label));
-  const r = await showForm(p, f);
-  if (r.canceled || r.selection === undefined) return;
-  await items[r.selection][1]();
+  if (inDun) items.push(["§lキャンプに戻る\n§8" + s.dun.floor + "階から帰る", ICON.camp, () => backToCamp(p)]);
+  else if (s.camp) items.push(["§lダンジョンへ\n§8最高到達 " + s.prog.max + "階", ICON.dungeon, () => floorMenu(p)]);
+  items.push(["§l単語の書\n§8選別 " + judged + "/" + total + "  覚えた " + learnedCount() + "語", ICON.book, () => bookMenu(p)]);
+  items.push(["§lやり込み\n§8ミッション・バッジ・自己ベスト", ICON.yarikomi, () => showYarikomiMenu(p)]);
+  items.push(["§lショップ\n§8装備・回復・見た目アイテム", ICON.shop, () => showShop(p)]);
+  await menu(p, "§l攻略コンパス", profileLine(p) + "\n§7出題範囲 " + range().label + "  正答率 " + rate(), items);
 }
 function rate() {
   const s = st().stats;
@@ -490,6 +516,12 @@ function rate() {
 }
 
 /* ---------- setup: 全単語を「分かる／苦手」に選別 ---------- */
+function learnedCount() {
+  const box = st().box;
+  let n = 0;
+  for (const i of rangeList()) if ((box[WORDS[i][0]] ?? -1) >= 4) n++;
+  return n;
+}
 function judgedCount() {
   const box = st().box;
   let n = 0;
@@ -499,19 +531,15 @@ function judgedCount() {
 /** @param {Player} p */
 async function setupMenu(p) {
   const total = rangeList().length, judged = judgedCount(), left = total - judged;
-  const f = new ActionFormData()
-    .title("§lセットアップ")
-    .body("英単語を" + SETUP_PAGE + "語ずつ表示する。\n知らない・自信がない単語だけONにして「決定」。OFFのままの単語は「分かる」になる。\n\n" +
-      "・苦手にした単語：よく出る。敵の名前が赤くなる\n・分かるにした単語：たまに確認で出る。間違えたら苦手に戻る\n\n途中でやめても、続きから再開できる。範囲は「設定」で変えられる。\n§7" + range().label + "  選別済み " + judged + " / " + total + "\n ");
-  /** @type {Array<[string, () => any]>} */
+  const body = "§f" + range().label + "\n" + bar(total ? judged / total : 0, 20) + " §7" + judged + "/" + total +
+    "\n\n§f英単語を" + SETUP_PAGE + "語ずつ表示する。\n§f知らない・自信がない単語だけONにして「決定」。\n\n" +
+    "§cON§f ＝ 苦手：よく出る。敵の名前が赤くなる\n§aOFF§f ＝ 分かる：たまに確認で出る\n\n§7途中でやめても続きから再開できる。";
+  /** @type {Array<[string, string | null, () => any]>} */
   const items = [];
-  if (left > 0) items.push(["未選別の単語から（残り" + left + "語）", () => runSetup(p, false)]);
-  items.push(["この範囲を全部やり直す（" + total + "語）", () => runSetup(p, true)]);
-  items.push(["戻る", () => openMenu(p)]);
-  items.forEach(([label]) => f.button(label));
-  const r = await showForm(p, f);
-  if (r.canceled || r.selection === undefined) return;
-  await items[r.selection][1]();
+  if (left > 0) items.push(["§l続きから選別\n§8残り " + left + "語", ICON.setup, () => runSetup(p, false)]);
+  items.push(["§lこの範囲をやり直す\n§8" + total + "語すべて", ICON.mode, () => runSetup(p, true)]);
+  items.push(["戻る", ICON.back, () => bookMenu(p)]);
+  await menu(p, "§lセットアップ", body, items);
 }
 /** @param {Player} p @param {boolean} all */
 async function runSetup(p, all) {
@@ -524,9 +552,9 @@ async function runSetup(p, all) {
       const page = list.slice(start, start + SETUP_PAGE);
       const f = new ModalFormData()
         .title("§lセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length)
-        .label("知らない・自信がない単語だけON");
+        .label("§cON§f ＝ 知らない・自信がない    §aOFF§f ＝ 分かる");
       page.forEach(i => f.toggle("§l" + WORDS[i][0] + " §r§7" + numOf(i), { defaultValue: false }));
-      f.submitButton("決定して次へ");
+      f.submitButton("§l決定して次へ");
       const r = await showForm(p, f);
       if (!p.isValid) return;
       if (r.canceled || !r.formValues) {
@@ -575,50 +603,36 @@ async function wordTest(p) {
 
 /** @param {Player} p */
 async function showStats(p) {
-  const s = st();
-  const list = rangeList();
-  let learned = 0;
-  for (const i of list) if ((s.box[WORDS[i][0]] ?? -1) >= 4) learned++;
+  const s = st(), total = rangeList().length, learned = learnedCount();
+  const acc = s.stats.ans ? s.stats.ok / s.stats.ans : 0;
   const weak = weakest(10).filter(i => (s.miss[WORDS[i][0]] ?? 0) > 0);
   const lines = [
-    "回答数： " + s.stats.ans + "  正答率： " + rate(),
-    "ベストコンボ： " + s.stats.best,
-    "ダンジョン攻略： " + s.stats.clears + "回",
-    "覚えた単語（" + range().label + "）： " + learned + " / " + list.length,
+    "§6§l― 成績 ―§r",
+    "§f正答率  " + bar(acc) + " §7" + rate() + " (" + s.stats.ok + "/" + s.stats.ans + ")",
+    "§f覚えた  " + bar(total ? learned / total : 0) + " §7" + learned + "/" + total + "  " + range().label,
+    "§fベストコンボ §e" + s.stats.best + "   §f門番撃破 §e" + s.stats.clears + "回   §f最高到達 §e" + s.prog.max + "階",
     "",
-    "§l苦手TOP10（" + range().label + "）§r"
+    "§c§l― 苦手TOP10 ―§r"
   ];
   if (!weak.length) lines.push("§7まだなし");
-  weak.forEach((i, k) => lines.push((k + 1) + ". §e" + WORDS[i][0] + "§r " + short(inline(WORDS[i][1]), 20) + " §7(ミス" + s.miss[WORDS[i][0]] + ")"));
-  const f2 = new ActionFormData().title("§l成績").body(lines.join("\n") + "\n ").button("閉じる");
-  await showForm(p, f2);
+  weak.forEach((i, k) => lines.push("§f" + (k + 1) + ". §e" + WORDS[i][0] + "§r " + short(inline(WORDS[i][1]), 20) + " §8ミス" + s.miss[WORDS[i][0]]));
+  await menu(p, "§l成績", lines.join("\n"), [["戻る", ICON.back, () => bookMenu(p)]]);
 }
 
 /** @param {Player} p */
 async function settings(p) {
   const c = st().cfg;
-  const r = new ActionFormData()
-    .title("§l設定")
-    .body("ボタンを押すと切り替わる\n ")
-    .button("出題範囲： " + range().label)
-    .button("出題形式： " + (c.mode === "choice" ? "4択" : "瞬間想起（おすすめ）"))
-    .button("瞬間想起の制限時間： " + c.limit + "秒")
-    .button("ダンジョンの外でも出題： " + (c.outside ? "§aON" : "§cOFF"))
-    .button("ミスのダメージ： ハート" + c.dmg / 2 + "個")
-    .button("戻る");
-  const r2 = await showForm(p, r);
-  if (r2.canceled) return;
-  if (r2.selection === 0) {
-    const k = RANGES.findIndex(x => x.id === range().id);
-    c.range = RANGES[(k + 1) % RANGES.length].id;
-    dirty = true;
-    return settings(p);
-  }
-  if (r2.selection === 1) { c.mode = c.mode === "choice" ? "recall" : "choice"; dirty = true; return settings(p); }
-  if (r2.selection === 2) { c.limit = c.limit >= 5 ? 2 : c.limit + 1; dirty = true; return settings(p); }
-  if (r2.selection === 3) { c.outside = !c.outside; dirty = true; return settings(p); }
-  if (r2.selection === 4) { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; dirty = true; return settings(p); }
-  if (r2.selection === 5) return openMenu(p);
+  const again = fn => () => { fn(); dirty = true; return settings(p); };
+  await menu(p, "§l設定", "§7押すと切り替わる", [
+    ["§l出題範囲\n§8" + range().label, ICON.range, again(() => {
+      const k = RANGES.findIndex(x => x.id === range().id);
+      c.range = RANGES[(k + 1) % RANGES.length].id;
+    })],
+    ["§l出題形式\n§8" + (c.mode === "choice" ? "4択" : "瞬間想起（おすすめ）"), ICON.mode, again(() => { c.mode = c.mode === "choice" ? "recall" : "choice"; })],
+    ["§l制限時間\n§8" + c.limit + "秒（瞬間想起）", ICON.clock, again(() => { c.limit = c.limit >= 5 ? 2 : c.limit + 1; })],
+    ["§lミスのダメージ\n§8ハート" + c.dmg / 2 + "個", ICON.heart, again(() => { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; })],
+    ["戻る", ICON.back, () => bookMenu(p)]
+  ]);
 }
 
 /* =========================================================
@@ -775,19 +789,16 @@ system.runInterval(() => {
 
 /** @param {Player} p */
 async function bookMenu(p) {
-  const judged = judgedCount(), total = rangeList().length;
-  /** @type {Array<[string, () => any]>} */
-  const items = [
-    ["セットアップ（単語の選別）\n§8" + range().label + "  " + (judged >= total ? "完了" : "済 " + judged + " / " + total), () => setupMenu(p)],
-    ["単語テスト（10問）", () => wordTest(p)],
-    ["成績を見る", () => showStats(p)],
-    ["設定（出題範囲など）", () => settings(p)]
-  ];
-  const f = new ActionFormData().title("§l単語の書").body("§7出題範囲 " + range().label + " ／ 正答率 " + rate() + "\n ");
-  items.forEach(([label]) => f.button(label));
-  const r = await showForm(p, f);
-  if (r.canceled || r.selection === undefined) return;
-  await items[r.selection][1]();
+  const judged = judgedCount(), total = rangeList().length, learned = learnedCount();
+  const body = profileLine(p) + "\n§7出題範囲 " + range().label +
+    "\n\n§f選別    " + bar(total ? judged / total : 0) + " §7" + judged + "/" + total +
+    "\n§f覚えた  " + bar(total ? learned / total : 0) + " §7" + learned + "/" + total;
+  await menu(p, "§l単語の書", body, [
+    ["§lセットアップ\n§8" + (judged >= total ? "この範囲は完了" : "残り " + (total - judged) + "語"), ICON.setup, () => setupMenu(p)],
+    ["§l単語テスト\n§810問・ダメージなし・コインあり", ICON.test, () => wordTest(p)],
+    ["§l成績\n§8正答率 " + rate() + "・苦手TOP10", ICON.stats, () => showStats(p)],
+    ["§l設定\n§8出題範囲・形式・制限時間", ICON.settings, () => settings(p)]
+  ]);
 }
 
 /* ---------- 階層ダンジョン ---------- */
@@ -911,17 +922,16 @@ function backToCamp(p) {
 /** @param {Player} p */
 async function floorMenu(p) {
   const s = st(), d = s.dun, max = s.prog.max;
-  /** @type {Array<[string, () => any]>} */
+  /** @type {Array<[string, string | null, () => any]>} */
   const items = [];
-  if (d && d.rooms.some(r => r.state !== "cleared")) items.push(["続きから（" + d.floor + "階）", () => goToDungeon(p)]);
-  items.push(["§l" + (max + 1) + "階に挑戦\n§r§8最高到達 " + max + "階", () => startFloor(p, max + 1)]);
-  for (let f = max; f >= Math.max(1, max - 7); f--) items.push([f + "階（クリア済み）", () => startFloor(p, f)]);
-  items.push(["やめる", () => {}]);
-  const f = new ActionFormData().title("§lダンジョン").body("§7階が深いほど敵が強く、部屋が増える。\n§7門番の試練に合格すると次の階が開く。\n ");
-  items.forEach(([label]) => f.button(label));
-  const r = await showForm(p, f);
-  if (r.canceled || r.selection === undefined) return;
-  await items[r.selection][1]();
+  if (d && d.rooms.some(r => r.state !== "cleared")) {
+    const done = d.rooms.filter(r => r.state === "cleared").length;
+    items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length + " クリア", ICON.resume, () => goToDungeon(p)]);
+  }
+  items.push(["§l" + (max + 1) + "階に挑戦\n§8まだ誰も踏み入れていない", ICON.boss, () => startFloor(p, max + 1)]);
+  for (let f = max; f >= Math.max(1, max - 7); f--) items.push(["§l" + f + "階\n§8クリア済み", ICON.dungeon, () => startFloor(p, f)]);
+  items.push(["やめる", ICON.back, () => {}]);
+  await menu(p, "§lダンジョン", profileLine(p) + "\n§f最高到達 §e" + max + "階\n\n§7階が深いほど敵が強く、部屋が増える。\n§7門番の試練に合格すると次の階が開く。", items);
 }
 
 function startWave(k) {
@@ -996,15 +1006,11 @@ async function bossTrial(p) {
   addCoins(p, COIN.boss, n + "階クリア");
   title(p, "§6§l" + n + "階 攻略！", first ? (n + 1) + "階が開いた" : ids.length + "問中" + ok + "問正解");
   sound(p, "random.levelup");
-  const f = new ActionFormData()
-    .title("§l" + n + "階 攻略")
-    .body("\n門番を倒した！ §f" + ids.length + "問中 §e" + ok + "問§f 正解\n§e+" + COIN.boss + "コイン\n ")
-    .button("§l" + (n + 1) + "階へ進む")
-    .button("キャンプに戻る");
-  const r = await showForm(p, f);
-  if (!p.isValid || r.canceled) return;
-  if (r.selection === 0) startFloor(p, n + 1);
-  else backToCamp(p);
+  await menu(p, "§l" + n + "階 攻略",
+    "§6§l― 門番を倒した！ ―§r\n\n§f試練  " + bar(ok / ids.length) + " §e" + ok + "/" + ids.length + "\n§e+" + COIN.boss + "コイン" + (first ? "\n§a" + (n + 1) + "階が開いた！" : ""), [
+      ["§l" + (n + 1) + "階へ進む\n§8敵がさらに強くなる", ICON.boss, () => startFloor(p, n + 1)],
+      ["§lキャンプに戻る\n§8ショップで装備を整える", ICON.camp, () => backToCamp(p)]
+    ]);
 }
 
 // 部屋の監視：入ったら敵を出す／全滅したら扉を開ける／門番が倒れたら試練
