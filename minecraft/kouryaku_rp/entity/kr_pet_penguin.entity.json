@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:pet_penguin",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/kr_pets/kr_pet_penguin"
+      },
+      "geometry": {
+        "default": "geometry.kr_pet_penguin"
+      },
+      "animations": {
+        "idle": "animation.kr_pet_penguin.idle"
+      },
+      "scripts": {
+        "animate": [
+          "idle"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet"
+      ]
+    }
+  }
+}

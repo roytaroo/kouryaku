@@ -1,0 +1,13 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "攻略ダンジョン リソース",
+    "description": "やり込みキットのペットの見た目",
+    "uuid": "983a6807-95d3-444b-a052-9836868acd25",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 80]
+  },
+  "modules": [
+    { "type": "resources", "uuid": "0c7db84e-a6c5-4523-a084-a2d028208dd5", "version": [1, 0, 0] }
+  ]
+}

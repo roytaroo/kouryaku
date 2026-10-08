@@ -2,27 +2,57 @@
   "format_version": 2,
   "header": {
     "name": "攻略ダンジョン",
-    "description": "敵を倒すと英単語の問題。ミスでダメージ、即答で報酬。",
+    "description": "ダンジョン専用ワールド。敵を倒すと英単語の問題。即答でコイン、装備を買って深い階へ。",
     "uuid": "b3aae8e5-c077-4473-9010-5d1e0974df05",
-    "version": [1, 1, 2],
-    "min_engine_version": [1, 21, 80]
+    "version": [
+      1,
+      2,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      80
+    ]
   },
   "modules": [
     {
       "type": "data",
       "uuid": "8e90cde3-dc92-480f-9b50-a534d80e5160",
-      "version": [1, 1, 2]
+      "version": [
+        1,
+        2,
+        0
+      ]
     },
     {
       "type": "script",
       "language": "javascript",
       "uuid": "e192a418-7794-4bfb-8318-48bf82b0fcee",
-      "version": [1, 1, 2],
+      "version": [
+        1,
+        2,
+        0
+      ],
       "entry": "scripts/main.js"
     }
   ],
   "dependencies": [
-    { "module_name": "@minecraft/server", "version": "2.0.0" },
-    { "module_name": "@minecraft/server-ui", "version": "2.0.0" }
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.0.0"
+    },
+    {
+      "uuid": "983a6807-95d3-444b-a052-9836868acd25",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:pet_sakura_fox",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/kr_pets/kr_pet_sakura_fox"
+      },
+      "geometry": {
+        "default": "geometry.kr_pet_sakura_fox"
+      },
+      "animations": {
+        "idle": "animation.kr_pet_sakura_fox.idle"
+      },
+      "scripts": {
+        "animate": [
+          "idle"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet_glow"
+      ]
+    }
+  }
+}

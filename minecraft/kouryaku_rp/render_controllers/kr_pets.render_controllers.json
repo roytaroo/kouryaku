@@ -1,0 +1,28 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.kr_pet": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ]
+    },
+    "controller.render.kr_pet_glow": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true
+    }
+  }
+}

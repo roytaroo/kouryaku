@@ -1,0 +1,354 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.kr_pet_moon_rabbit.idle": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "position": [
+            0,
+            "math.abs(math.sin(query.life_time * 170)) * 2.2",
+            0
+          ]
+        },
+        "body": {
+          "rotation": [
+            "-math.abs(math.sin(query.life_time * 170)) * 8",
+            0,
+            0
+          ]
+        },
+        "ears": {
+          "rotation": [
+            "math.sin(query.life_time * 340) * 8",
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "animation.kr_pet_penguin.idle": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 480) * 9 * math.min(1.0, query.modified_move_speed * 6.0)"
+          ],
+          "position": [
+            0,
+            "math.abs(math.sin(query.life_time * 480)) * 0.6 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            "math.sin(query.life_time * 70) * 4",
+            "math.sin(query.life_time * 40) * 10",
+            0
+          ]
+        },
+        "flipper_l": {
+          "rotation": [
+            0,
+            0,
+            "-8 - (math.sin(query.life_time * 480) * 14 * math.min(1.0, query.modified_move_speed * 6.0)) - math.max(0, math.sin(query.life_time * 90)) * math.abs(math.sin(query.life_time * 900)) * 25"
+          ]
+        },
+        "flipper_r": {
+          "rotation": [
+            0,
+            0,
+            "8 + (math.sin(query.life_time * 480) * 14 * math.min(1.0, query.modified_move_speed * 6.0)) + math.max(0, math.sin(query.life_time * 90)) * math.abs(math.sin(query.life_time * 900)) * 25"
+          ]
+        },
+        "foot_l": {
+          "rotation": [
+            "math.sin(query.life_time * 480) * 30 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0,
+            0
+          ]
+        },
+        "foot_r": {
+          "rotation": [
+            "-math.sin(query.life_time * 480) * 30 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0,
+            0
+          ]
+        },
+        "scarf_tail": {
+          "rotation": [
+            "10 + math.sin(query.life_time * 200) * 8 + 25 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "animation.kr_pet_sakura_fox.idle": {
+      "loop": true,
+      "bones": {
+        "leg1f": {
+          "rotation": [
+            "math.sin(query.life_time * 160 + 90) * 12",
+            0,
+            0
+          ]
+        },
+        "leg1b": {
+          "rotation": [
+            "math.sin(query.life_time * 160 + 270) * 12",
+            0,
+            0
+          ]
+        },
+        "ear1": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 220 + 60) * 5"
+          ]
+        },
+        "t0_0": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 0) * 10",
+            "math.sin(query.life_time * 120 - 0) * 14",
+            0
+          ]
+        },
+        "t0_1": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 45) * 10",
+            "math.sin(query.life_time * 120 - 50) * 14",
+            0
+          ]
+        },
+        "t0_2": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 90) * 10",
+            "math.sin(query.life_time * 120 - 100) * 14",
+            0
+          ]
+        },
+        "t1_0": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 60) * 10",
+            "math.sin(query.life_time * 120 - 40) * 14",
+            0
+          ]
+        },
+        "t1_1": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 105) * 10",
+            "math.sin(query.life_time * 120 - 90) * 14",
+            0
+          ]
+        },
+        "t1_2": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 150) * 10",
+            "math.sin(query.life_time * 120 - 140) * 14",
+            0
+          ]
+        },
+        "t2_0": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 120) * 10",
+            "math.sin(query.life_time * 120 - 80) * 14",
+            0
+          ]
+        },
+        "t2_1": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 165) * 10",
+            "math.sin(query.life_time * 120 - 130) * 14",
+            0
+          ]
+        },
+        "t2_2": {
+          "rotation": [
+            "math.sin(query.life_time * 140 - 210) * 10",
+            "math.sin(query.life_time * 120 - 180) * 14",
+            0
+          ]
+        },
+        "root": {
+          "position": [
+            0,
+            "math.sin(query.life_time * 120) * 1.0",
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            "math.sin(query.life_time * 80) * 4",
+            "math.sin(query.life_time * 50) * 10",
+            "math.sin(query.life_time * 70) * 4"
+          ]
+        },
+        "petals": {
+          "rotation": [
+            0,
+            "query.life_time * 60",
+            0
+          ],
+          "position": [
+            0,
+            "math.sin(query.life_time * 90) * 1.2",
+            0
+          ]
+        },
+        "leg_m1f": {
+          "rotation": [
+            "math.sin(query.life_time * 160 + 0) * 12",
+            0,
+            0
+          ]
+        },
+        "leg_m1b": {
+          "rotation": [
+            "math.sin(query.life_time * 160 + 180) * 12",
+            0,
+            0
+          ]
+        },
+        "ear_m1": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 220 + -60) * 5"
+          ]
+        }
+      }
+    },
+    "animation.kr_pet_dolphin.swim": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            "math.sin(query.life_time * 200) * 6",
+            0,
+            0
+          ],
+          "position": [
+            0,
+            "math.sin(query.life_time * 200 - 60) * 1.2",
+            0
+          ]
+        },
+        "tail": {
+          "rotation": [
+            "math.sin(query.life_time * 200 - 70) * 18",
+            0,
+            0
+          ]
+        },
+        "tail_fin": {
+          "rotation": [
+            "math.sin(query.life_time * 200 - 130) * 26",
+            0,
+            0
+          ]
+        },
+        "left_fin": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 200) * 18 - 10"
+          ]
+        },
+        "right_fin": {
+          "rotation": [
+            0,
+            0,
+            "-math.sin(query.life_time * 200) * 18 + 10"
+          ]
+        },
+        "head": {
+          "rotation": [
+            "-math.sin(query.life_time * 200) * 4",
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "animation.kr_pet_turtle.swim": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            "math.sin(query.life_time * 110) * 0.8",
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 110) * 3"
+          ]
+        },
+        "head": {
+          "rotation": [
+            "math.sin(query.life_time * 110 + 40) * 5",
+            "math.sin(query.life_time * 60) * 8",
+            0
+          ]
+        },
+        "leg2": {
+          "rotation": [
+            0,
+            "math.sin(query.life_time * 150) * 35",
+            "math.sin(query.life_time * 150) * 20"
+          ]
+        },
+        "leg3": {
+          "rotation": [
+            0,
+            "-math.sin(query.life_time * 150) * 35",
+            "-math.sin(query.life_time * 150) * 20"
+          ]
+        },
+        "leg0": {
+          "rotation": [
+            0,
+            "math.sin(query.life_time * 150 + 90) * 20",
+            0
+          ]
+        },
+        "leg1": {
+          "rotation": [
+            0,
+            "-math.sin(query.life_time * 150 + 90) * 20",
+            0
+          ]
+        }
+      }
+    },
+    "animation.kr_pet_goldfish.idle": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            "math.abs(math.sin(query.life_time * 600)) * 1.6 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0
+          ],
+          "rotation": [
+            "math.sin(query.life_time * 600) * 6 * math.min(1.0, query.modified_move_speed * 6.0) + math.sin(query.life_time * 90) * 2",
+            "math.sin(query.life_time * 50) * 8",
+            "math.sin(query.life_time * 120) * 3"
+          ]
+        },
+        "foot": {
+          "rotation": [
+            "math.sin(query.life_time * 600) * 12 * math.min(1.0, query.modified_move_speed * 6.0)",
+            0,
+            0
+          ]
+        }
+      }
+    }
+  }
+}

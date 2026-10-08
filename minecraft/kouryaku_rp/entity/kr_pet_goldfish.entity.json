@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:pet_goldfish",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/kr_pets/kr_pet_goldfish"
+      },
+      "geometry": {
+        "default": "geometry.kr_pet_goldfish"
+      },
+      "animations": {
+        "idle": "animation.kr_pet_goldfish.idle"
+      },
+      "scripts": {
+        "animate": [
+          "idle"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet"
+      ]
+    }
+  }
+}

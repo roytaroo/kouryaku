@@ -1,0 +1,75 @@
+{
+  "format_version": "1.16.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "kr:pet_turtle",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "kr_pet"
+        ]
+      },
+      "minecraft:is_hidden_when_invisible": {},
+      "minecraft:collision_box": {
+        "width": 0.8,
+        "height": 0.5
+      },
+      "minecraft:scale": {
+        "value": 0.55
+      },
+      "minecraft:health": {
+        "value": 20,
+        "max": 20
+      },
+      "minecraft:movement": {
+        "value": 0.25
+      },
+      "minecraft:flying_speed": {
+        "value": 0.25
+      },
+      "minecraft:navigation.fly": {
+        "can_path_over_water": true,
+        "avoid_water": false
+      },
+      "minecraft:movement.fly": {},
+      "minecraft:physics": {
+        "has_gravity": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:nameable": {
+        "always_show": true
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "all",
+            "deals_damage": false
+          },
+          {
+            "cause": "fall",
+            "deals_damage": false
+          },
+          {
+            "cause": "suffocation",
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 2,
+        "look_distance": 8
+      },
+      "minecraft:persistent": {}
+    }
+  }
+}

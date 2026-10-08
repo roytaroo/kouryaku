@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:pet_dolphin",
+      "materials": {
+        "default": "dolphin"
+      },
+      "textures": {
+        "default": "textures/entity/dolphin"
+      },
+      "geometry": {
+        "default": "geometry.dolphin"
+      },
+      "animations": {
+        "swim": "animation.kr_pet_dolphin.swim"
+      },
+      "scripts": {
+        "animate": [
+          "swim"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet"
+      ]
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:pet_turtle",
+      "materials": {
+        "default": "turtle"
+      },
+      "textures": {
+        "default": "textures/entity/sea_turtle"
+      },
+      "geometry": {
+        "default": "geometry.turtle"
+      },
+      "animations": {
+        "swim": "animation.kr_pet_turtle.swim"
+      },
+      "scripts": {
+        "animate": [
+          "swim"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet"
+      ]
+    }
+  }
+}
