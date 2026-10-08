@@ -1,5 +1,5 @@
 import { world, system, Player, ItemStack } from "@minecraft/server";
-import { ActionFormData, MessageFormData, FormCancelationReason } from "@minecraft/server-ui";
+import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason } from "@minecraft/server-ui";
 import { WORDS } from "./words.js";
 
 /* =========================================================
@@ -18,6 +18,7 @@ const GAP = 3;
 const MAX_QUEUE = 5;
 const BOSS_QUESTIONS = 5;
 const BOSS_PASS = 4;
+const SETUP_PAGE = 10;
 // 出やすさ: 未出題 / 箱0（間違えた）〜箱5（完全に覚えた）
 const WEIGHT = { n: 3, 0: 10, 1: 6, 2: 3, 3: 2, 4: 1, 5: 0.4 };
 
@@ -362,6 +363,8 @@ world.afterEvents.playerSpawn.subscribe(ev => {
     if (!p.isValid) return;
     if (!hasCompass(p)) giveCompass(p);
     p.sendMessage("§6[攻略ダンジョン] §f「攻略コンパス」を使うとメニューが開く。敵を倒すと英単語の4択が出る。");
+    const judged = judgedCount();
+    if (judged < WORDS.length) p.sendMessage("§e最初にメニューの「セットアップ」で、知らない単語を選別しておくのがおすすめ（済 " + judged + " / " + WORDS.length + "）。");
   }, 40);
 });
 
@@ -386,6 +389,8 @@ async function openMenu(p) {
   const inDun = d && isInDungeon(p);
   /** @type {Array<[string, () => any]>} */
   const items = [];
+  const judged = judgedCount();
+  items.push(["セットアップ（全単語を選別）\n§8" + (judged >= WORDS.length ? "完了" : "済 " + judged + " / " + WORDS.length), () => setupMenu(p)]);
   items.push(["単語テスト（10問）", () => wordTest(p)]);
   if (!d) items.push(["ダンジョンを作る", () => confirmBuild(p)]);
   else {
@@ -407,6 +412,69 @@ async function openMenu(p) {
 function rate() {
   const s = st().stats;
   return s.ans ? Math.round((100 * s.ok) / s.ans) + "%" : "--";
+}
+
+/* ---------- setup: 全単語を「分かる／苦手」に選別 ---------- */
+function judgedCount() {
+  const box = st().box;
+  let n = 0;
+  for (const [w] of WORDS) if (box[w] !== undefined) n++;
+  return n;
+}
+/** @param {Player} p */
+async function setupMenu(p) {
+  const judged = judgedCount(), left = WORDS.length - judged;
+  const f = new ActionFormData()
+    .title("§lセットアップ")
+    .body("英単語を" + SETUP_PAGE + "語ずつ表示する。\n知らない・自信がない単語だけONにして「決定」。OFFのままの単語は「分かる」になる。\n\n" +
+      "・苦手にした単語：よく出る。敵の名前が赤くなる\n・分かるにした単語：たまに確認で出る。間違えたら苦手に戻る\n\n途中でやめても、続きから再開できる。\n§7選別済み " + judged + " / " + WORDS.length + "\n ");
+  /** @type {Array<[string, () => any]>} */
+  const items = [];
+  if (left > 0) items.push(["未選別の単語から（残り" + left + "語）", () => runSetup(p, false)]);
+  items.push(["全部やり直す（" + WORDS.length + "語）", () => runSetup(p, true)]);
+  items.push(["戻る", () => openMenu(p)]);
+  items.forEach(([label]) => f.button(label));
+  const r = await showForm(p, f);
+  if (r.canceled || r.selection === undefined) return;
+  await items[r.selection][1]();
+}
+/** @param {Player} p @param {boolean} all */
+async function runSetup(p, all) {
+  const s = st();
+  const list = WORDS.map((_, i) => i).filter(i => all || s.box[WORDS[i][0]] === undefined);
+  let known = 0, weak = 0;
+  running.add(p.id);
+  try {
+    for (let start = 0; start < list.length; start += SETUP_PAGE) {
+      const page = list.slice(start, start + SETUP_PAGE);
+      const f = new ModalFormData()
+        .title("§lセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length)
+        .label("知らない・自信がない単語だけON");
+      page.forEach(i => f.toggle("§l" + WORDS[i][0], { defaultValue: false }));
+      f.submitButton("決定して次へ");
+      const r = await showForm(p, f);
+      if (!p.isValid) return;
+      if (r.canceled || !r.formValues) {
+        p.sendMessage("§6[セットアップ] §fここで中断。次は続きから再開できる（済 " + judgedCount() + " / " + WORDS.length + "）。");
+        return;
+      }
+      // label の分だけ formValues の先頭がずれる場合があるので、真偽値だけを順に拾う
+      const marks = r.formValues.filter(v => typeof v === "boolean");
+      page.forEach((i, k) => {
+        const w = WORDS[i][0];
+        if (marks[k]) { s.box[w] = 0; s.miss[w] = Math.max(1, s.miss[w] ?? 0); weak++; }
+        else { s.box[w] = 3; known++; }
+      });
+      dirty = true;
+      p.onScreenDisplay.setActionBar("§aセットアップ " + Math.min(start + page.length, list.length) + " / " + list.length + "　§f分かる " + known + "　§c苦手 " + weak);
+    }
+    saveNow();
+    sound(p, "random.levelup");
+    p.sendMessage("§6[セットアップ完了] §f分かる §a" + known + "語§f ／ 苦手 §c" + weak + "語§f。苦手な単語から優先して出題する。");
+  } finally {
+    running.delete(p.id);
+    if ((queues.get(p.id) ?? []).length && p.isValid) runQueue(p);
+  }
 }
 
 /** @param {Player} p */
