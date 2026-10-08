@@ -2,7 +2,7 @@
   "format_version": 2,
   "header": {
     "name": "攻略ダンジョン",
-    "description": "敵を倒すと英単語の4択。ミスでダメージ、正解で報酬。",
+    "description": "敵を倒すと英単語の問題。ミスでダメージ、即答で報酬。",
     "uuid": "b3aae8e5-c077-4473-9010-5d1e0974df05",
     "version": [1, 1, 0],
     "min_engine_version": [1, 21, 80]
