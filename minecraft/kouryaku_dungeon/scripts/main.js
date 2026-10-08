@@ -106,7 +106,7 @@ function st() {
       cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3, range: "p1" }, loadJSON("kr:cfg", {})),
       dun: loadJSON("kr:dun", null),
       camp: loadJSON("kr:camp", null),
-      prog: Object.assign({ max: 0 }, loadJSON("kr:prog", {})),
+      prog: Object.assign({ max: 0, raids: [], raidDone: {} }, loadJSON("kr:prog", {})),
       run: loadJSON("kr:run", null)
     };
     // 1.1系の「その場の地下に作るダンジョン」は階層ダンジョンに置き換えたので捨てる
@@ -499,6 +499,7 @@ world.afterEvents.entityHurt.subscribe(ev => {
         e.removeEffect("resistance");
         if (r.fast) { e.addEffect("weakness", 20 * 30, { amplifier: 1 }); e.addEffect("slowness", 20 * 30, { amplifier: 1 }); }
         e.nameTag = "§a" + WORDS[idx][0];
+        addStat(p, "shield");
         e.dimension.spawnParticle("minecraft:critical_hit_emitter", e.location);
         sound(p, "random.break");
       } else {
@@ -565,7 +566,7 @@ system.afterEvents.scriptEventReceive.subscribe(ev => {
 
 /** @param {Player} p */
 async function openMenu(p) {
-  if (running.has(p.id)) return;
+  if (running.has(p.id) || raiding.has(p.id)) return;
   const s = st(), inDun = s.dun && isInDungeon(p), judged = judgedCount(), total = rangeList().length;
   /** @type {Array<[string, string | null, () => any]>} */
   const items = [];
@@ -850,7 +851,7 @@ system.runInterval(() => {
     }
     const prev = onPad.get(p.id);
     onPad.set(p.id, hit);
-    if (hit && hit !== prev && !running.has(p.id)) PADS[hit].open(p);
+    if (hit && hit !== prev && !running.has(p.id) && !raiding.has(p.id)) PADS[hit].open(p);
   }
 }, 5);
 
@@ -968,7 +969,8 @@ function waveFor(n, type) {
 /** n階を作る（前の階は消して作り直す） */
 function genFloor(n) {
   const s = st(), sl = s.camp.slot, Y = sl.Y, dim = ow(), th = themeOf(n);
-  for (const e of dim.getEntities({ tags: ["kr_wave"] })) { try { e.remove(); } catch (err) {} }
+  for (const tag of ["kr_wave", "kr_raid"]) for (const e of dim.getEntities({ tags: [tag] })) { try { e.remove(); } catch (err) {} }
+  raidActive = null;
   const mid = Math.floor((sl.X1 + sl.X2) / 2);
   fillAny(dim, `${sl.X1 - 1} ${Y - 1} ${sl.Z1 - 1} ${mid} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
   fillAny(dim, `${mid + 1} ${Y - 1} ${sl.Z1 - 1} ${sl.X2 + 1} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
@@ -1035,6 +1037,11 @@ function enterRoom(p, k) {
 /** @param {Player} p @param {number} n @param {boolean} [keepRun] 続けて潜る時は祝福を引き継ぐ */
 function startFloor(p, n, keepRun = false) {
   const s = st();
+  const lock = floorLocked(n);
+  if (lock) {
+    p.sendMessage("§c" + n + "階に進むには、第" + lock.id + "大陸のレイドボス「" + lock.boss + "」を倒す必要がある。");
+    return;
+  }
   if (!keepRun || !s.run) s.run = { bless: {}, feverUntil: 0 };
   genFloor(n);
   enterRoom(p, 0);
@@ -1059,25 +1066,6 @@ function backToCamp(p) {
   s.run = null;
   dirty = true;
   p.teleport(campSpawn(), { dimension: ow() });
-}
-/** @param {Player} p */
-async function floorMenu(p) {
-  const s = st(), d = s.dun, max = s.prog.max, last = floorCount();
-  /** @type {Array<[string, string | null, () => any]>} */
-  const items = [];
-  if (d && d.rooms.some(r => r.state !== "cleared")) {
-    const done = d.rooms.filter(r => r.state === "cleared").length;
-    items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length, ICON.resume, () => goToDungeon(p)]);
-  }
-  const tile = (f, icon) => {
-    const sc = floorScope(f), m = mastery(sc);
-    const sub = f <= last ? "No." + sc.lo + "-" + sc.hi : "全単語・苦手優先";
-    return /** @type {[string, string | null, () => any]} */ (["§l" + f + "階 " + themeOf(f).name + "\n§8" + sub + "\n" + stars(m) + " §8習熟" + Math.round(100 * m) + "%", icon, () => startFloor(p, f)]);
-  };
-  items.push(tile(max + 1, ICON.boss));
-  for (let f = max; f >= 1; f--) items.push(tile(f, ICON.dungeon));
-  items.push(["やめる", ICON.back, () => {}]);
-  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階 §7/ " + last + "階\n§71階 = 単語100語。★は習熟度（覚えた単語の割合）", items);
 }
 
 /* ---------- 祝福（ローグライク）：部屋を突破するたびに3つから1つ選ぶ ---------- */
@@ -1367,6 +1355,7 @@ async function bossTrial(p) {
   s.prog.max = Math.max(s.prog.max, n);
   saveNow();
   const [rank, bonus] = floorRank(d.stat);
+  if (rank === "S") addStat(p, "rankS");
   const coins = Math.round((COIN.boss + bonus) * coinMult());
   addStat(p, "boss");
   addCoins(p, coins, n + "階クリア");
@@ -1377,7 +1366,9 @@ async function bossTrial(p) {
   await menu(p, "§l" + n + "階 攻略",
     rankColor + "§lRANK " + rank + "§r  §f時間 " + mins + "分" + secs + "秒  即答 " + d.stat.fast + "/" + d.stat.ans +
     "\n§f試練 " + bar(ok / ids.length) + " §e" + ok + "/" + ids.length + "  §e+" + coins + "コイン" + (first ? "  §a" + (n + 1) + "階が開いた" : ""), [
-      ["§l" + (n + 1) + "階へ進む\n§8祝福を持ったまま\n§8" + themeOf(n + 1).name, ICON.boss, () => startFloor(p, n + 1, true)],
+      floorLocked(n + 1)
+        ? ["§lレイドに挑む\n§8" + floorLocked(n + 1).boss + "\n§8大陸の全単語", "textures/items/nether_star", () => startRaid(p, floorLocked(n + 1))]
+        : ["§l" + (n + 1) + "階へ進む\n§8祝福を持ったまま\n§8" + themeOf(n + 1).name, ICON.boss, () => startFloor(p, n + 1, true)],
       ["§lキャンプに戻る\n§8祝福は消える", ICON.camp, () => backToCamp(p)]
     ]);
 }
@@ -1437,3 +1428,203 @@ system.runInterval(() => {
     sneakState.set(p.id, was);
   }
 }, 2);
+
+/* =========================================================
+   4つの大陸とレイドボス
+   大陸の最後の階をクリアすると、その大陸のレイドボスに挑める。
+   レイドボスは大陸の全単語（例：第1大陸は400語）を出題し、全部を即答するまで倒れない。
+   倒さないと次の大陸には進めない。途中でやめても、即答した単語は記録が残る。
+   ========================================================= */
+const CONTINENTS = [
+  { id: 1, name: "地下牢",       f1: 1,  f2: 4,  boss: "獄王ヴォカブ",       mob: "minecraft:ravager",         floor: "polished_deepslate",         ring: "crying_obsidian",  reward: 200 },
+  { id: 2, name: "苔むした遺跡", f1: 5,  f2: 8,  boss: "苔の巨像レキシス",   mob: "minecraft:iron_golem",      floor: "mossy_stone_bricks",         ring: "mossy_cobblestone", reward: 400 },
+  { id: 3, name: "灼熱の砦",     f1: 9,  f2: 15, boss: "炎帝グロッサ",       mob: "minecraft:wither_skeleton", floor: "polished_blackstone_bricks", ring: "red_nether_brick", reward: 600 },
+  { id: 4, name: "深淵",         f1: 16, f2: 19, boss: "深淵の主ディクシオ", mob: "minecraft:ravager",         floor: "sculk",                      ring: "obsidian",         reward: 1000 }
+];
+const RAID_BATCH = 10;
+function continents() {
+  const last = floorCount();
+  return CONTINENTS.filter(c => c.f1 <= last).map(c => ({ ...c, f2: Math.min(c.f2, last) }));
+}
+const contScope = c => ({ lo: (c.f1 - 1) * FLOOR_WORDS + 1, hi: c.f2 * FLOOR_WORDS });
+const raidWon = id => (st().prog.raids ?? []).includes(id);
+/** n階が、まだ倒していないレイドの先にあるなら、その大陸を返す */
+function floorLocked(n) { return continents().find(c => c.f2 < n && !raidWon(c.id)) ?? null; }
+function raidDone(c) {
+  const s = st();
+  s.prog.raidDone ??= {};
+  return new Set(s.prog.raidDone[c.id] ?? []);
+}
+function raidLeft(c) {
+  const done = raidDone(c);
+  return rangeList(contScope(c)).filter(i => !done.has(WORDS[i][0]));
+}
+
+/** レイドの闘技場を作る（ダンジョン置き場を使う） */
+function genArena(c) {
+  const s = st(), sl = s.camp.slot, Y = sl.Y, dim = ow(), th = themeOf(c.f1);
+  for (const tag of ["kr_wave", "kr_raid"]) for (const e of dim.getEntities({ tags: [tag] })) { try { e.remove(); } catch (err) {} }
+  const mid = Math.floor((sl.X1 + sl.X2) / 2);
+  fillAny(dim, `${sl.X1 - 1} ${Y - 1} ${sl.Z1 - 1} ${mid} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
+  fillAny(dim, `${mid + 1} ${Y - 1} ${sl.Z1 - 1} ${sl.X2 + 1} ${Y + 7} ${sl.Z2 + 1}`, th.shell);
+  const cx = mid, cz = Math.floor((sl.Z1 + sl.Z2) / 2), h = 14;
+  cmd(dim, `fill ${cx - h} ${Y + 1} ${cz - h} ${cx + h} ${Y + 5} ${cz + h} air`);
+  fillAny(dim, `${cx - h} ${Y} ${cz - h} ${cx + h} ${Y} ${cz + h}`, [c.floor, "polished_deepslate"]);
+  fillAny(dim, `${cx - 4} ${Y} ${cz - 4} ${cx + 4} ${Y} ${cz + 4}`, [c.ring, "obsidian"]);
+  cmd(dim, `fill ${cx - 1} ${Y} ${cz - 1} ${cx + 1} ${Y} ${cz + 1} obsidian`);
+  for (let ox = -12; ox <= 12; ox += 6) for (let oz = -12; oz <= 12; oz += 6) cmd(dim, `setblock ${cx + ox} ${Y + 6} ${cz + oz} shroomlight`);
+  for (const [ox, oz] of [[9, 9], [-9, 9], [9, -9], [-9, -9], [0, 11], [0, -11], [11, 0], [-11, 0]]) {
+    fillAny(dim, `${cx + ox} ${Y + 1} ${cz + oz} ${cx + ox} ${Y + 5} ${cz + oz}`, [th.pillar, "deepslate_tiles"]);
+  }
+  s.dun = {
+    floor: 0, raid: c.id, Y, theme: th.name, stat: { start: Date.now(), ans: 0, fast: 0, ok: 0 },
+    rooms: [{ x1: cx - h - 1, x2: cx + h + 1, z1: cz - h - 1, z2: cz + h + 1, cx, cz, state: "raid", type: "raid", boss: false, used: true, door: null }]
+  };
+  saveNow();
+}
+/** @type {{cid: number, boss: any} | null} */
+let raidActive = null;
+const raiding = new Set();
+function updateRaidName(c) {
+  const b = raidActive?.boss;
+  if (!b || !b.isValid) return;
+  const total = rangeList(contScope(c)).length, left = raidLeft(c).length;
+  try { b.nameTag = "§4§l" + c.boss + "\n" + bar(total ? left / total : 0, 20) + " §f" + left + "/" + total; } catch (e) {}
+}
+/** @param {Player} p */
+async function startRaid(p, c, replay = false) {
+  if (raiding.has(p.id)) return;
+  const s = st();
+  if (replay) { s.prog.raidDone ??= {}; s.prog.raidDone[c.id] = []; }
+  genArena(c);
+  const d = s.dun, r = d.rooms[0];
+  s.run = { bless: {}, feverUntil: 0 };
+  p.teleport({ x: r.cx + 0.5, y: d.Y + 1, z: r.cz + 10.5 }, { dimension: ow(), rotation: { x: 0, y: 180 } });
+  try {
+    const boss = ow().spawnEntity(c.mob, { x: r.cx + 0.5, y: d.Y + 1, z: r.cz + 0.5 });
+    boss.addTag("kr_raid");
+    for (const [id, amp] of /** @type {Array<[string, number]>} */ ([["slowness", 255], ["weakness", 255], ["resistance", 4]])) boss.addEffect(id, 20 * 3600, { amplifier: amp, showParticles: false });
+    raidActive = { cid: c.id, boss };
+  } catch (e) { raidActive = null; }
+  updateRaidName(c);
+  const total = rangeList(contScope(c)).length, left = raidLeft(c).length;
+  title(p, "§4§l" + c.boss, "第" + c.id + "大陸 " + total + "語すべてを即答で討て（残り " + left + "）");
+  sound(p, "mob.enderdragon.growl");
+  p.sendMessage("§4[レイド] §f" + c.boss + "：大陸の全" + total + "語を即答するまで倒れない。" + RAID_BATCH + "問ごとに、ミスの数だけ眷属が現れる。途中でやめても、即答した単語は残る。");
+  await wait(60);
+  raidLoop(p, c);
+}
+/** @param {Player} p */
+async function raidLoop(p, c) {
+  raiding.add(p.id);
+  try {
+    const s = st();
+    const alive = () => p.isValid && isInDungeon(p) && st().dun?.raid === c.id;
+    while (alive()) {
+      const left = raidLeft(c);
+      if (!left.length) { await raidVictory(p, c); return; }
+      // 苦手な単語ほど先に出す（同じ苦手度ならランダム）
+      const batch = left.map(i => [i, (s.box[WORDS[i][0]] ?? 0) + Math.random()]).sort((a, b) => a[1] - b[1]).slice(0, RAID_BATCH).map(x => x[0]);
+      let miss = 0;
+      for (let q = 0; q < batch.length; q++) {
+        const i = batch[q];
+        const r = await askOne(p, i, { title: "§4§l" + c.boss + "  §r残り " + raidLeft(c).length, progress: "波 " + (q + 1) + "/" + batch.length });
+        if (!alive()) return;
+        if (r.fast) {
+          (s.prog.raidDone[c.id] ??= []).push(WORDS[i][0]);
+          dirty = true;
+          try { const b = raidActive?.boss; if (b?.isValid) b.dimension.spawnParticle("minecraft:huge_explosion_emitter", b.location); } catch (e) {}
+          sound(p, "random.explode");
+        } else {
+          miss++;
+          sound(p, "mob.ravager.roar");
+        }
+        updateRaidName(c);
+      }
+      saveNow();
+      if (miss && raidLeft(c).length) await raidMinions(p, c, Math.min(miss, 6));
+    }
+  } finally {
+    raiding.delete(p.id);
+  }
+}
+/** ミスの数だけ眷属を出して、全部倒すまで待つ @param {Player} p */
+async function raidMinions(p, c, count) {
+  const d = st().dun, r = d.rooms[0], dim = ow(), pool = poolFor(c.f2), sc = contScope(c);
+  for (let k = 0; k < count; k++) {
+    const ang = (k / count) * Math.PI * 2;
+    try {
+      const e = dim.spawnEntity(pick(pool), { x: r.cx + 0.5 + Math.cos(ang) * 8, y: d.Y + 1, z: r.cz + 0.5 + Math.sin(ang) * 8 });
+      e.addTag("kr_wave");
+      e.addTag("kr_minion");
+      e.addTag("kr_shield");
+      e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
+      tagWord(e, pickWord(undefined, sc));
+    } catch (err) {}
+  }
+  title(p, "§c眷属が現れた", count + "体。倒すと次の波が来る");
+  while (p.isValid && isInDungeon(p) && dim.getEntities({ tags: ["kr_minion"] }).length > 0) await wait(20);
+}
+/** @param {Player} p */
+async function raidVictory(p, c) {
+  const s = st();
+  try { const b = raidActive?.boss; if (b?.isValid) { b.dimension.spawnParticle("minecraft:huge_explosion_emitter", b.location); b.remove(); } } catch (e) {}
+  raidActive = null;
+  const first = !raidWon(c.id);
+  if (first) { (s.prog.raids ??= []).push(c.id); addStat(p, "raid_c" + c.id); }
+  saveNow();
+  addCoins(p, first ? c.reward : Math.round(c.reward / 4), "レイド討伐");
+  const total = rangeList(contScope(c)).length;
+  const next = continents().find(x => x.id === c.id + 1);
+  title(p, "§6§l第" + c.id + "大陸 制覇！", first ? (next ? "第" + next.id + "大陸「" + next.name + "」が開いた" : "無限の深淵が開いた") : "総復習 完了");
+  sound(p, "ui.toast.challenge_complete");
+  await menu(p, "§l第" + c.id + "大陸 制覇", "§6§l" + c.boss + " を倒した！\n§f" + total + "語すべてを即答した。§e+" + (first ? c.reward : Math.round(c.reward / 4)) + "コイン", [
+    next ? ["§l第" + next.id + "大陸へ\n§8" + next.name + " " + next.f1 + "階", ICON.boss, () => startFloor(p, next.f1)]
+         : ["§l無限の深淵へ\n§8" + (c.f2 + 1) + "階 全単語", ICON.boss, () => startFloor(p, Math.max(c.f2 + 1, s.prog.max + 1))],
+    ["§lキャンプに戻る", ICON.camp, () => backToCamp(p)]
+  ]);
+}
+
+/** 1つの階のタイル */
+function floorTile(p, f, icon) {
+  const sc = floorScope(f), m = mastery(sc);
+  const sub = f <= floorCount() ? "No." + sc.lo + "-" + sc.hi : "全単語・苦手優先";
+  return /** @type {[string, string | null, () => any]} */ (["§l" + f + "階 " + themeOf(f).name + "\n§8" + sub + "\n" + stars(m) + " §8習熟" + Math.round(100 * m) + "%", icon, () => startFloor(p, f)]);
+}
+/** 大陸を選ぶ @param {Player} p */
+async function floorMenu(p) {
+  const s = st(), d = s.dun, max = s.prog.max, last = floorCount();
+  /** @type {Array<[string, string | null, () => any]>} */
+  const items = [];
+  if (d && !d.raid && d.rooms.some(r => r.state !== "cleared")) {
+    const done = d.rooms.filter(r => r.state === "cleared").length;
+    items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length, ICON.resume, () => goToDungeon(p)]);
+  }
+  for (const c of continents()) {
+    const locked = !!floorLocked(c.f1), sc = contScope(c), m = mastery(sc);
+    const cleared = Math.max(0, Math.min(c.f2, max) - c.f1 + 1), floors = c.f2 - c.f1 + 1;
+    const status = locked ? "§c未開放" : raidWon(c.id) ? "§a制覇" : max >= c.f2 ? "§6レイド挑戦可" : "§7" + cleared + "/" + floors + "階";
+    items.push(["§l第" + c.id + "大陸 " + c.name + "\n§8" + c.f1 + "-" + c.f2 + "階 No." + sc.lo + "-" + sc.hi + "\n" + stars(m) + " " + status,
+      locked ? "textures/blocks/barrier" : ICON.dungeon,
+      () => locked ? (p.sendMessage("§c第" + c.id + "大陸は、手前の大陸のレイドボスを倒すと開く。"), floorMenu(p)) : continentMenu(p, c)]);
+  }
+  if (continents().every(c => raidWon(c.id))) {
+    const f = Math.max(last + 1, max + 1);
+    items.push(["§l無限の深淵\n§8" + (last + 1) + "階から 全単語\n§8最高 " + max + "階", ICON.boss, () => startFloor(p, f)]);
+  }
+  items.push(["やめる", ICON.back, () => {}]);
+  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7大陸の最後の階を越えると、レイドボスが全単語を試してくる", items);
+}
+/** 大陸の中の階とレイド @param {Player} p */
+async function continentMenu(p, c) {
+  const max = st().prog.max;
+  /** @type {Array<[string, string | null, () => any]>} */
+  const items = [];
+  for (let f = c.f1; f <= Math.min(c.f2, max + 1); f++) items.push(floorTile(p, f, f === max + 1 ? ICON.boss : ICON.dungeon));
+  const total = rangeList(contScope(c)).length, left = raidLeft(c).length;
+  if (raidWon(c.id)) items.push(["§l再戦 " + c.boss + "\n§8全" + total + "語の総復習", "textures/items/nether_star", () => startRaid(p, c, true)]);
+  else if (max >= c.f2) items.push(["§lレイド " + c.boss + "\n§8残り " + left + "/" + total + "語\n§8全部即答で討伐", "textures/items/nether_star", () => startRaid(p, c)]);
+  else items.push(["§lレイド " + c.boss + "\n§8" + c.f2 + "階をクリアで挑戦可", "textures/blocks/barrier", () => continentMenu(p, c)]);
+  items.push(["戻る", ICON.back, () => floorMenu(p)]);
+  await menu(p, "§l第" + c.id + "大陸 " + c.name, profileLine(p) + "\n§7大陸の習熟 " + stars(mastery(contScope(c))) + " §7" + Math.round(100 * mastery(contScope(c))) + "%", items);
+}

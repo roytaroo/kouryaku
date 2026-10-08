@@ -20,6 +20,12 @@ export const BADGES = [
   { id: "boss10",  icon: "♛", label: "門番キラー",   desc: "ボスを10回倒した" },
   { id: "learn300", icon: "❖", label: "語彙の番人",   desc: "300語を覚えた" },
   { id: "combo20", icon: "✹", label: "20コンボ",     desc: "20問連続で正解" },
+  { id: "shield100", icon: "✦", label: "盾砕き",       desc: "単語シールドを100枚割った" },
+  { id: "rankS5",  icon: "✎", label: "Sランカー",     desc: "階をSランクで5回クリア" },
+  { id: "raid1",   icon: "♛", label: "獄王討伐",     desc: "第1大陸のレイドボスを倒した" },
+  { id: "raid2",   icon: "✪", label: "巨像討伐",     desc: "第2大陸のレイドボスを倒した" },
+  { id: "raid3",   icon: "✹", label: "炎帝討伐",     desc: "第3大陸のレイドボスを倒した" },
+  { id: "raid4",   icon: "❖", label: "深淵の覇者",   desc: "第4大陸のレイドボスを倒した" },
 ];
 const MAX_EQUIP = 3;
 
@@ -34,12 +40,19 @@ export const MISSIONS = [
   { id: "m_boss",  cat: "hard",  title: "門番キラー",   desc: "ボスを10回倒す",       stat: "boss",    target: 10,   reward: { xp: 400, badge: "boss10" } },
   { id: "m_learn", cat: "hard",  title: "語彙の番人",   desc: "300語を覚える(箱が上がった回数)", stat: "learned", target: 300, reward: { xp: 800, badge: "learn300" } },
   { id: "m_combo", cat: "hard",  title: "20コンボ",     desc: "20問連続で正解(自己ベスト)", stat: "best_combo", target: 20, reward: { xp: 300, badge: "combo20" } },
+  { id: "m_shield", cat: "basic", title: "盾砕き",       desc: "単語シールドを100枚割る",   stat: "shield",  target: 100, reward: { xp: 200, coin: 100, badge: "shield100" } },
+  { id: "m_rankS",  cat: "hard",  title: "Sランカー",    desc: "階をSランクで5回クリア",   stat: "rankS",   target: 5,   reward: { xp: 300, coin: 200, badge: "rankS5" } },
+  { id: "m_raid1",  cat: "hard",  title: "第1大陸 制覇", desc: "獄王ヴォカブを倒す",        stat: "raid_c1", target: 1,   reward: { xp: 500, coin: 300, badge: "raid1" } },
+  { id: "m_raid2",  cat: "hard",  title: "第2大陸 制覇", desc: "苔の巨像レキシスを倒す",    stat: "raid_c2", target: 1,   reward: { xp: 700, coin: 500, badge: "raid2" } },
+  { id: "m_raid3",  cat: "hard",  title: "第3大陸 制覇", desc: "炎帝グロッサを倒す",        stat: "raid_c3", target: 1,   reward: { xp: 900, coin: 700, badge: "raid3" } },
+  { id: "m_raid4",  cat: "hard",  title: "第4大陸 制覇", desc: "深淵の主ディクシオを倒す",  stat: "raid_c4", target: 1,   reward: { xp: 1200, coin: 1000, badge: "raid4" } },
 ];
 // ---------- デイリーミッション(現実の日付が変わるとリセット。stat は "d_" で始める) ----------
 export const DAILY = [
   { id: "d_ok",    title: "今日の30問", desc: "今日30問正解",     stat: "d_ok",    target: 30, reward: { xp: 60, coin: 30 } },
   { id: "d_fast",  title: "今日の即答", desc: "今日即答を10回",   stat: "d_fast",  target: 10, reward: { xp: 40, coin: 20 } },
   { id: "d_clear", title: "今日の攻略", desc: "今日部屋を3つクリア", stat: "d_clear", target: 3, reward: { xp: 50, coin: 30 } },
+  { id: "d_shield", title: "今日の盾砕き", desc: "今日シールドを20枚割る", stat: "d_shield", target: 20, reward: { xp: 40, coin: 30 } },
 ];
 const CATS = [
   { id: "basic", label: "§lふつう", icon: "textures/items/book_normal" },
@@ -51,6 +64,8 @@ const BESTS = [
   { stat: "ok", label: "累計正解" },
   { stat: "learned", label: "覚えた語数" },
   { stat: "boss", label: "ボス撃破" },
+  { stat: "shield", label: "割ったシールド" },
+  { stat: "rankS", label: "Sランク" },
 ];
 
 // ---------- レベル ----------
