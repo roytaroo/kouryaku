@@ -1,0 +1,12 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:map_board",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/kr_map_board" },
+      "geometry": { "default": "geometry.kr_map_board" },
+      "render_controllers": ["controller.render.kr_pet_glow"]
+    }
+  }
+}

@@ -800,6 +800,24 @@ function ensureWorld(p) {
     p.sendMessage("§6[攻略ダンジョン] §fキャンプを建てた。ここが拠点だ。");
   }
   for (const c of RULES) cmd(dim, c);
+  if (s.camp) ensureMapBoard();
+}
+/** キャンプの南の壁に、大きな世界地図のボード（12×6マス）を飾る。何度呼んでも1枚だけ */
+function ensureMapBoard() {
+  const c = st().camp, dim = ow(), { x: cx, y, z: cz } = c, wz = cz + CAMP_R - 1;
+  // 地図の下の本棚と、両側の柱
+  cmd(dim, `fill ${cx - 6} ${y + 1} ${wz} ${cx + 6} ${y + 2} ${wz} bookshelf`);
+  cmd(dim, `fill ${cx - 7} ${y + 1} ${wz} ${cx - 7} ${y + 8} ${wz} stripped_dark_oak_log`);
+  cmd(dim, `fill ${cx + 7} ${y + 1} ${wz} ${cx + 7} ${y + 8} ${wz} stripped_dark_oak_log`);
+  cmd(dim, `setblock ${cx - 7} ${y + 9} ${wz} shroomlight`);
+  cmd(dim, `setblock ${cx + 7} ${y + 9} ${wz} shroomlight`);
+  const at = { x: cx + 0.5, y: y + 3, z: wz + 0.95 };
+  const boards = dim.getEntities({ type: "kr:map_board" });
+  boards.slice(1).forEach(e => { try { e.remove(); } catch (err) {} });
+  try {
+    const b = boards[0] ?? dim.spawnEntity("kr:map_board", at);
+    b.teleport(at, { rotation: { x: 0, y: 0 } });
+  } catch (e) { console.warn("[kouryaku] map board: " + e); }
 }
 /** プレイヤーの準備：アドベンチャーモード、空腹なし、最初の装備 */
 function setupPlayer(p) {
