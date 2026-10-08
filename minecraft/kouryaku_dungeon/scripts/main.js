@@ -903,10 +903,10 @@ function roomCount(n) { return Math.min(4 + Math.floor((n - 1) / 2), 8); }
 
 // 階ごとの雰囲気（壁・床・明かり・柱）。ブロックが無かった時のために予備も持つ
 const THEMES = [
-  { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave" },
-  { from: 5, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "mossy_cobblestone", "cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave" },
-  { from: 9, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood" },
-  { from: 16, name: "深淵", shell: ["obsidian"], floors: ["sculk", "deepslate_tiles", "crying_obsidian"], light: "sea_lantern", pillar: "crying_obsidian", sound: "ambient.warped_forest.mood" },
+  { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave", channel: "lava" },
+  { from: 5, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "moss_block", "mossy_cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave", channel: "water" },
+  { from: 9, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood", channel: "lava" },
+  { from: 16, name: "深淵", shell: ["dark_prismarine", "obsidian"], floors: ["prismarine_bricks", "dark_prismarine", "prismarine"], light: "sea_lantern", pillar: "amethyst_block", sound: "ambient.warped_forest.mood", channel: "water" },
   { from: 20, name: "無限の深淵", shell: ["crying_obsidian", "obsidian"], floors: ["sculk", "obsidian", "crying_obsidian"], light: "shroomlight", pillar: "obsidian", sound: "ambient.soulsand_valley.mood" }
 ];
 const themeOf = n => [...THEMES].reverse().find(t => n >= t.from && (t.from < 20 || n > floorCount())) ?? THEMES[0];
@@ -988,6 +988,14 @@ function genFloor(n) {
     fillAny(dim, `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`, [r.boss ? "polished_blackstone_bricks" : pick(th.floors), "polished_deepslate"]);
     for (const [lx, lz] of [[r.x1 + 2, r.z1 + 2], [r.x2 - 2, r.z1 + 2], [r.x1 + 2, r.z2 - 2], [r.x2 - 2, r.z2 - 2], [r.cx, r.cz]]) {
       cmd(dim, `setblock ${lx} ${Y + 6} ${lz} ${r.boss ? "shroomlight" : th.light}`);
+    }
+    // 床の下を流れる溶岩・水（ガラス越しに見える。地図の川のイメージ）
+    if (th.channel) {
+      for (const line of [`${r.cx} ${Y - 1} ${r.z1 + 1} ${r.cx} ${Y - 1} ${r.z2 - 1}`, `${r.x1 + 1} ${Y - 1} ${r.cz} ${r.x2 - 1} ${Y - 1} ${r.cz}`]) {
+        cmd(dim, `fill ${line} ${th.channel}`);
+      }
+      cmd(dim, `fill ${r.cx} ${Y} ${r.z1 + 1} ${r.cx} ${Y} ${r.z2 - 1} glass`);
+      cmd(dim, `fill ${r.x1 + 1} ${Y} ${r.cz} ${r.x2 - 1} ${Y} ${r.cz} glass`);
     }
     const pillars = r.boss ? [[4, 4], [-4, 4], [4, -4], [-4, -4]] : (r.x2 - r.x1 >= 12 && Math.random() < 0.6 ? [[3, 3], [-3, -3]] : []);
     for (const [ox, oz] of pillars) fillAny(dim, `${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 5} ${r.cz + oz}`, [th.pillar, "deepslate_tiles"]);
@@ -1439,7 +1447,7 @@ const CONTINENTS = [
   { id: 1, name: "地下牢",       f1: 1,  f2: 4,  boss: "獄王ヴォカブ",       mob: "minecraft:ravager",         floor: "polished_deepslate",         ring: "crying_obsidian",  reward: 200 },
   { id: 2, name: "苔むした遺跡", f1: 5,  f2: 8,  boss: "苔の巨像レキシス",   mob: "minecraft:iron_golem",      floor: "mossy_stone_bricks",         ring: "mossy_cobblestone", reward: 400 },
   { id: 3, name: "灼熱の砦",     f1: 9,  f2: 15, boss: "炎帝グロッサ",       mob: "minecraft:wither_skeleton", floor: "polished_blackstone_bricks", ring: "red_nether_brick", reward: 600 },
-  { id: 4, name: "深淵",         f1: 16, f2: 19, boss: "深淵の主ディクシオ", mob: "minecraft:ravager",         floor: "sculk",                      ring: "obsidian",         reward: 1000 }
+  { id: 4, name: "深淵",         f1: 16, f2: 19, boss: "深淵の主ディクシオ", mob: "minecraft:ravager",         floor: "dark_prismarine",            ring: "amethyst_block",   reward: 1000 }
 ];
 const RAID_BATCH = 10;
 function continents() {
@@ -1605,12 +1613,12 @@ async function floorMenu(p) {
     const cleared = Math.max(0, Math.min(c.f2, max) - c.f1 + 1), floors = c.f2 - c.f1 + 1;
     const status = locked ? "§c未開放" : raidWon(c.id) ? "§a制覇" : max >= c.f2 ? "§6レイド挑戦可" : "§7" + cleared + "/" + floors + "階";
     items.push(["§l第" + c.id + "大陸 " + c.name + "\n§8" + c.f1 + "-" + c.f2 + "階 No." + sc.lo + "-" + sc.hi + "\n" + stars(m) + " " + status,
-      locked ? "textures/blocks/barrier" : ICON.dungeon,
+      locked ? "textures/blocks/barrier" : "textures/ui/kr_map_c" + c.id,
       () => locked ? (p.sendMessage("§c第" + c.id + "大陸は、手前の大陸のレイドボスを倒すと開く。"), floorMenu(p)) : continentMenu(p, c)]);
   }
   if (continents().every(c => raidWon(c.id))) {
     const f = Math.max(last + 1, max + 1);
-    items.push(["§l無限の深淵\n§8" + (last + 1) + "階から 全単語\n§8最高 " + max + "階", ICON.boss, () => startFloor(p, f)]);
+    items.push(["§l無限の深淵\n§8" + (last + 1) + "階から 全単語\n§8最高 " + max + "階", "textures/ui/kr_map_abyss", () => startFloor(p, f)]);
   }
   items.push(["やめる", ICON.back, () => {}]);
   await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7大陸の最後の階を越えると、レイドボスが全単語を試してくる", items);
