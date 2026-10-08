@@ -35,8 +35,9 @@
    ```
    python3 tools/anki_to_words.py deck.txt --preview            # 列の確認
    python3 tools/anki_to_words.py deck.txt --word 1 --meaning 2  # words.js を作り直す
-   python3 tools/build.py                                        # .mcaddon を作り直す
+   python3 tools/build.py                                        # private/ に .mcaddon を作る
    ```
+   単語帳のデータは公開リポジトリに載せないよう、`private/`（git管理外）に置く。
    単語を入れ替えても、覚え具合の記録は単語ごとに残る。
 
 ## 仕組みメモ

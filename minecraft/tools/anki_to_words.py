@@ -12,7 +12,8 @@ import re
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / "kouryaku_dungeon" / "scripts" / "words.js"
+# 市販の単語帳から作ったデータは公開リポジトリに載せないよう、git管理外の private/ に書き出す
+OUT = Path(__file__).resolve().parent.parent / "private" / "words.js"
 
 
 def clean(text: str) -> str:
@@ -71,6 +72,7 @@ def main():
     if len(words) < 4:
         sys.exit("単語が4つ未満しか読めなかった。--preview で列番号を確認して。")
     body = ",\n".join("  " + json.dumps(x, ensure_ascii=False) for x in words)
+    OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(
         "// Ankiから自動生成（tools/anki_to_words.py）。手で直さず、元データを直して作り直す。\n"
         "// 形式: [英単語, 意味]\nexport const WORDS = [\n" + body + "\n];\n",
