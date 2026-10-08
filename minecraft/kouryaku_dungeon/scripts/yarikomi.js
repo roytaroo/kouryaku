@@ -9,6 +9,7 @@
 // ミッションやバッジを増やす時は、下の MISSIONS / DAILY / BADGES に1行足すだけ。
 import { world, system } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
+import { gridForm } from "./ui.js";
 
 // ---------- バッジ(名前の横に出る。icon は1文字) ----------
 export const BADGES = [
@@ -181,7 +182,7 @@ const extraButtons = [];
 export function addMenuButton(label, icon, fn) { extraButtons.push({ label, icon, fn }); }
 export async function showYarikomiMenu(p) {
   const d = load(p);
-  const f = new ActionFormData().title("§lやり込み")
+  const f = gridForm("やり込み")
     .body(`§fLv.${d.lv}  ${bar(d.xp / xpToNext(d.lv))} §7${d.xp}/${xpToNext(d.lv)}\n§eコイン ${d.coin}  §dバッジ ${d.badges.length}/${BADGES.length}\n `);
   const acts = [];
   f.button(`§lデイリー${star(nearCount(d, DAILY, "ddone"))}`, "textures/items/clock_item"); acts.push(() => list(p, "デイリーミッション", DAILY, "ddone"));

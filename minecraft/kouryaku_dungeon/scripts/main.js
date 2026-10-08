@@ -3,6 +3,7 @@ import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason, 
 import { WORDS } from "./words.js";
 import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu, getData } from "./yarikomi.js";
 import { showShop } from "./shop.js";
+import { gridForm } from "./ui.js";
 import "./pets.js";
 
 /* =========================================================
@@ -263,13 +264,23 @@ function profileLine(p) {
   return "§fLv." + d.lv + "  §eコイン " + d.coin;
 }
 /**
- * アイコン付きボタンのメニューを出して、押されたボタンの処理を実行する
+ * アイコン付きボタンのメニューを出して、押されたボタンの処理を実行する。
+ * grid=true なら ICE BOW と同じ3列のタイル（リソースパックの ui/server_form.json）。説明が長い画面は縦並び。
  * @param {Player} p @param {string} titleText @param {string} body
  * @param {Array<[string, string | null, () => any]>} items
+ * @param {boolean} [grid]
  */
-async function menu(p, titleText, body, items) {
-  const f = new ActionFormData().title(titleText).body(body + "\n ");
-  items.forEach(([label, icon]) => { if (icon) f.button(label, icon); else f.button(label); });
+async function menu(p, titleText, body, items, grid = true) {
+  const plain = s => s.replace(/^§l/, "");
+  /** @type {any} */
+  let f;
+  if (grid) {
+    f = gridForm(plain(titleText)).body(body);
+    items.forEach(([label, icon]) => f.button(plain(label), icon ?? undefined));
+  } else {
+    f = new ActionFormData().title(titleText).body(body + "\n ");
+    items.forEach(([label, icon]) => { if (icon) f.button(label, icon); else f.button(label); });
+  }
   const r = await showForm(p, f);
   if (r.canceled || r.selection === undefined) return;
   await items[r.selection][2]();
@@ -539,7 +550,7 @@ async function setupMenu(p) {
   if (left > 0) items.push(["§l続きから選別\n§8残り " + left + "語", ICON.setup, () => runSetup(p, false)]);
   items.push(["§lこの範囲をやり直す\n§8" + total + "語すべて", ICON.mode, () => runSetup(p, true)]);
   items.push(["戻る", ICON.back, () => bookMenu(p)]);
-  await menu(p, "§lセットアップ", body, items);
+  await menu(p, "§lセットアップ", body, items, false);
 }
 /** @param {Player} p @param {boolean} all */
 async function runSetup(p, all) {
@@ -616,7 +627,7 @@ async function showStats(p) {
   ];
   if (!weak.length) lines.push("§7まだなし");
   weak.forEach((i, k) => lines.push("§f" + (k + 1) + ". §e" + WORDS[i][0] + "§r " + short(inline(WORDS[i][1]), 20) + " §8ミス" + s.miss[WORDS[i][0]]));
-  await menu(p, "§l成績", lines.join("\n"), [["戻る", ICON.back, () => bookMenu(p)]]);
+  await menu(p, "§l成績", lines.join("\n"), [["戻る", ICON.back, () => bookMenu(p)]], false);
 }
 
 /** @param {Player} p */
@@ -790,9 +801,9 @@ system.runInterval(() => {
 /** @param {Player} p */
 async function bookMenu(p) {
   const judged = judgedCount(), total = rangeList().length, learned = learnedCount();
-  const body = profileLine(p) + "\n§7出題範囲 " + range().label +
-    "\n\n§f選別    " + bar(total ? judged / total : 0) + " §7" + judged + "/" + total +
-    "\n§f覚えた  " + bar(total ? learned / total : 0) + " §7" + learned + "/" + total;
+  const body = profileLine(p) + "  §7" + range().label +
+    "\n§f選別 " + bar(total ? judged / total : 0) + " §7" + judged + "/" + total +
+    "   §f覚えた " + bar(total ? learned / total : 0) + " §7" + learned + "/" + total;
   await menu(p, "§l単語の書", body, [
     ["§lセットアップ\n§8" + (judged >= total ? "この範囲は完了" : "残り " + (total - judged) + "語"), ICON.setup, () => setupMenu(p)],
     ["§l単語テスト\n§810問・ダメージなし・コインあり", ICON.test, () => wordTest(p)],
@@ -931,7 +942,7 @@ async function floorMenu(p) {
   items.push(["§l" + (max + 1) + "階に挑戦\n§8まだ誰も踏み入れていない", ICON.boss, () => startFloor(p, max + 1)]);
   for (let f = max; f >= Math.max(1, max - 7); f--) items.push(["§l" + f + "階\n§8クリア済み", ICON.dungeon, () => startFloor(p, f)]);
   items.push(["やめる", ICON.back, () => {}]);
-  await menu(p, "§lダンジョン", profileLine(p) + "\n§f最高到達 §e" + max + "階\n\n§7階が深いほど敵が強く、部屋が増える。\n§7門番の試練に合格すると次の階が開く。", items);
+  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7深い階ほど敵が強く、部屋が増える", items);
 }
 
 function startWave(k) {
