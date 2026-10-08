@@ -139,28 +139,48 @@ function numOf(i) {
 function range() {
   return RANGES.find(r => r.id === st().cfg.range) ?? RANGES[0];
 }
-function inRange(i) {
-  const r = range(), n = numOf(i);
-  return n >= r.lo && n <= r.hi;
+/** sc: 出題する単語番号の範囲 {lo, hi}。省略すると設定の出題範囲
+ * @param {number} i @param {{lo: number, hi: number}} [sc] */
+function inRange(i, sc = range()) {
+  const n = numOf(i);
+  return n >= sc.lo && n <= sc.hi;
 }
-function rangeList() {
-  return WORDS.map((_, i) => i).filter(inRange);
+/** @param {{lo: number, hi: number}} [sc] */
+function rangeList(sc = range()) {
+  return WORDS.map((_, i) => i).filter(i => inRange(i, sc));
+}
+// ダンジョンは「1階 = 単語100語」。その階の単語を全部覚えていれば楽に勝てる
+const FLOOR_WORDS = 100;
+let floorCountCache = 0;
+function floorCount() {
+  if (!floorCountCache) floorCountCache = Math.max(1, Math.ceil(Math.max(...WORDS.map((_, i) => numOf(i))) / FLOOR_WORDS));
+  return floorCountCache;
+}
+/** n階の単語の範囲。最後の階より深いところ（無限の深淵）は全単語 */
+function floorScope(n) {
+  return n <= floorCount() ? { lo: (n - 1) * FLOOR_WORDS + 1, hi: n * FLOOR_WORDS } : { lo: 1, hi: 1e9 };
+}
+/** その範囲で「覚えた」（箱4以上）の割合 */
+function mastery(sc) {
+  const list = rangeList(sc), box = st().box;
+  if (!list.length) return 0;
+  return list.filter(i => (box[WORDS[i][0]] ?? -1) >= 4).length / list.length;
 }
 function weightOf(i) {
   const b = st().box[WORDS[i][0]];
   return b === undefined ? WEIGHT.n : WEIGHT[b] ?? 1;
 }
-/** @param {Set<number>} [avoid] */
-function pickWord(avoid) {
+/** @param {Set<number>} [avoid] @param {{lo: number, hi: number}} [sc] */
+function pickWord(avoid, sc = range()) {
   let total = 0;
   const ws = new Array(WORDS.length);
   for (let i = 0; i < WORDS.length; i++) {
-    const w = (avoid && avoid.has(i)) || !inRange(i) ? 0 : weightOf(i);
+    const w = (avoid && avoid.has(i)) || !inRange(i, sc) ? 0 : weightOf(i);
     ws[i] = w;
     total += w;
   }
   if (total <= 0) {
-    const list = rangeList();
+    const list = rangeList(sc);
     return list.length ? list[Math.floor(Math.random() * list.length)] : Math.floor(Math.random() * WORDS.length);
   }
   let r = Math.random() * total;
@@ -174,11 +194,11 @@ function isWeak(i) {
   const w = WORDS[i][0];
   return st().box[w] === 0 && (st().miss[w] ?? 0) > 0;
 }
-/** 苦手な順にn語（足りなければ出やすさで補う） */
-function weakest(n) {
+/** 苦手な順にn語（足りなければ出やすさで補う） @param {number} n @param {{lo: number, hi: number}} [sc] */
+function weakest(n, sc = range()) {
   const s = st();
   const ranked = WORDS.map((_, i) => i)
-    .filter(i => inRange(i) && (s.miss[WORDS[i][0]] ?? 0) > 0)
+    .filter(i => inRange(i, sc) && (s.miss[WORDS[i][0]] ?? 0) > 0)
     .sort((a, b) => {
       const ba = s.box[WORDS[a][0]] ?? 0, bb = s.box[WORDS[b][0]] ?? 0;
       if (ba !== bb) return ba - bb;
@@ -186,9 +206,9 @@ function weakest(n) {
     })
     .slice(0, n);
   const used = new Set(ranked);
-  const size = rangeList().length;
+  const size = rangeList(sc).length;
   while (ranked.length < n && used.size < size) {
-    const i = pickWord(used);
+    const i = pickWord(used, sc);
     used.add(i);
     ranked.push(i);
   }
@@ -449,26 +469,58 @@ async function askOne(p, i, opt = {}) {
   return { ok, fast };
 }
 
-/* ---------- events: mobs ---------- */
+/* ---------- events: mobs（単語シールド） ----------
+   ダンジョンの敵は「単語シールド」（ダメージ80%カット）を持っている。最初に攻撃すると、その敵の単語が出題される。
+   即答 → シールドが割れて、敵は弱体化（楽に倒せる）  遅い正解 → シールドが割れるだけ
+   ミス → シールドはそのままで敵が強化。3秒たつと、もう一度攻撃して挑み直せる
+   → 単語を覚えていれば楽勝、覚えていなければ苦戦する */
+const SHIELD_RES = 3;
 world.afterEvents.entityHurt.subscribe(ev => {
-  const src = ev.damageSource.damagingEntity;
-  if (!(src instanceof Player)) return;
+  const p = ev.damageSource.damagingEntity;
+  if (!(p instanceof Player)) return;
   const e = ev.hurtEntity;
   if (!e.isValid || !isMonster(e)) return;
-  if (wordOf(e) !== undefined) return;
-  if (!st().cfg.outside && !e.hasTag("kr_wave")) return;
-  tagWord(e, pickWord());
+  if (wordOf(e) === undefined) {
+    if (!st().cfg.outside && !e.hasTag("kr_wave")) return;
+    tagWord(e, pickWord());
+  }
+  if (!e.hasTag("kr_shield") || e.hasTag("kr_quiz")) return;
+  if (Date.now() < Number(e.getDynamicProperty("kr:retry") ?? 0)) return;
+  e.addTag("kr_quiz");
+  const idx = wordOf(e);
+  enqueue(p, async () => {
+    const r = await askOne(p, idx, { title: "§l単語シールド" });
+    if (!e.isValid) return;
+    try {
+      e.removeTag("kr_quiz");
+      e.addTag("kr_asked");
+      if (r.ok) {
+        e.removeTag("kr_shield");
+        e.removeEffect("resistance");
+        if (r.fast) { e.addEffect("weakness", 20 * 30, { amplifier: 1 }); e.addEffect("slowness", 20 * 30, { amplifier: 1 }); }
+        e.nameTag = "§a" + WORDS[idx][0];
+        e.dimension.spawnParticle("minecraft:critical_hit_emitter", e.location);
+        sound(p, "random.break");
+      } else {
+        e.setDynamicProperty("kr:retry", Date.now() + 3000);
+        e.addEffect("strength", 20 * 20, { amplifier: 1 });
+        e.addEffect("speed", 20 * 20, { amplifier: 0 });
+        sound(p, "mob.ravager.roar");
+      }
+    } catch (err) {}
+  });
 });
 
+// シールドの問題を一度も出さずに倒した敵は、倒した時に出題する
 world.afterEvents.entityDie.subscribe(ev => {
   const p = ev.damageSource.damagingEntity;
   if (!(p instanceof Player)) return;
   const e = ev.deadEntity;
-  let boss = false, wave = false;
-  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); } catch (err) {}
-  if (boss) return; // ボスは部屋の監視側でボス戦の問題を出す
+  let boss = false, wave = false, asked = false;
+  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); asked = e.hasTag("kr_asked") || e.hasTag("kr_quiz"); } catch (err) {}
   let i = wordOf(e);
   mobWord.delete(e.id);
+  if (boss || asked) return; // ボスは部屋の監視側で試練を出す
   if (i === undefined) {
     if (!wave && (!st().cfg.outside || !isMonster(e))) return;
     i = pickWord();
@@ -851,11 +903,18 @@ function roomCount(n) { return Math.min(4 + Math.floor((n - 1) / 2), 8); }
 // 階ごとの雰囲気（壁・床・明かり・柱）。ブロックが無かった時のために予備も持つ
 const THEMES = [
   { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave" },
-  { from: 4, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "mossy_cobblestone", "cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave" },
-  { from: 7, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood" },
-  { from: 10, name: "深淵", shell: ["obsidian"], floors: ["sculk", "deepslate_tiles", "crying_obsidian"], light: "sea_lantern", pillar: "crying_obsidian", sound: "ambient.warped_forest.mood" }
+  { from: 5, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "mossy_cobblestone", "cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave" },
+  { from: 9, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood" },
+  { from: 16, name: "深淵", shell: ["obsidian"], floors: ["sculk", "deepslate_tiles", "crying_obsidian"], light: "sea_lantern", pillar: "crying_obsidian", sound: "ambient.warped_forest.mood" },
+  { from: 20, name: "無限の深淵", shell: ["crying_obsidian", "obsidian"], floors: ["sculk", "obsidian", "crying_obsidian"], light: "shroomlight", pillar: "obsidian", sound: "ambient.soulsand_valley.mood" }
 ];
-const themeOf = n => [...THEMES].reverse().find(t => n >= t.from) ?? THEMES[0];
+const themeOf = n => [...THEMES].reverse().find(t => n >= t.from && (t.from < 20 || n > floorCount())) ?? THEMES[0];
+/** 「地下牢 3階 No.201-300」 */
+function floorLabel(n) {
+  const sc = floorScope(n);
+  return themeOf(n).name + " " + n + "階" + (n <= floorCount() ? "  No." + sc.lo + "-" + sc.hi : "  全単語");
+}
+const stars = r => r >= 1 ? "§6★★★" : r >= 0.8 ? "§6★★§8★" : r >= 0.5 ? "§6★§8★★" : "§8★★★";
 /** fill を試して、失敗したら次の候補ブロックで試す */
 function fillAny(dim, a, blocks) {
   for (const b of blocks) {
@@ -892,14 +951,14 @@ const POOLS = [
   { from: 3, mobs: ["minecraft:husk", "minecraft:stray"] },
   { from: 4, mobs: ["minecraft:witch", "minecraft:bogged"] },
   { from: 5, mobs: ["minecraft:vindicator", "minecraft:pillager", "minecraft:cave_spider"] },
-  { from: 7, mobs: ["minecraft:blaze", "minecraft:wither_skeleton"] },
-  { from: 10, mobs: ["minecraft:evoker", "minecraft:ravager"] }
+  { from: 9, mobs: ["minecraft:blaze", "minecraft:wither_skeleton"] },
+  { from: 16, mobs: ["minecraft:evoker", "minecraft:ravager"] }
 ];
 const poolFor = n => POOLS.filter(x => n >= x.from).flatMap(x => x.mobs);
 function waveFor(n, type) {
   const pool = poolFor(n);
   if (type === "boss") {
-    const boss = n <= 3 ? "minecraft:husk" : n <= 6 ? "minecraft:vindicator" : n <= 9 ? "minecraft:wither_skeleton" : "minecraft:ravager";
+    const boss = n <= 4 ? "minecraft:husk" : n <= 8 ? "minecraft:vindicator" : n <= 15 ? "minecraft:wither_skeleton" : "minecraft:ravager";
     return [boss, ...Array.from({ length: 2 + Math.min(3, Math.floor(n / 3)) }, () => pick(pool))];
   }
   if (type === "elite") return [pick(poolFor(n + 3)), pick(pool), pick(pool)];
@@ -980,7 +1039,9 @@ function startFloor(p, n, keepRun = false) {
   genFloor(n);
   enterRoom(p, 0);
   const th = themeOf(n);
-  title(p, "§6§l" + th.name + " " + n + "階", "部屋：" + s.dun.rooms.map(r => ROOM_INFO[r.type].name.slice(0, 2)).join(" > "));
+  title(p, "§6§l" + th.name + " " + n + "階", floorLabel(n).split("  ")[1] + "  部屋：" + s.dun.rooms.map(r => ROOM_INFO[r.type].name.slice(0, 2)).join(" > "));
+  const sc = floorScope(n), unjudged = rangeList(sc).filter(i => st().box[WORDS[i][0]] === undefined).length;
+  p.sendMessage("§6[" + floorLabel(n) + "] §fこの階の単語の習熟 " + Math.round(100 * mastery(sc)) + "%" + (unjudged ? "  §7未選別 " + unjudged + "語" : ""));
   sound(p, th.sound);
 }
 /** @param {Player} p */
@@ -1001,17 +1062,22 @@ function backToCamp(p) {
 }
 /** @param {Player} p */
 async function floorMenu(p) {
-  const s = st(), d = s.dun, max = s.prog.max;
+  const s = st(), d = s.dun, max = s.prog.max, last = floorCount();
   /** @type {Array<[string, string | null, () => any]>} */
   const items = [];
   if (d && d.rooms.some(r => r.state !== "cleared")) {
     const done = d.rooms.filter(r => r.state === "cleared").length;
     items.push(["§l続きから " + d.floor + "階\n§8部屋 " + done + "/" + d.rooms.length, ICON.resume, () => goToDungeon(p)]);
   }
-  items.push(["§l" + (max + 1) + "階に挑戦\n§8" + themeOf(max + 1).name, ICON.boss, () => startFloor(p, max + 1)]);
-  for (let f = max; f >= Math.max(1, max - 7); f--) items.push(["§l" + f + "階\n§8" + themeOf(f).name + " クリア済み", ICON.dungeon, () => startFloor(p, f)]);
+  const tile = (f, icon) => {
+    const sc = floorScope(f), m = mastery(sc);
+    const sub = f <= last ? "No." + sc.lo + "-" + sc.hi : "全単語・苦手優先";
+    return /** @type {[string, string | null, () => any]} */ (["§l" + f + "階 " + themeOf(f).name + "\n§8" + sub + "\n" + stars(m) + " §8習熟" + Math.round(100 * m) + "%", icon, () => startFloor(p, f)]);
+  };
+  items.push(tile(max + 1, ICON.boss));
+  for (let f = max; f >= 1; f--) items.push(tile(f, ICON.dungeon));
   items.push(["やめる", ICON.back, () => {}]);
-  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階\n§7続けて潜るほど祝福がたまる。キャンプに戻ると消える", items);
+  await menu(p, "§lダンジョン", profileLine(p) + "  §f最高到達 §e" + max + "階 §7/ " + last + "階\n§71階 = 単語100語。★は習熟度（覚えた単語の割合）", items);
 }
 
 /* ---------- 祝福（ローグライク）：部屋を突破するたびに3つから1つ選ぶ ---------- */
@@ -1105,8 +1171,7 @@ function startWave(k) {
       const e = dim.spawnEntity(type, loc);
       e.addTag("kr_wave");
       e.addTag("kr_r" + k);
-      if (n >= 6) e.addEffect("strength", 20 * 3600, { amplifier: 0, showParticles: false });
-      if (n >= 10) e.addEffect("resistance", 20 * 3600, { amplifier: 0, showParticles: false });
+      if (n >= 9) e.addEffect("strength", 20 * 3600, { amplifier: 0, showParticles: false });
       if (r.type === "boss" && idx === 0) {
         e.addTag("kr_boss");
         e.nameTag = "§4§l" + n + "階の門番";
@@ -1120,7 +1185,11 @@ function startWave(k) {
         e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
         e.addEffect("speed", 20 * 3600, { amplifier: 0, showParticles: false });
       }
-      tagWord(e, pickWord());
+      if (!(r.type === "boss" && idx === 0)) {
+        e.addTag("kr_shield");
+        e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
+      }
+      tagWord(e, pickWord(undefined, floorScope(n)));
       if (r.type === "elite" && idx === 0) e.nameTag = "§6§l精鋭 §r§e" + WORDS[mobWord.get(e.id) ?? 0][0];
     } catch (err) { console.warn("[kouryaku] spawn failed: " + err); }
   });
@@ -1202,7 +1271,7 @@ async function shrineTrial(p) {
   let fast = 0;
   const used = new Set();
   for (let q = 0; q < 5; q++) {
-    const i = pickWord(used);
+    const i = pickWord(used, floorScope(st().dun?.floor ?? 1));
     used.add(i);
     const r = await askOne(p, i, { title: "§l§d単語の祭壇 " + (q + 1) + "/5", dmg: 0, progress: "即答 " + fast + "/" + q });
     if (r.fast) fast++;
@@ -1236,7 +1305,7 @@ world.afterEvents.entityHurt.subscribe(ev => {
     e.setDynamicProperty("kr:phase", next);
     enqueue(p, async () => {
       title(p, "§4§l門番の問い", "答えられなければ門番が力を取り戻す");
-      const r = await askOne(p, weakest(1)[0], { title: "§l§4門番の問い", dmg: 6, reward: false });
+      const r = await askOne(p, weakest(1, floorScope(st().dun?.floor ?? 1))[0], { title: "§l§4門番の問い", dmg: 6, reward: false });
       if (!e.isValid) return;
       if (r.ok) {
         try { e.addEffect("slowness", 20 * 8, { amplifier: 3 }); e.addEffect("weakness", 20 * 8, { amplifier: 1 }); } catch (err) {}
@@ -1277,7 +1346,7 @@ async function bossTrial(p) {
   const d = st().dun;
   const k = d.rooms.length - 1, n = d.floor;
   p.sendMessage("§4§l門番が最後の試練を出してきた！ §r§f苦手な単語から" + BOSS_QUESTIONS + "問。" + BOSS_PASS + "問正解で撃破。");
-  const ids = weakest(BOSS_QUESTIONS);
+  const ids = weakest(BOSS_QUESTIONS, floorScope(n));
   let ok = 0;
   for (let q = 0; q < ids.length; q++) {
     const r = await askOne(p, ids[q], { title: "§l§4門番の試練 " + (q + 1) + "/" + ids.length, dmg: 6, reward: false, progress: "正解 " + ok + "/" + q });
