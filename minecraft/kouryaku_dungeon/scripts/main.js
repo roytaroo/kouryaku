@@ -292,7 +292,7 @@ async function askOne(p, i, opt = {}) {
   const [word, meaning] = WORDS[i];
   const head = (opt.progress ? opt.progress + "  " : "") + "コンボ " + s.stats.combo;
   const no = WORDS[i][2] ? "§7No." + WORDS[i][2] + "§r\n" : "";
-  let ok = false, ms = 0, missLabel = "§cミス！ ";
+  let ok = false, ms = 0, missLabel = "§cミス！ ", revealed = false;
 
   if (s.cfg.mode === "choice") {
     // 4択モード
@@ -335,6 +335,7 @@ async function askOne(p, i, opt = {}) {
         .button("§4× 違った");
       const r2 = await showForm(p, f2);
       ok = !r2.canceled && r2.selection === 0;
+      revealed = true;
     } else {
       missLabel = timedOut ? "§c時間切れ！ " : r1.canceled ? "§c逃げた！ " : "§cわからない… ";
     }
@@ -375,6 +376,14 @@ async function askOne(p, i, opt = {}) {
     p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + meaning);
     p.sendMessage("§c× §f" + word + " §7= §f" + meaning);
     hurtSafely(p, opt.dmg ?? s.cfg.dmg);
+    // 意味をまだ見ていない時（わからない・時間切れ・4択のミス）は、その場で答えを見せる
+    if (!revealed && p.isValid) {
+      const fa = new ActionFormData()
+        .title(opt.title ?? "§l英単語バトル")
+        .body("\n" + missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + meaning + "\n ")
+        .button("次へ");
+      await showForm(p, fa);
+    }
   }
   return { ok, fast };
 }
