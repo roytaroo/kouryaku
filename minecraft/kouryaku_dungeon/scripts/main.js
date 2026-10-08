@@ -44,6 +44,19 @@ const ROOM_NAMES = ["第一の間", "第二の間", "第三の間", "第四の�
 const INDEX = new Map();
 WORDS.forEach(([w], i) => { if (!INDEX.has(w)) INDEX.set(w, i); });
 
+// 「を創り出す；を引き起こす」を、単語帳の優先順に ①を創り出す ②を引き起こす と番号付きにする
+const CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩";
+function senses(meaning) {
+  return String(meaning).split(/[；;]/).map(x => x.trim()).filter(x => x.length > 0);
+}
+function numbered(meaning, sep) {
+  const ss = senses(meaning);
+  if (ss.length <= 1) return String(meaning);
+  return ss.map((x, k) => (CIRCLED[k] ?? "・") + x).join(sep);
+}
+const lines = m => numbered(m, "\n");
+const inline = m => numbered(m, " ");
+
 function parts(meaning) {
   return String(meaning)
     .replace(/[（(][^）)]*[）)]/g, "")
@@ -300,7 +313,7 @@ async function askOne(p, i, opt = {}) {
     const form = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
       .body("\n" + no + "§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + head + "\n ");
-    ch.list.forEach(m => form.button(short(m)));
+    ch.list.forEach(m => form.button(short(inline(m))));
     const t0 = Date.now();
     const res = await showForm(p, form);
     ms = Date.now() - t0;
@@ -330,7 +343,7 @@ async function askOne(p, i, opt = {}) {
     if (!r1.canceled && r1.selection === 0 && !timedOut) {
       const f2 = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body("\n" + no + "§l§e" + word + "§r\n\n§f" + meaning + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
+        .body("\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
         .button("§2○ 合ってた")
         .button("§4× 違った");
       const r2 = await showForm(p, f2);
@@ -357,7 +370,7 @@ async function askOne(p, i, opt = {}) {
   const sec = (ms / 1000).toFixed(1) + "秒";
   if (fast) {
     sound(p, "random.orb");
-    p.onScreenDisplay.setActionBar("§b即答！ §f" + word + " = " + meaning + "  §7" + sec + "  §eコンボ " + s.stats.combo);
+    p.onScreenDisplay.setActionBar("§b即答！ §f" + word + " = " + inline(meaning) + "  §7" + sec + "  §eコンボ " + s.stats.combo);
     if (opt.reward !== false) {
       p.addExperience(6);
       if (s.stats.combo % 5 === 0) {
@@ -369,18 +382,18 @@ async function askOne(p, i, opt = {}) {
     }
   } else if (ok) {
     sound(p, "random.orb");
-    p.onScreenDisplay.setActionBar("§e正解。でも遅い（" + sec + "）§f " + word + " = " + meaning);
+    p.onScreenDisplay.setActionBar("§e正解。でも遅い（" + sec + "）§f " + word + " = " + inline(meaning));
     if (opt.reward !== false) p.addExperience(1);
   } else {
     sound(p, "note.bass");
-    p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + meaning);
-    p.sendMessage("§c× §f" + word + " §7= §f" + meaning);
+    p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + inline(meaning));
+    p.sendMessage("§c× §f" + word + " §7= §f" + inline(meaning));
     hurtSafely(p, opt.dmg ?? s.cfg.dmg);
     // 意味をまだ見ていない時（わからない・時間切れ・4択のミス）は、その場で答えを見せる
     if (!revealed && p.isValid) {
       const fa = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body("\n" + missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + meaning + "\n ")
+        .body("\n" + missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n ")
         .button("次へ");
       await showForm(p, fa);
     }
@@ -594,7 +607,7 @@ async function showStats(p) {
     "§l苦手TOP10（" + range().label + "）§r"
   ];
   if (!weak.length) lines.push("§7まだなし");
-  weak.forEach((i, k) => lines.push((k + 1) + ". §e" + WORDS[i][0] + "§r " + short(WORDS[i][1], 20) + " §7(ミス" + s.miss[WORDS[i][0]] + ")"));
+  weak.forEach((i, k) => lines.push((k + 1) + ". §e" + WORDS[i][0] + "§r " + short(inline(WORDS[i][1]), 20) + " §7(ミス" + s.miss[WORDS[i][0]] + ")"));
   const f2 = new ActionFormData().title("§l成績").body(lines.join("\n") + "\n ").button("閉じる");
   await showForm(p, f2);
 }

@@ -4,20 +4,20 @@
     "name": "攻略ダンジョン",
     "description": "敵を倒すと英単語の問題。ミスでダメージ、即答で報酬。",
     "uuid": "b3aae8e5-c077-4473-9010-5d1e0974df05",
-    "version": [1, 1, 1],
+    "version": [1, 1, 2],
     "min_engine_version": [1, 21, 80]
   },
   "modules": [
     {
       "type": "data",
       "uuid": "8e90cde3-dc92-480f-9b50-a534d80e5160",
-      "version": [1, 1, 1]
+      "version": [1, 1, 2]
     },
     {
       "type": "script",
       "language": "javascript",
       "uuid": "e192a418-7794-4bfb-8318-48bf82b0fcee",
-      "version": [1, 1, 1],
+      "version": [1, 1, 2],
       "entry": "scripts/main.js"
     }
   ],
