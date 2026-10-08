@@ -26,6 +26,29 @@ def clean(text: str) -> str:
     return text.strip(" 、,")
 
 
+def strip_refs(m: str) -> str:
+    """「（⇔ decrease ⇒ 223）」「（≒ endure ⇒ 824）」のような反意語・類義語の注記を、入れ子の括弧ごと外す。"""
+    out, i = [], 0
+    while i < len(m):
+        if m[i] in "（(" and m[i + 1:].lstrip()[:1] in ("⇔", "≒"):
+            depth, j = 0, i
+            while j < len(m):
+                if m[j] in "（(":
+                    depth += 1
+                elif m[j] in "）)":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            i = j + 1
+            continue
+        out.append(m[i])
+        i += 1
+    m = "".join(out)
+    m = re.sub(r"\s*⇒\s*\d+", "", m)  # 「⇒ 223」のような番号参照
+    return m.strip(" ；;、")
+
+
 def rows(path: Path):
     sep = "\t"
     for line in path.read_text(encoding="utf-8-sig").splitlines():
@@ -45,7 +68,6 @@ def main():
     ap.add_argument("--meaning", type=int, default=2)
     ap.add_argument("--num", type=int, default=0, help="単語番号の列（0なら無し）")
     ap.add_argument("--preview", action="store_true")
-    ap.add_argument("--max-meaning", type=int, default=40, help="意味がこれより長いときは最初の区切りまでに縮める")
     a = ap.parse_args()
 
     data = list(rows(a.src))
@@ -62,15 +84,10 @@ def main():
         if len(r) < max(a.word, a.meaning):
             continue
         w, m = clean(r[a.word - 1]), clean(r[a.meaning - 1])
-        # 「（⇔ decrease ⇒ 223）」のような参照注記は意味から外す
-        m = re.sub(r"[（(][^）)]*[⇔⇒→][^）)]*[）)]", "", m)
-        m = re.sub(r"\s*[⇒→]\s*\d+", "", m).strip(" ；;、")
+        m = strip_refs(m)
         num = clean(r[a.num - 1]) if a.num and len(r) >= a.num else ""
         if not w or not m or not re.search(r"[A-Za-z]", w) or w.lower() in seen:
             continue
-        if len(m) > a.max_meaning:
-            cut = re.split(r"[;；]|。", m)[0]
-            m = cut if 0 < len(cut) <= a.max_meaning else m[: a.max_meaning - 1] + "…"
         seen.add(w.lower())
         words.append([w, m, num] if num else [w, m])
 
