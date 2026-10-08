@@ -43,6 +43,7 @@ def main():
     ap.add_argument("src", type=Path)
     ap.add_argument("--word", type=int, default=1)
     ap.add_argument("--meaning", type=int, default=2)
+    ap.add_argument("--num", type=int, default=0, help="単語番号の列（0なら無し）")
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--max-meaning", type=int, default=40, help="意味がこれより長いときは最初の区切りまでに縮める")
     a = ap.parse_args()
@@ -61,13 +62,17 @@ def main():
         if len(r) < max(a.word, a.meaning):
             continue
         w, m = clean(r[a.word - 1]), clean(r[a.meaning - 1])
+        # 「（⇔ decrease ⇒ 223）」のような参照注記は意味から外す
+        m = re.sub(r"[（(][^）)]*[⇔⇒→][^）)]*[）)]", "", m)
+        m = re.sub(r"\s*[⇒→]\s*\d+", "", m).strip(" ；;、")
+        num = clean(r[a.num - 1]) if a.num and len(r) >= a.num else ""
         if not w or not m or not re.search(r"[A-Za-z]", w) or w.lower() in seen:
             continue
         if len(m) > a.max_meaning:
             cut = re.split(r"[;；]|。", m)[0]
             m = cut if 0 < len(cut) <= a.max_meaning else m[: a.max_meaning - 1] + "…"
         seen.add(w.lower())
-        words.append([w, m])
+        words.append([w, m, num] if num else [w, m])
 
     if len(words) < 4:
         sys.exit("単語が4つ未満しか読めなかった。--preview で列番号を確認して。")
@@ -75,12 +80,12 @@ def main():
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(
         "// Ankiから自動生成（tools/anki_to_words.py）。手で直さず、元データを直して作り直す。\n"
-        "// 形式: [英単語, 意味]\nexport const WORDS = [\n" + body + "\n];\n",
+        "// 形式: [英単語, 意味, 番号(任意)]\nexport const WORDS = [\n" + body + "\n];\n",
         encoding="utf-8",
     )
     print(f"{len(words)} 語を書き出した → {OUT}")
-    for w, m in words[:5]:
-        print(f"  {w} = {m}")
+    for x in words[:5]:
+        print("  " + " / ".join(x))
 
 
 if __name__ == "__main__":

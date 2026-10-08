@@ -265,6 +265,7 @@ async function askOne(p, i, opt = {}) {
   const s = st();
   const [word, meaning] = WORDS[i];
   const head = (opt.progress ? opt.progress + "　" : "") + "コンボ " + s.stats.combo;
+  const no = WORDS[i][2] ? "§7No." + WORDS[i][2] + "§r\n" : "";
   let ok = false, ms = 0, missLabel = "§cミス！ ";
 
   if (s.cfg.mode === "choice") {
@@ -272,7 +273,7 @@ async function askOne(p, i, opt = {}) {
     const ch = choicesFor(i);
     const form = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body("\n§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + head + "\n ");
+      .body("\n" + no + "§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + head + "\n ");
     ch.list.forEach(m => form.button(short(m)));
     const t0 = Date.now();
     const res = await showForm(p, form);
@@ -284,7 +285,7 @@ async function askOne(p, i, opt = {}) {
     const limitMs = s.cfg.limit * 1000;
     const f1 = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body("\n§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒　" + head + "\n ")
+      .body("\n" + no + "§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒　" + head + "\n ")
       .button("§2浮かんだ")
       .button("§4わからない");
     let r1 = null, timedOut = false;
@@ -303,7 +304,7 @@ async function askOne(p, i, opt = {}) {
     if (!r1.canceled && r1.selection === 0 && !timedOut) {
       const f2 = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body("\n§l§e" + word + "§r\n\n§f" + meaning + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
+        .body("\n" + no + "§l§e" + word + "§r\n\n§f" + meaning + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
         .button("§2○ 合ってた")
         .button("§4× 違った");
       const r2 = await showForm(p, f2);
