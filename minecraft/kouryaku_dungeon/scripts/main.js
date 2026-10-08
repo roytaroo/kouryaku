@@ -1,5 +1,5 @@
 import { world, system, Player, ItemStack } from "@minecraft/server";
-import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason } from "@minecraft/server-ui";
+import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason, uiManager } from "@minecraft/server-ui";
 import { WORDS } from "./words.js";
 
 /* =========================================================
@@ -19,6 +19,7 @@ const MAX_QUEUE = 5;
 const BOSS_QUESTIONS = 5;
 const BOSS_PASS = 4;
 const SETUP_PAGE = 10;
+const FAST_MS = 2000; // これより速く意味が出たら「即答」
 // 出やすさ: 未出題 / 箱0（間違えた）〜箱5（完全に覚えた）
 const WEIGHT = { n: 3, 0: 10, 1: 6, 2: 3, 3: 2, 4: 1, 5: 0.4 };
 
@@ -86,7 +87,7 @@ function st() {
       box: loadJSON("kr:box", {}),
       miss: loadJSON("kr:miss", {}),
       stats: Object.assign({ ans: 0, ok: 0, best: 0, combo: 0, clears: 0 }, loadJSON("kr:stats", {})),
-      cfg: Object.assign({ outside: true, dmg: 4 }, loadJSON("kr:cfg", {})),
+      cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3 }, loadJSON("kr:cfg", {})),
       dun: loadJSON("kr:dun", null)
     };
   }
@@ -263,49 +264,92 @@ async function runQueue(p) {
 async function askOne(p, i, opt = {}) {
   const s = st();
   const [word, meaning] = WORDS[i];
-  const ch = choicesFor(i);
-  const form = new ActionFormData()
-    .title(opt.title ?? "§l英単語バトル")
-    .body("\n§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + (opt.progress ? opt.progress + "　" : "") + "コンボ " + s.stats.combo + "\n ");
-  ch.list.forEach(m => form.button(short(m)));
+  const head = (opt.progress ? opt.progress + "　" : "") + "コンボ " + s.stats.combo;
+  let ok = false, ms = 0, missLabel = "§cミス！ ";
 
-  const t0 = Date.now();
-  const res = await showForm(p, form);
-  if (!p.isValid) return { ok: false };
-  const ms = Date.now() - t0;
-  const ok = !res.canceled && res.selection === ch.answer;
+  if (s.cfg.mode === "choice") {
+    // 4択モード
+    const ch = choicesFor(i);
+    const form = new ActionFormData()
+      .title(opt.title ?? "§l英単語バトル")
+      .body("\n§l§e" + word + "§r\n\nこの単語の意味は？\n§7" + head + "\n ");
+    ch.list.forEach(m => form.button(short(m)));
+    const t0 = Date.now();
+    const res = await showForm(p, form);
+    ms = Date.now() - t0;
+    ok = !res.canceled && res.selection === ch.answer;
+    if (res.canceled) missLabel = "§c逃げた！ ";
+  } else {
+    // 瞬間想起モード：①英単語だけを見て、制限時間内に意味を思い浮かべる ②意味を見て自己判定
+    const limitMs = s.cfg.limit * 1000;
+    const f1 = new ActionFormData()
+      .title(opt.title ?? "§l英単語バトル")
+      .body("\n§l§e" + word + "§r\n\n見た瞬間に意味を思い浮かべて押せ\n§7制限 " + s.cfg.limit + "秒　" + head + "\n ")
+      .button("§2浮かんだ")
+      .button("§4わからない");
+    let r1 = null, timedOut = false;
+    for (let tries = 0; tries < 60 && p.isValid; tries++) {
+      timedOut = false;
+      const t0 = Date.now();
+      // 画面が開くまでの時間を少し足して締め切る
+      const timer = system.runTimeout(() => { timedOut = true; try { uiManager.closeAllForms(p); } catch (e) {} }, Math.ceil(limitMs / 50) + 6);
+      r1 = await f1.show(p);
+      system.clearRun(timer);
+      ms = Date.now() - t0;
+      if (r1.canceled && r1.cancelationReason === FormCancelationReason.UserBusy && !timedOut) { await wait(10); continue; }
+      break;
+    }
+    if (!p.isValid || !r1) return { ok: false, fast: false };
+    if (!r1.canceled && r1.selection === 0 && !timedOut) {
+      const f2 = new ActionFormData()
+        .title(opt.title ?? "§l英単語バトル")
+        .body("\n§l§e" + word + "§r\n\n§f" + meaning + "\n\n§7思い浮かべた意味は合ってた？（" + (ms / 1000).toFixed(1) + "秒）\n ")
+        .button("§2○ 合ってた")
+        .button("§4× 違った");
+      const r2 = await showForm(p, f2);
+      ok = !r2.canceled && r2.selection === 0;
+    } else {
+      missLabel = timedOut ? "§c時間切れ！ " : r1.canceled ? "§c逃げた！ " : "§cわからない… ";
+    }
+  }
+  if (!p.isValid) return { ok, fast: false };
+  const fast = ok && ms <= FAST_MS;
 
-  // 記録
+  // 記録：即答できた時だけ「覚えた」に近づく。遅い正解は据え置き
   const b = s.box[word];
-  if (ok) s.box[word] = b === undefined ? 2 : Math.min(5, b + 1);
+  if (fast) s.box[word] = b === undefined ? 2 : Math.min(5, b + 1);
+  else if (ok) s.box[word] = b === undefined ? 1 : b;
   else { s.box[word] = 0; s.miss[word] = (s.miss[word] ?? 0) + 1; }
   s.stats.ans++;
-  if (ok) { s.stats.ok++; s.stats.combo++; s.stats.best = Math.max(s.stats.best, s.stats.combo); }
-  else s.stats.combo = 0;
+  if (ok) s.stats.ok++;
+  if (fast) { s.stats.combo++; s.stats.best = Math.max(s.stats.best, s.stats.combo); }
+  else if (!ok) s.stats.combo = 0;
   dirty = true;
 
-  if (!p.isValid) return { ok };
-  if (ok) {
-    const fast = ms < 3000;
+  const sec = (ms / 1000).toFixed(1) + "秒";
+  if (fast) {
     sound(p, "random.orb");
-    p.onScreenDisplay.setActionBar("§a正解！ §f" + word + " = " + meaning + (fast ? "  §b速答！" : "") + "  §eコンボ " + s.stats.combo);
+    p.onScreenDisplay.setActionBar("§b即答！ §f" + word + " = " + meaning + "  §7" + sec + "  §eコンボ " + s.stats.combo);
     if (opt.reward !== false) {
-      p.addExperience(fast ? 6 : 3);
-      if (s.stats.combo > 0 && s.stats.combo % 5 === 0) {
+      p.addExperience(6);
+      if (s.stats.combo % 5 === 0) {
         sound(p, "random.levelup");
         p.sendMessage("§6§l" + s.stats.combo + "コンボ！ §r§eエメラルドと回復をゲット");
         try { p.dimension.spawnItem(new ItemStack("minecraft:emerald", 1), p.location); } catch (e) {}
         try { p.addEffect("regeneration", 100, { amplifier: 1 }); } catch (e) {}
       }
     }
+  } else if (ok) {
+    sound(p, "random.orb");
+    p.onScreenDisplay.setActionBar("§e正解。でも遅い（" + sec + "）§f " + word + " = " + meaning);
+    if (opt.reward !== false) p.addExperience(1);
   } else {
     sound(p, "note.bass");
-    const head = res.canceled ? "§c逃げた！ " : "§cミス！ ";
-    p.onScreenDisplay.setActionBar(head + "§f" + word + " = " + meaning);
+    p.onScreenDisplay.setActionBar(missLabel + "§f" + word + " = " + meaning);
     p.sendMessage("§c✗ §f" + word + " §7= §f" + meaning);
     hurtSafely(p, opt.dmg ?? s.cfg.dmg);
   }
-  return { ok };
+  return { ok, fast };
 }
 
 /* ---------- events: mobs ---------- */
@@ -524,14 +568,18 @@ async function settings(p) {
   const r = new ActionFormData()
     .title("§l設定")
     .body("ボタンを押すと切り替わる\n ")
+    .button("出題形式： " + (c.mode === "choice" ? "4択" : "瞬間想起（おすすめ）"))
+    .button("瞬間想起の制限時間： " + c.limit + "秒")
     .button("ダンジョンの外でも出題： " + (c.outside ? "§aON" : "§cOFF"))
     .button("ミスのダメージ： ハート" + c.dmg / 2 + "個")
     .button("戻る");
   const r2 = await showForm(p, r);
   if (r2.canceled) return;
-  if (r2.selection === 0) { c.outside = !c.outside; dirty = true; return settings(p); }
-  if (r2.selection === 1) { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; dirty = true; return settings(p); }
-  if (r2.selection === 2) return openMenu(p);
+  if (r2.selection === 0) { c.mode = c.mode === "choice" ? "recall" : "choice"; dirty = true; return settings(p); }
+  if (r2.selection === 1) { c.limit = c.limit >= 5 ? 2 : c.limit + 1; dirty = true; return settings(p); }
+  if (r2.selection === 2) { c.outside = !c.outside; dirty = true; return settings(p); }
+  if (r2.selection === 3) { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; dirty = true; return settings(p); }
+  if (r2.selection === 4) return openMenu(p);
 }
 
 /* ---------- dungeon ---------- */
