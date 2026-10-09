@@ -1,0 +1,16 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "kr:fog_ruins"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 8,
+        "fog_end": 48,
+        "fog_color": "#33452c",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

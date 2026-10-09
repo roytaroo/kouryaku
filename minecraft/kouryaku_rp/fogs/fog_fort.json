@@ -1,0 +1,16 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "kr:fog_fort"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 4,
+        "fog_end": 34,
+        "fog_color": "#4a1a0c",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

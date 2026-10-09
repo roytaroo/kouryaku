@@ -1,0 +1,16 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "kr:fog_dungeon"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 5,
+        "fog_end": 38,
+        "fog_color": "#241a33",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

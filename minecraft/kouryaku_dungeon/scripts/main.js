@@ -1,7 +1,7 @@
-import { world, system, Player, ItemStack } from "@minecraft/server";
+import { world, system, Player, ItemStack, EasingType, DisplaySlotId, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason, uiManager } from "@minecraft/server-ui";
 import { WORDS } from "./words.js";
-import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu, getData } from "./yarikomi.js";
+import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu, getData, spendCoins } from "./yarikomi.js";
 import { showShop } from "./shop.js";
 import { gridForm } from "./ui.js";
 import "./pets.js";
@@ -103,11 +103,12 @@ function st() {
       box: loadJSON("kr:box", {}),
       miss: loadJSON("kr:miss", {}),
       stats: Object.assign({ ans: 0, ok: 0, best: 0, combo: 0, clears: 0 }, loadJSON("kr:stats", {})),
-      cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3, range: "p1" }, loadJSON("kr:cfg", {})),
+      cfg: Object.assign({ outside: true, dmg: 4, mode: "recall", limit: 3, range: "p1", cloze: true, hud: true }, loadJSON("kr:cfg", {})),
       dun: loadJSON("kr:dun", null),
       camp: loadJSON("kr:camp", null),
       prog: Object.assign({ max: 0, raids: [], raidDone: {} }, loadJSON("kr:prog", {})),
-      run: loadJSON("kr:run", null)
+      run: loadJSON("kr:run", null),
+      kills: loadJSON("kr:kills", {})
     };
     // 1.1系の「その場の地下に作るダンジョン」は階層ダンジョンに置き換えたので捨てる
     if (S.dun && !S.dun.floor) S.dun = null;
@@ -124,6 +125,7 @@ function saveAll() {
   saveJSON("kr:camp", S.camp);
   saveJSON("kr:prog", S.prog);
   saveJSON("kr:run", S.run);
+  saveJSON("kr:kills", S.kills);
 }
 system.runInterval(() => {
   if (!dirty) return;
@@ -309,6 +311,11 @@ async function menu(p, titleText, body, items, grid = true) {
 }
 const comboGauge = c => "§6コンボ " + c + " " + bar((c % 5) / 5, 5);
 
+/* ---------- 例文（穴埋め） ---------- */
+const hasCloze = i => typeof WORDS[i][3] === "string" && WORDS[i][3].includes("{{c1::");
+const clozeBlank = c => c.replace(/\{\{c1::(.*?)\}\}/g, (_, x) => "§e" + "_".repeat(Math.max(3, x.length)) + "§f");
+const clozeFilled = c => c.replace(/\{\{c1::(.*?)\}\}/g, (_, x) => "§a§l" + x + "§r§f");
+
 /* ---------- word tags on mobs ---------- */
 const mobWord = new Map(); // entity id -> word index
 function tagWord(e, i) {
@@ -361,7 +368,7 @@ async function runQueue(p) {
  * 1問出す。
  * @param {Player} p
  * @param {number} i word index
- * @param {{title?: string, dmg?: number, reward?: boolean, progress?: string}} [opt]
+ * @param {{title?: string, dmg?: number, reward?: boolean, progress?: string, cloze?: boolean}} [opt]
  */
 async function askOne(p, i, opt = {}) {
   const s = st();
@@ -369,13 +376,19 @@ async function askOne(p, i, opt = {}) {
   const head = (opt.progress ? "§f" + opt.progress + "   " : "") + comboGauge(s.stats.combo);
   const no = WORDS[i][2] ? "§8No." + WORDS[i][2] + "§r\n" : "";
   let ok = false, ms = 0, missLabel = "§cミス！ ", revealed = false;
+  // 例文の穴埋めで出す時は、英単語の代わりに例文と和訳を見せる（読む分、時間を少し長く）
+  const cz = !!opt.cloze && s.cfg.cloze !== false && hasCloze(i);
+  const prompt = cz
+    ? "§7例文の空欄に入る単語は？\n\n§f" + clozeBlank(WORDS[i][3]) + "\n§8" + (WORDS[i][4] ?? "")
+    : "§l§e" + word + "§r";
+  const extraMs = cz ? 2500 : 0;
 
   if (s.cfg.mode === "choice") {
     // 4択モード
     const ch = choicesFor(i);
     const form = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§7この単語の意味は？\n ");
+      .body(head + "\n\n" + no + prompt + "\n\n§7" + (cz ? "入る単語の意味は？" : "この単語の意味は？") + "\n ");
     ch.list.forEach(m => form.button(short(inline(m))));
     const t0 = Date.now();
     const res = await showForm(p, form);
@@ -384,10 +397,10 @@ async function askOne(p, i, opt = {}) {
     if (res.canceled) missLabel = "§c逃げた！ ";
   } else {
     // 瞬間想起モード：①英単語だけを見て、制限時間内に意味を思い浮かべる ②意味を見て自己判定
-    const limitMs = s.cfg.limit * 1000;
+    const limitMs = s.cfg.limit * 1000 + extraMs;
     const f1 = new ActionFormData()
       .title(opt.title ?? "§l英単語バトル")
-      .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§7見た瞬間に意味を思い浮かべて押せ  §8制限 " + s.cfg.limit + "秒\n ")
+      .body(head + "\n\n" + no + prompt + "\n\n§7" + (cz ? "入る単語と意味を思い浮かべて押せ" : "見た瞬間に意味を思い浮かべて押せ") + "  §8制限 " + Math.round(limitMs / 1000) + "秒\n ")
       .button("§l§2浮かんだ", ICON.think)
       .button("§4わからない", ICON.ng);
     let r1 = null, timedOut = false;
@@ -406,7 +419,7 @@ async function askOne(p, i, opt = {}) {
     if (!r1.canceled && r1.selection === 0 && !timedOut) {
       const f2 = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n\n§7思い浮かべた意味は合ってた？  §8" + (ms / 1000).toFixed(1) + "秒\n ")
+        .body(head + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + (cz ? "\n\n§f" + clozeFilled(WORDS[i][3]) : "") + "\n\n§7思い浮かべた" + (cz ? "単語" : "意味") + "は合ってた？  §8" + (ms / 1000).toFixed(1) + "秒\n ")
         .button("§l§2○ 合ってた", ICON.ok)
         .button("§4× 違った", ICON.ng);
       const r2 = await showForm(p, f2);
@@ -417,7 +430,7 @@ async function askOne(p, i, opt = {}) {
     }
   }
   if (!p.isValid) return { ok, fast: false };
-  const fast = ok && ms <= FAST_MS;
+  const fast = ok && ms <= FAST_MS + extraMs;
 
   // 記録：即答できた時だけ「覚えた」に近づく。遅い正解は据え置き
   const b = s.box[word];
@@ -461,7 +474,7 @@ async function askOne(p, i, opt = {}) {
     if (!revealed && p.isValid) {
       const fa = new ActionFormData()
         .title(opt.title ?? "§l英単語バトル")
-        .body(missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + "\n ")
+        .body(missLabel + "\n\n" + no + "§l§e" + word + "§r\n\n§f" + lines(meaning) + (cz ? "\n\n§f" + clozeFilled(WORDS[i][3]) : "") + "\n ")
         .button("§l次へ", ICON.back);
       await showForm(p, fa);
     }
@@ -489,7 +502,8 @@ world.afterEvents.entityHurt.subscribe(ev => {
   e.addTag("kr_quiz");
   const idx = wordOf(e);
   enqueue(p, async () => {
-    const r = await askOne(p, idx, { title: "§l単語シールド" });
+    const elite = e.hasTag("kr_elite");
+    const r = await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l単語シールド" });
     if (!e.isValid) return;
     try {
       e.removeTag("kr_quiz");
@@ -575,6 +589,7 @@ async function openMenu(p) {
   items.push(["§l単語の書\n§8選別 " + judged + "/" + total + "  覚えた " + learnedCount() + "語", ICON.book, () => bookMenu(p)]);
   items.push(["§lやり込み\n§8ミッション・バッジ・自己ベスト", ICON.yarikomi, () => showYarikomiMenu(p)]);
   items.push(["§lショップ\n§8装備・回復・見た目アイテム", ICON.shop, () => showShop(p)]);
+  items.push(["§l鍛冶屋\n§8手に持った装備を強化", "textures/items/iron_ingot", () => forgeMenu(p)]);
   await menu(p, "§l攻略コンパス", profileLine(p) + "\n§7出題範囲 " + range().label + "  正答率 " + rate(), items);
 }
 function rate() {
@@ -698,6 +713,8 @@ async function settings(p) {
     ["§l出題形式\n§8" + (c.mode === "choice" ? "4択" : "瞬間想起（おすすめ）"), ICON.mode, again(() => { c.mode = c.mode === "choice" ? "recall" : "choice"; })],
     ["§l制限時間\n§8" + c.limit + "秒（瞬間想起）", ICON.clock, again(() => { c.limit = c.limit >= 5 ? 2 : c.limit + 1; })],
     ["§lミスのダメージ\n§8ハート" + c.dmg / 2 + "個", ICON.heart, again(() => { c.dmg = c.dmg >= 6 ? 2 : c.dmg + 2; })],
+    ["§l例文問題\n§8" + (c.cloze !== false ? "ON（精鋭・門番・祭壇）" : "OFF"), ICON.test, again(() => { c.cloze = c.cloze === false; })],
+    ["§l画面右のHUD\n§8" + (c.hud !== false ? "ON" : "OFF"), ICON.stats, again(() => { c.hud = c.hud === false; })],
     ["戻る", ICON.back, () => bookMenu(p)]
   ]);
 }
@@ -776,7 +793,8 @@ const PADS = {
   gate: { x: 0, z: -11, open: p => floorMenu(p) },
   shop: { x: 11, z: 0, open: p => showShop(p) },
   board: { x: -11, z: 0, open: p => showYarikomiMenu(p) },
-  book: { x: 0, z: 10, open: p => bookMenu(p) }
+  book: { x: 0, z: 10, open: p => bookMenu(p) },
+  forge: { x: 11, z: 6, open: p => forgeMenu(p) }
 };
 function campSpawn() {
   const c = st().camp;
@@ -800,7 +818,7 @@ function ensureWorld(p) {
     p.sendMessage("§6[攻略ダンジョン] §fキャンプを建てた。ここが拠点だ。");
   }
   for (const c of RULES) cmd(dim, c);
-  if (s.camp) ensureMapBoard();
+  if (s.camp) { ensureMapBoard(); ensureCampExtras(); }
 }
 /** キャンプの南の壁に、大きな世界地図のボード（12×6マス）を飾る。何度呼んでも1枚だけ */
 function ensureMapBoard() {
@@ -883,7 +901,8 @@ async function bookMenu(p) {
     ["§lセットアップ\n§8" + (judged >= total ? "この範囲は完了" : "残り " + (total - judged) + "語"), ICON.setup, () => setupMenu(p)],
     ["§l単語テスト\n§810問・ダメージなし・コインあり", ICON.test, () => wordTest(p)],
     ["§l成績\n§8正答率 " + rate() + "・苦手TOP10", ICON.stats, () => showStats(p)],
-    ["§l設定\n§8出題範囲・形式・制限時間", ICON.settings, () => settings(p)]
+    ["§l図鑑\n§8単語の覚え具合・倒した敵", ICON.mode, () => dexMenu(p)],
+    ["§l設定\n§8出題範囲・形式・HUDなど", ICON.settings, () => settings(p)]
   ]);
 }
 
@@ -921,11 +940,11 @@ function roomCount(n) { return Math.min(4 + Math.floor((n - 1) / 2), 8); }
 
 // 階ごとの雰囲気（壁・床・明かり・柱）。ブロックが無かった時のために予備も持つ
 const THEMES = [
-  { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave", channel: "lava" },
-  { from: 5, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "moss_block", "mossy_cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave", channel: "water" },
-  { from: 9, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood", channel: "lava" },
-  { from: 16, name: "深淵", shell: ["dark_prismarine", "obsidian"], floors: ["prismarine_bricks", "dark_prismarine", "prismarine"], light: "sea_lantern", pillar: "amethyst_block", sound: "ambient.warped_forest.mood", channel: "water" },
-  { from: 20, name: "無限の深淵", shell: ["crying_obsidian", "obsidian"], floors: ["sculk", "obsidian", "crying_obsidian"], light: "shroomlight", pillar: "obsidian", sound: "ambient.soulsand_valley.mood" }
+  { from: 1, name: "地下牢", shell: ["deepslate_bricks"], floors: ["polished_deepslate", "deepslate_tiles", "cracked_deepslate_tiles"], light: "sea_lantern", pillar: "deepslate_tiles", sound: "ambient.cave", channel: "lava", fog: "kr:fog_dungeon", amb: "minecraft:white_ash_particle", hang: "chain" },
+  { from: 5, name: "苔むした遺跡", shell: ["mossy_cobblestone", "cobblestone"], floors: ["mossy_stone_bricks", "moss_block", "mossy_cobblestone"], light: "glowstone", pillar: "mossy_cobblestone", sound: "ambient.cave", channel: "water", fog: "kr:fog_ruins", amb: "minecraft:spore_blossom_ambient_particle", hang: "hanging_roots" },
+  { from: 9, name: "灼熱の砦", shell: ["nether_brick", "red_nether_brick", "blackstone"], floors: ["polished_blackstone_bricks", "red_nether_brick", "blackstone"], light: "shroomlight", pillar: "blackstone", sound: "ambient.nether_wastes.mood", channel: "lava", fog: "kr:fog_fort", amb: "minecraft:lava_particle", hang: "weeping_vines" },
+  { from: 16, name: "深淵", shell: ["dark_prismarine", "obsidian"], floors: ["prismarine_bricks", "dark_prismarine", "prismarine"], light: "sea_lantern", pillar: "amethyst_block", sound: "ambient.warped_forest.mood", channel: "water", fog: "kr:fog_abyss", amb: "minecraft:warped_spore_particle", hang: "chain" },
+  { from: 20, name: "無限の深淵", shell: ["crying_obsidian", "obsidian"], floors: ["sculk", "obsidian", "crying_obsidian"], light: "shroomlight", pillar: "obsidian", sound: "ambient.soulsand_valley.mood", fog: "kr:fog_void", amb: "minecraft:portal_reverse_particle", hang: "chain" }
 ];
 const themeOf = n => [...THEMES].reverse().find(t => n >= t.from && (t.from < 20 || n > floorCount())) ?? THEMES[0];
 /** 「地下牢 3階 No.201-300」 */
@@ -1006,6 +1025,14 @@ function genFloor(n) {
     fillAny(dim, `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`, [r.boss ? "polished_blackstone_bricks" : pick(th.floors), "polished_deepslate"]);
     for (const [lx, lz] of [[r.x1 + 2, r.z1 + 2], [r.x2 - 2, r.z1 + 2], [r.x1 + 2, r.z2 - 2], [r.x2 - 2, r.z2 - 2], [r.cx, r.cz]]) {
       cmd(dim, `setblock ${lx} ${Y + 6} ${lz} ${r.boss ? "shroomlight" : th.light}`);
+    }
+    // 天井から垂れる鎖・根・つる
+    if (th.hang) {
+      for (let h = 0; h < randInt(3, 6); h++) {
+        const hx = randInt(r.x1 + 1, r.x2 - 1), hz = randInt(r.z1 + 1, r.z2 - 1);
+        if (hx === r.cx || hz === r.cz) continue;
+        cmd(dim, `setblock ${hx} ${Y + 5} ${hz} ${th.hang}`);
+      }
     }
     // 床の下を流れる溶岩・水（ガラス越しに見える。地図の川のイメージ）
     if (th.channel) {
@@ -1179,6 +1206,7 @@ function startWave(k) {
   const d = st().dun, r = d.rooms[k], n = d.floor, dim = ow();
   r.state = "active";
   saveNow();
+  let bossEnt = null;
   waveFor(n, r.type).forEach((type, idx) => {
     const loc = { x: r.x1 + 2 + Math.random() * (r.x2 - r.x1 - 3), y: d.Y + 1, z: r.z1 + 2 + Math.random() * (r.z2 - r.z1 - 3) };
     try {
@@ -1187,6 +1215,7 @@ function startWave(k) {
       e.addTag("kr_r" + k);
       if (n >= 9) e.addEffect("strength", 20 * 3600, { amplifier: 0, showParticles: false });
       if (r.type === "boss" && idx === 0) {
+        bossEnt = e;
         e.addTag("kr_boss");
         e.nameTag = "§4§l" + n + "階の門番";
         e.addEffect("resistance", 20 * 3600, { amplifier: Math.min(2, 1 + Math.floor(n / 6)), showParticles: false });
@@ -1209,6 +1238,7 @@ function startWave(k) {
   });
   for (const p of world.getPlayers()) {
     if (!isInDungeon(p)) continue;
+    if (bossEnt) { bossIntro(p, bossEnt, "§4§l" + n + "階の門番", ROOM_INFO.boss.sub); sound(p, "mob.wither.spawn"); continue; }
     title(p, "§6" + ROOM_INFO[r.type].name, ROOM_INFO[r.type].sub);
     sound(p, r.boss ? "mob.wither.spawn" : r.type === "elite" ? "mob.evocation_illager.prepare_summon" : "mob.zombie.say");
   }
@@ -1287,7 +1317,7 @@ async function shrineTrial(p) {
   for (let q = 0; q < 5; q++) {
     const i = pickWord(used, floorScope(st().dun?.floor ?? 1));
     used.add(i);
-    const r = await askOne(p, i, { title: "§l§d単語の祭壇 " + (q + 1) + "/5", dmg: 0, progress: "即答 " + fast + "/" + q });
+    const r = await askOne(p, i, { title: "§l§d単語の祭壇 " + (q + 1) + "/5", dmg: 0, progress: "即答 " + fast + "/" + q, cloze: true });
     if (r.fast) fast++;
     if (!p.isValid) return;
   }
@@ -1319,7 +1349,7 @@ world.afterEvents.entityHurt.subscribe(ev => {
     e.setDynamicProperty("kr:phase", next);
     enqueue(p, async () => {
       title(p, "§4§l門番の問い", "答えられなければ門番が力を取り戻す");
-      const r = await askOne(p, weakest(1, floorScope(st().dun?.floor ?? 1))[0], { title: "§l§4門番の問い", dmg: 6, reward: false });
+      const r = await askOne(p, weakest(1, floorScope(st().dun?.floor ?? 1))[0], { title: "§l§4門番の問い（例文）", dmg: 6, reward: false, cloze: true });
       if (!e.isValid) return;
       if (r.ok) {
         try { e.addEffect("slowness", 20 * 8, { amplifier: 3 }); e.addEffect("weakness", 20 * 8, { amplifier: 1 }); } catch (err) {}
@@ -1363,7 +1393,7 @@ async function bossTrial(p) {
   const ids = weakest(BOSS_QUESTIONS, floorScope(n));
   let ok = 0;
   for (let q = 0; q < ids.length; q++) {
-    const r = await askOne(p, ids[q], { title: "§l§4門番の試練 " + (q + 1) + "/" + ids.length, dmg: 6, reward: false, progress: "正解 " + ok + "/" + q });
+    const r = await askOne(p, ids[q], { title: "§l§4門番の試練 " + (q + 1) + "/" + ids.length, dmg: 6, reward: false, progress: "正解 " + ok + "/" + q, cloze: q % 2 === 1 });
     if (r.ok) ok++;
     if (!p.isValid) return;
   }
@@ -1531,13 +1561,14 @@ async function startRaid(p, c, replay = false) {
     boss.addTag("kr_raid");
     for (const [id, amp] of /** @type {Array<[string, number]>} */ ([["slowness", 255], ["weakness", 255], ["resistance", 4]])) boss.addEffect(id, 20 * 3600, { amplifier: amp, showParticles: false });
     raidActive = { cid: c.id, boss };
+    system.runTimeout(() => bossIntro(p, boss, "§4§l" + c.boss, "第" + c.id + "大陸のレイドボス"), 10);
   } catch (e) { raidActive = null; }
   updateRaidName(c);
   const total = rangeList(contScope(c)).length, left = raidLeft(c).length;
-  title(p, "§4§l" + c.boss, "第" + c.id + "大陸 " + total + "語すべてを即答で討て（残り " + left + "）");
+  system.runTimeout(() => title(p, "§4§l" + c.boss, "全" + total + "語を即答で討て（残り " + left + "）"), 80);
   sound(p, "mob.enderdragon.growl");
   p.sendMessage("§4[レイド] §f" + c.boss + "：大陸の全" + total + "語を即答するまで倒れない。" + RAID_BATCH + "問ごとに、ミスの数だけ眷属が現れる。途中でやめても、即答した単語は残る。");
-  await wait(60);
+  await wait(120);
   raidLoop(p, c);
 }
 /** @param {Player} p */
@@ -1653,4 +1684,225 @@ async function continentMenu(p, c) {
   else items.push(["§lレイド " + c.boss + "\n§8" + c.f2 + "階をクリアで挑戦可", "textures/blocks/barrier", () => continentMenu(p, c)]);
   items.push(["戻る", ICON.back, () => floorMenu(p)]);
   await menu(p, "§l第" + c.id + "大陸 " + c.name, profileLine(p) + "\n§7大陸の習熟 " + stars(mastery(contScope(c))) + " §7" + Math.round(100 * mastery(contScope(c))) + "%", items);
+}
+
+/* =========================================================
+   空気感：大陸ごとの霧と、漂う粒
+   ========================================================= */
+const fogNow = new Map();
+system.runInterval(() => {
+  const d = st().dun;
+  for (const p of world.getPlayers()) {
+    let th = null;
+    if (d && isInDungeon(p)) th = d.raid ? themeOf(CONTINENTS.find(c => c.id === d.raid)?.f1 ?? 1) : themeOf(d.floor);
+    const want = th?.fog ?? null;
+    if (fogNow.get(p.id) !== want) {
+      try { p.runCommand("fog @s remove kr_dun"); } catch (e) {}
+      if (want) { try { p.runCommand(`fog @s push ${want} kr_dun`); } catch (e) {} }
+      fogNow.set(p.id, want);
+    }
+    if (th?.amb) {
+      for (let k = 0; k < 3; k++) {
+        try { p.dimension.spawnParticle(th.amb, { x: p.location.x + (Math.random() - 0.5) * 14, y: p.location.y + 1 + Math.random() * 4, z: p.location.z + (Math.random() - 0.5) * 14 }); } catch (e) {}
+      }
+    }
+  }
+}, 10);
+
+/* =========================================================
+   ボス登場のカメラ演出：カメラがボスに寄って、少しして戻る
+   ========================================================= */
+/** @param {Player} p */
+function bossIntro(p, boss, label, sub) {
+  try {
+    const b = boss.location, l = p.location;
+    const dx = l.x - b.x, dz = l.z - b.z, dist = Math.max(1, Math.hypot(dx, dz));
+    const cam = { x: b.x + (dx / dist) * 4.5, y: b.y + 2.4, z: b.z + (dz / dist) * 4.5 };
+    boss.addEffect("slowness", 70, { amplifier: 255, showParticles: false });
+    p.addEffect("resistance", 70, { amplifier: 4, showParticles: false });
+    p.camera.setCamera("minecraft:free", { location: cam, facingLocation: { x: b.x, y: b.y + 1.6, z: b.z }, easeOptions: { easeTime: 1.2, easeType: EasingType.InOutCubic } });
+    system.runTimeout(() => title(p, label, sub), 20);
+    system.runTimeout(() => { try { p.camera.clear(); } catch (e) {} }, 65);
+  } catch (e) {}
+}
+
+/* =========================================================
+   HUD：画面右に、階・部屋・コンボ・フィーバー・祝福・コインを常に出す（サイドバー）
+   ========================================================= */
+let hudLines = /** @type {string[]} */ ([]), hudShown = false;
+system.runInterval(() => {
+  const s = st(), sb = world.scoreboard;
+  if (s.cfg.hud === false) {
+    if (hudShown) { try { sb.clearObjectiveAtDisplaySlot(DisplaySlotId.Sidebar); } catch (e) {} hudShown = false; hudLines = []; }
+    return;
+  }
+  const p = world.getPlayers()[0];
+  if (!p) return;
+  try {
+    let obj = sb.getObjective("kr_hud") ?? sb.addObjective("kr_hud", "§6§l攻略ダンジョン");
+    if (!hudShown) {
+      for (const pt of obj.getParticipants()) { try { obj.removeParticipant(pt); } catch (e) {} }
+      hudLines = [];
+      sb.setObjectiveAtDisplaySlot(DisplaySlotId.Sidebar, { objective: obj });
+      hudShown = true;
+    }
+    const d = s.dun, run = s.run, inDun = !!d && isInDungeon(p), data = getData(p);
+    const lines = [];
+    if (inDun && d.raid) {
+      const c = continents().find(x => x.id === d.raid);
+      if (c) lines.push("§4" + c.boss, "§c残り " + raidLeft(c).length + "語");
+    } else if (inDun) {
+      lines.push("§f" + themeOf(d.floor).name + " " + d.floor + "階", "§a部屋 " + d.rooms.filter(r => r.state === "cleared").length + "/" + d.rooms.length);
+    } else {
+      lines.push("§fキャンプ", "§7最高到達 " + s.prog.max + "階");
+    }
+    lines.push("§6コンボ " + s.stats.combo);
+    if (run && Date.now() < (run.feverUntil ?? 0)) lines.push("§c§lFEVER " + Math.ceil((run.feverUntil - Date.now()) / 1000) + "秒");
+    if (inDun && run) {
+      const b = BLESSINGS.filter(x => blessLv(x.id)).map(x => x.name + blessLv(x.id)).join(" ");
+      if (b) lines.push("§d" + b);
+    }
+    lines.push("§eコイン " + data.coin, "§bLv." + data.lv);
+    if (lines.join("|") === hudLines.join("|")) return;
+    for (const old of hudLines) if (!lines.includes(old)) { try { obj.removeParticipant(old); } catch (e) {} }
+    lines.forEach((t, k) => { try { obj.setScore(t, lines.length - k); } catch (e) {} });
+    hudLines = lines;
+  } catch (e) {}
+}, 10);
+
+/* =========================================================
+   鍛冶屋：手に持った武器・防具をコインで強化する（エンチャント）
+   ========================================================= */
+const ENCH = [
+  { id: "sharpness",    name: "鋭さ",         max: 5, icon: "textures/items/iron_sword",      fits: t => t.endsWith("_sword") || t.endsWith("_axe") },
+  { id: "fire_aspect",  name: "火属性",       max: 2, icon: "textures/items/blaze_powder",    fits: t => t.endsWith("_sword") },
+  { id: "power",        name: "射撃",         max: 5, icon: "textures/items/bow_standby",     fits: t => t === "minecraft:bow" },
+  { id: "punch",        name: "パンチ",       max: 2, icon: "textures/items/feather",         fits: t => t === "minecraft:bow" },
+  { id: "quick_charge", name: "高速装填",     max: 3, icon: "textures/items/crossbow_standby", fits: t => t === "minecraft:crossbow" },
+  { id: "piercing",     name: "貫通",         max: 4, icon: "textures/items/arrow",           fits: t => t === "minecraft:crossbow" },
+  { id: "protection",   name: "ダメージ軽減", max: 4, icon: "textures/items/iron_chestplate", fits: t => /_(helmet|chestplate|leggings|boots)$/.test(t) },
+  { id: "unbreaking",   name: "耐久",         max: 3, icon: "textures/items/iron_ingot",      fits: t => /_(sword|axe|helmet|chestplate|leggings|boots)$|bow$/.test(t) }
+];
+const MATERIAL = { wooden: "木", stone: "石", iron: "鉄", golden: "金", diamond: "ダイヤ", netherite: "ネザライト", leather: "革", chainmail: "チェーン", turtle: "カメ" };
+const PART = { sword: "の剣", axe: "の斧", helmet: "のヘルメット", chestplate: "のチェストプレート", leggings: "のレギンス", boots: "のブーツ" };
+function baseName(t) {
+  const id = t.replace("minecraft:", "");
+  if (id === "bow") return "弓";
+  if (id === "crossbow") return "クロスボウ";
+  const m = id.match(/^([a-z]+)_([a-z]+)$/);
+  return m && MATERIAL[m[1]] && PART[m[2]] ? MATERIAL[m[1]] + PART[m[2]] : id;
+}
+function rarityName(t, total) {
+  const c = total >= 9 ? "§d" : total >= 6 ? "§6" : total >= 3 ? "§5" : total >= 1 ? "§9" : "§f";
+  return c + baseName(t) + (total ? " +" + total : "");
+}
+const enchCost = lv => 80 * lv * lv;
+function readEnch(item) {
+  try { const v = item.getDynamicProperty("kr:ench"); return typeof v === "string" ? JSON.parse(v) : {}; } catch (e) { return {}; }
+}
+function heldItem(p) {
+  try { return /** @type {any} */ (p.getComponent("minecraft:equippable")).getEquipment(EquipmentSlot.Mainhand); } catch (e) { return undefined; }
+}
+/** @param {Player} p */
+async function forgeMenu(p) {
+  const item = heldItem(p);
+  const opts = item ? ENCH.filter(e => e.fits(item.typeId)) : [];
+  if (!item || !opts.length) {
+    p.sendMessage("§6[鍛冶屋] §f強化したい武器か防具を手に持ってきて。");
+    sound(p, "note.bass");
+    return;
+  }
+  const lv = readEnch(item), total = Object.values(lv).reduce((a, b) => a + Number(b), 0);
+  /** @type {Array<[string, string | null, () => any]>} */
+  const items = opts.map(e => {
+    const cur = lv[e.id] ?? 0, next = cur + 1;
+    return /** @type {[string, string | null, () => any]} */ (cur >= e.max
+      ? ["§l" + e.name + "\n§aLv" + cur + " 最大", e.icon, () => forgeMenu(p)]
+      : ["§l" + e.name + " Lv" + cur + ">" + next + "\n§e" + enchCost(next) + "コイン", e.icon, () => upgradeItem(p, e, next)]);
+  });
+  items.push(["戻る", ICON.back, () => {}]);
+  await menu(p, "§l鍛冶屋", profileLine(p) + "\n§f" + rarityName(item.typeId, total) + "  §7手に持っている装備を強化（耐久も全回復）", items);
+}
+/** @param {Player} p */
+async function upgradeItem(p, e, next) {
+  const old = heldItem(p);
+  if (!old || !e.fits(old.typeId)) return;
+  const cost = enchCost(next);
+  if (!spendCoins(p, cost)) {
+    p.sendMessage("§cコインが足りない（" + cost + "コイン必要）");
+    sound(p, "note.bass");
+    return forgeMenu(p);
+  }
+  const lv = readEnch(old);
+  lv[e.id] = next;
+  const total = Object.values(lv).reduce((a, b) => a + Number(b), 0);
+  try {
+    const fresh = new ItemStack(old.typeId, 1);
+    fresh.nameTag = rarityName(old.typeId, total);
+    fresh.setLore(Object.entries(lv).map(([id, l]) => "§7" + (ENCH.find(x => x.id === id)?.name ?? id) + " Lv" + l));
+    fresh.setDynamicProperty("kr:ench", JSON.stringify(lv));
+    /** @type {any} */ (p.getComponent("minecraft:equippable")).setEquipment(EquipmentSlot.Mainhand, fresh);
+    for (const [id, l] of Object.entries(lv)) { try { p.runCommand(`enchant @s ${id} ${l}`); } catch (err) {} }
+    sound(p, "random.anvil_use");
+    p.sendMessage("§6[鍛冶屋] §f" + rarityName(old.typeId, total) + " §fに強化した（" + e.name + " Lv" + next + "）");
+  } catch (err) {
+    addCoins(p, cost, "返金");
+  }
+  return forgeMenu(p);
+}
+
+/* =========================================================
+   図鑑：単語（階ごと）と、倒した敵
+   ========================================================= */
+const MOB_NAMES = {
+  "minecraft:zombie": "ゾンビ", "minecraft:skeleton": "スケルトン", "minecraft:spider": "クモ", "minecraft:husk": "ハスク",
+  "minecraft:stray": "ストレイ", "minecraft:witch": "ウィッチ", "minecraft:bogged": "ボグド", "minecraft:vindicator": "ヴィンディケーター",
+  "minecraft:pillager": "ピリジャー", "minecraft:cave_spider": "洞窟グモ", "minecraft:blaze": "ブレイズ", "minecraft:wither_skeleton": "ウィザースケルトン",
+  "minecraft:evoker": "エヴォーカー", "minecraft:ravager": "ラヴェジャー", "minecraft:vex": "ヴェックス"
+};
+world.afterEvents.entityDie.subscribe(ev => {
+  if (!(ev.damageSource.damagingEntity instanceof Player)) return;
+  let t = "";
+  try { if (!ev.deadEntity.hasTag("kr_wave")) return; t = ev.deadEntity.typeId; } catch (e) { return; }
+  const s = st();
+  s.kills ??= {};
+  s.kills[t] = (s.kills[t] ?? 0) + 1;
+  dirty = true;
+});
+/** @param {Player} p */
+async function dexMenu(p) {
+  const kills = st().kills ?? {};
+  /** @type {Array<[string, string | null, () => any]>} */
+  const items = [];
+  for (let f = 1; f <= floorCount(); f++) {
+    const sc = floorScope(f), list = rangeList(sc), m = mastery(sc);
+    items.push(["§l" + f + "階\n§8No." + sc.lo + "-" + sc.hi + "\n" + stars(m) + " §8" + Math.round(m * list.length) + "/" + list.length, ICON.book, () => wordDex(p, f)]);
+  }
+  items.push(["§l敵図鑑\n§8" + Object.keys(kills).length + "種類", "textures/items/rotten_flesh", () => enemyDex(p)]);
+  items.push(["戻る", ICON.back, () => bookMenu(p)]);
+  await menu(p, "§l図鑑", "§7階を選ぶと、その階の100語の覚え具合が見られる", items);
+}
+/** @param {Player} p */
+async function wordDex(p, f) {
+  const box = st().box, miss = st().miss;
+  const mark = w => (box[w] ?? -1) >= 4 ? "§a●" : box[w] === undefined ? "§8○" : box[w] === 0 && (miss[w] ?? 0) > 0 ? "§c●" : "§e●";
+  const rows = rangeList(floorScope(f)).map(i => mark(WORDS[i][0]) + " §f" + WORDS[i][0] + " §8" + short(inline(WORDS[i][1]), 14));
+  await menu(p, "§l" + f + "階の単語", "§a●覚えた  §e●うろ覚え  §c●苦手  §8○まだ\n\n" + rows.join("\n"), [["戻る", ICON.back, () => dexMenu(p)]], false);
+}
+/** @param {Player} p */
+async function enemyDex(p) {
+  const kills = st().kills ?? {};
+  const rows = Object.entries(kills).sort((a, b) => b[1] - a[1]).map(([t, n]) => "§f" + (MOB_NAMES[t] ?? t.replace("minecraft:", "")) + " §e" + n + "体");
+  const unseen = Object.keys(MOB_NAMES).filter(t => !kills[t]).length;
+  await menu(p, "§l敵図鑑", (rows.length ? rows.join("\n") : "§7まだ倒した敵がいない") + "\n\n§8まだ見ぬ敵 " + unseen + "種類", [["戻る", ICON.back, () => dexMenu(p)]], false);
+}
+
+/** キャンプの追加設備（鍛冶屋）。何度呼んでも同じ */
+function ensureCampExtras() {
+  const c = st().camp, dim = ow(), { x: cx, y, z: cz } = c;
+  cmd(dim, `fill ${cx + 10} ${y} ${cz + 5} ${cx + 12} ${y} ${cz + 7} iron_block`);
+  cmd(dim, `setblock ${cx + CAMP_R - 1} ${y + 1} ${cz + 6} anvil`);
+  cmd(dim, `setblock ${cx + CAMP_R - 1} ${y + 1} ${cz + 5} blast_furnace`);
+  cmd(dim, `setblock ${cx + CAMP_R - 1} ${y + 1} ${cz + 7} grindstone`);
+  placeSign(dim, cx + 13, y + 1, cz + 4, 4, "§l鍛冶屋\n§r鉄の床に乗ると\n開く");
 }

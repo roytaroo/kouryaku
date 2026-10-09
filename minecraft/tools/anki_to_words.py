@@ -49,6 +49,38 @@ def strip_refs(m: str) -> str:
     return m.strip(" ；;、")
 
 
+def is_subseq(a: str, b: str) -> bool:
+    it = iter(b)
+    return all(ch in it for ch in a)
+
+
+def fix_cloze(word: str, cloze: str) -> str:
+    """穴埋めを1か所にそろえる。デッキの誤り（同じ穴が2か所・綴りの抜け）を直す。
+    例: "vis{{c1::ite}}d the s{{c1::ite}}"（site）→ 2つ目だけ穴にする
+        "d{{c1::rive}}s"（derive）→ "d{{c1::erive}}s"
+    不規則変化（drew / stuck など）はそのまま。"""
+    ms = list(re.finditer(r"([A-Za-z]*)\{\{c1::(.*?)\}\}", cloze))
+    if not ms:
+        return ""
+    w = word.lower()
+    keep = next((m for m in ms if (m.group(1) + m.group(2)).lower().startswith(w)), ms[-1] if len(ms) > 1 else ms[0])
+    out = []
+    last = 0
+    for m in ms:
+        out.append(cloze[last:m.start()])
+        pre, inner = m.group(1), m.group(2)
+        if m is keep:
+            full = (pre + inner).lower()
+            if len(w) >= 5 and not full.startswith(w) and len(full) == len(w) - 1 and is_subseq(full, w) and w.startswith(pre.lower()):
+                inner = word[len(pre):]
+            out.append(f"{pre}{{{{c1::{inner}}}}}")
+        else:
+            out.append(pre + inner)
+        last = m.end()
+    out.append(cloze[last:])
+    return "".join(out)
+
+
 def rows(path: Path):
     sep = "\t"
     for line in path.read_text(encoding="utf-8-sig").splitlines():
@@ -67,6 +99,8 @@ def main():
     ap.add_argument("--word", type=int, default=1)
     ap.add_argument("--meaning", type=int, default=2)
     ap.add_argument("--num", type=int, default=0, help="単語番号の列（0なら無し）")
+    ap.add_argument("--cloze", type=int, default=0, help="穴埋め例文の列（{{c1::...}} 形式。0なら無し）")
+    ap.add_argument("--ex-ja", type=int, default=0, help="例文の和訳の列（0なら無し）")
     ap.add_argument("--preview", action="store_true")
     a = ap.parse_args()
 
@@ -86,10 +120,17 @@ def main():
         w, m = clean(r[a.word - 1]), clean(r[a.meaning - 1])
         m = strip_refs(m)
         num = clean(r[a.num - 1]) if a.num and len(r) >= a.num else ""
+        cloze = clean(r[a.cloze - 1]) if a.cloze and len(r) >= a.cloze else ""
+        if cloze:
+            cloze = fix_cloze(w, cloze)
+        ja = clean(r[a.ex_ja - 1]) if a.ex_ja and len(r) >= a.ex_ja else ""
         if not w or not m or not re.search(r"[A-Za-z]", w) or w.lower() in seen:
             continue
         seen.add(w.lower())
-        words.append([w, m, num] if num else [w, m])
+        row = [w, m, num]
+        if cloze:
+            row += [cloze, ja]
+        words.append(row if num or cloze else [w, m])
 
     if len(words) < 4:
         sys.exit("単語が4つ未満しか読めなかった。--preview で列番号を確認して。")
@@ -97,7 +138,7 @@ def main():
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(
         "// Ankiから自動生成（tools/anki_to_words.py）。手で直さず、元データを直して作り直す。\n"
-        "// 形式: [英単語, 意味, 番号(任意)]\nexport const WORDS = [\n" + body + "\n];\n",
+        "// 形式: [英単語, 意味, 番号, 穴埋め例文(任意), 例文の和訳(任意)]\nexport const WORDS = [\n" + body + "\n];\n",
         encoding="utf-8",
     )
     print(f"{len(words)} 語を書き出した → {OUT}")
