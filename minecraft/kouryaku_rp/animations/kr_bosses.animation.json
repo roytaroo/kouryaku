@@ -4,24 +4,38 @@
     "animation.kr_boss_jailer.idle": {
       "loop": true,
       "bones": {
-        "root": {
+        "body": {
           "position": [
             0,
-            "math.sin(query.anim_time*120)*0.6",
+            "math.sin(query.anim_time*120)*0.4",
             0
           ]
         },
         "arm_r": {
           "rotation": [
-            "math.sin(query.anim_time*90)*12",
+            "-8+math.sin(query.anim_time*90)*10",
             0,
             0
           ]
         },
+        "arm_l": {
+          "rotation": [
+            "math.sin(query.anim_time*90+60)*4",
+            0,
+            0
+          ]
+        },
+        "lantern": {
+          "rotation": [
+            "math.sin(query.anim_time*140)*8",
+            0,
+            "math.sin(query.anim_time*110)*6"
+          ]
+        },
         "head": {
           "rotation": [
-            0,
-            "math.sin(query.anim_time*40)*10",
+            "math.sin(query.anim_time*55)*3",
+            "math.sin(query.anim_time*40)*12",
             0
           ]
         }

@@ -4,7 +4,8 @@
     "description": {
       "identifier": "kr:boss_jailer",
       "materials": {
-        "default": "entity_alphatest"
+        "default": "entity_alphatest",
+        "glow": "entity_emissive_alpha"
       },
       "textures": {
         "default": "textures/entity/kr_bosses/kr_boss_jailer"
@@ -21,7 +22,7 @@
         ]
       },
       "render_controllers": [
-        "controller.render.kr_pet"
+        "controller.render.kr_boss_glow"
       ]
     }
   }
