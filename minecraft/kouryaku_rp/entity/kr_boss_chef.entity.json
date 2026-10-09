@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "kr:boss_chef",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/kr_bosses/kr_boss_chef"
+      },
+      "geometry": {
+        "default": "geometry.kr_boss_chef"
+      },
+      "animations": {
+        "idle": "animation.kr_boss_chef.idle"
+      },
+      "scripts": {
+        "animate": [
+          "idle"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.kr_pet"
+      ]
+    }
+  }
+}

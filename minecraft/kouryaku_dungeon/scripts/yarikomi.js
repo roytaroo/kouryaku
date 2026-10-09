@@ -26,6 +26,7 @@ export const BADGES = [
   { id: "raid2",   icon: "✪", label: "巨像討伐",     desc: "第2大陸のレイドボスを倒した" },
   { id: "raid3",   icon: "✹", label: "炎帝討伐",     desc: "第3大陸のレイドボスを倒した" },
   { id: "raid4",   icon: "❖", label: "深淵の覇者",   desc: "第4大陸のレイドボスを倒した" },
+  { id: "raid5",   icon: "★", label: "言霊の覇王",   desc: "最終決戦で言霊の魔王を倒した" },
 ];
 const MAX_EQUIP = 3;
 
@@ -46,6 +47,7 @@ export const MISSIONS = [
   { id: "m_raid2",  cat: "hard",  title: "第2大陸 制覇", desc: "苔の巨像レキシスを倒す",    stat: "raid_c2", target: 1,   reward: { xp: 700, coin: 500, badge: "raid2" } },
   { id: "m_raid3",  cat: "hard",  title: "第3大陸 制覇", desc: "炎帝グロッサを倒す",        stat: "raid_c3", target: 1,   reward: { xp: 900, coin: 700, badge: "raid3" } },
   { id: "m_raid4",  cat: "hard",  title: "第4大陸 制覇", desc: "深淵の主ディクシオを倒す",  stat: "raid_c4", target: 1,   reward: { xp: 1200, coin: 1000, badge: "raid4" } },
+  { id: "m_raid5",  cat: "hard",  title: "完全制覇",     desc: "言霊の魔王ロゴスを倒す",    stat: "raid_c5", target: 1,   reward: { xp: 3000, coin: 2000, badge: "raid5" } },
 ];
 // ---------- デイリーミッション(現実の日付が変わるとリセット。stat は "d_" で始める) ----------
 export const DAILY = [
