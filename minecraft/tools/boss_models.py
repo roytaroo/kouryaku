@@ -406,104 +406,203 @@ def L_grass():
                 d.rectangle([x, top, x, h - 1], fill=hexc(rnd.choice(("#5a8a30", "#6f9e3c", "#47722a", "#88b04a"))))
     return paint
 
+# ---------------- まだら模様（なめらかなノイズを色の段に分ける。マイクラの苔ブロック風） ----------------
+def _vnoise(gw, gh, scale, rnd):
+    """粗い格子の乱数をなめらかにつないだノイズ（0〜1）。gw×gh マス"""
+    cw, ch = gw // scale + 2, gh // scale + 2
+    g = [[rnd.random() for _ in range(cw)] for _ in range(ch)]
+    out = []
+    for y in range(gh):
+        row = []
+        fy = y / scale; y0 = int(fy); ty = fy - y0; ty = ty * ty * (3 - 2 * ty)
+        for x in range(gw):
+            fx = x / scale; x0 = int(fx); tx = fx - x0; tx = tx * tx * (3 - 2 * tx)
+            a = g[y0][x0] * (1 - tx) + g[y0][x0 + 1] * tx
+            b = g[y0 + 1][x0] * (1 - tx) + g[y0 + 1][x0 + 1] * tx
+            row.append(a * (1 - ty) + b * ty)
+        out.append(row)
+    return out
+def P_patch(colors, scale=3, fine=0.22, grad=0.18, px=2, edge=True):
+    """colors: 暗→明。scale: まだらの大きさ（モデルのマス）。grad: 上ほど明るく。px: 1マスのテクスチャ画素数"""
+    def paint(img, w, h, rnd):
+        gw, gh = max(1, w // px), max(1, h // px)
+        n = _vnoise(gw, gh, scale, rnd)
+        d = ImageDraw.Draw(img); k = len(colors)
+        for y in range(gh):
+            for x in range(gw):
+                v = n[y][x] * (1 - fine) + rnd.random() * fine + grad * (0.5 - y / max(1, gh - 1))
+                if edge and y == 0: v += 0.18
+                if edge and y == gh - 1: v -= 0.22
+                c = hexc(colors[max(0, min(k - 1, int(v * k)))])
+                d.rectangle([x * px, y * px, x * px + px - 1, y * px + px - 1], fill=jitter(c, 2, rnd))
+    return paint
+def L_mosscap(colors, depth=0.35, var=0.3, px=2):
+    """面の上から苔がかぶさって、下へ不ぞろいに垂れる"""
+    def paint(img, w, h, rnd):
+        gw, gh = max(1, w // px), max(1, h // px)
+        d = ImageDraw.Draw(img); k = len(colors)
+        dep = [depth + (rnd.random() - 0.5) * var for _ in range(gw)]
+        for x in range(1, gw - 1): dep[x] = (dep[x - 1] + dep[x] * 2 + dep[x + 1]) / 4
+        for x in range(gw):
+            if rnd.random() < 0.15: dep[x] += rnd.random() * 0.35  # 長い垂れ
+            L = int(dep[x] * gh)
+            for y in range(min(gh, L)):
+                t = y / max(1, L)
+                c = hexc(colors[max(0, min(k - 1, int((1 - t) * (k - 1) + rnd.random() * 1.2 - 0.6)))])
+                d.rectangle([x * px, y * px, x * px + px - 1, y * px + px - 1], fill=jitter(c, 3, rnd))
+    return paint
+def L_gem_px(cx, cy, cols, size=2, px=2):
+    """宝石（ドット絵のひし形）。cols: 暗→明の4色。size: 半径（マス）"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img); gx, gy = int(cx * w / px), int(cy * h / px)
+        for dy in range(-size, size + 1):
+            for dx in range(-size, size + 1):
+                r = abs(dx) + abs(dy)
+                if r > size: continue
+                c = cols[0] if r == size else cols[1] if (dx + dy) > 0 else cols[2]
+                if dx == -1 + (size > 2) * 0 and dy == -1: c = cols[3]
+                if (dx, dy) == (0, -size + 1) or (dx, dy) == (-1, 0): c = cols[3]
+                x, y = (gx + dx) * px, (gy + dy) * px
+                if 0 <= x < w and 0 <= y < h: d.rectangle([x, y, x + px - 1, y + px - 1], fill=hexc(c))
+    return paint
+def L_vines(cols, rate=0.45, px=2, minlen=0.3):
+    """つるの束（板用）。すき間は透明"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img); d.rectangle([0, 0, w - 1, h - 1], fill=(0, 0, 0, 0))
+        gw, gh = max(1, w // px), max(1, h // px)
+        for x in range(gw):
+            if rnd.random() > rate: continue
+            L = int(gh * (minlen + rnd.random() * (1 - minlen)))
+            for y in range(L):
+                c = hexc(rnd.choice(cols))
+                d.rectangle([x * px, y * px, x * px + px - 1, y * px + px - 1], fill=c)
+    return paint
+def L_eye(px=2):
+    """カエルの目：赤茶のふち、オレンジ、黄色の芯、縦長の黒い瞳（光る素材用にアルファを下げる）"""
+    def paint(img, w, h, rnd):
+        gw, gh = w // px, h // px; d = ImageDraw.Draw(img)
+        for y in range(gh):
+            for x in range(gw):
+                ex, ey = abs(x - (gw - 1) / 2) / (gw / 2), abs(y - (gh - 1) / 2) / (gh / 2)
+                r = max(ex, ey)
+                c = "#5a1606" if r > 0.86 else "#d4520c" if r > 0.7 else "#ff9a1c" if r > 0.45 else "#ffd23c"
+                if abs(x - (gw - 1) / 2) < 0.5 and ey < 0.62: c = "#2a0a02"
+                if (x, y) in ((1, 1), (2, 1), (1, 2)): c = "#fff2b0"
+                col = hexc(c); d.rectangle([x * px, y * px, x * px + px - 1, y * px + px - 1], fill=(col[0], col[1], col[2], 40))
+    return paint
+
 # ---------------- 第2大陸 苔の巨像レキシス（背中に滝の大ガエル） ----------------
 def toad():
-    m = Model("kr_boss_toad", "苔の巨像レキシス", atlas=512)
+    m = Model("kr_boss_toad", "苔の巨像レキシス", atlas=1024)
     m.glow = True
     D = 2
-    MOSS = [("#3f6624", 5), ("#33561e", 4), ("#527f2e", 3), ("#25401a", 2), ("#6a9238", 1)]
-    MOSS_LT = [("#7c9c52", 5), ("#6c8c48", 4), ("#8eae62", 3), ("#5a7a3c", 2)]
-    BELLY = [("#b3ad7a", 5), ("#a49e6c", 4), ("#c4bd8a", 3), ("#8f8a5c", 1)]
-    STONE = [("#7a736b", 5), ("#655f58", 4), ("#8a837a", 2), ("#4f7a2a", 2), ("#3e6422", 2)]
-    WOOD = [("#4e3a28", 5), ("#3c2c1e", 4), ("#5e4834", 3), ("#4f7a2a", 1)]
-    TWIG = [("#7a6658", 5), ("#655244", 4), ("#8e7a6a", 2), ("#4a3a2e", 2)]
-    WATER = [("#3a6fd0", 5), ("#2f5cb8", 4), ("#4f86e6", 3), ("#2448a0", 1)]
-    moss, moss_lt, belly, stone, wood, twig = (P_cells(x) for x in (MOSS, MOSS_LT, BELLY, STONE, WOOD, TWIG))
-    water = P_stack(P_cells(WATER), L_streaks("#9cc4ff", 4), L_streaks("#d6e8ff", 1))
-    moss_top = P_stack(stone, L_drips("#3e6422", 0.5, 0.35), L_drips("#4f7a2a", 0.4, 0.2))  # 側面：上が苔の岩
-    grass_top = P_cells(MOSS + [("#88b04a", 2)])
+    MOSS = ["#22361a", "#2d4720", "#395a26", "#47702d", "#588536", "#6c9a40"]
+    MOSS_TOP = ["#3a5c26", "#4a722e", "#5a8838", "#6c9c42", "#80b04e"]
+    SAGE = ["#4c6834", "#5a783e", "#6a8a48", "#7a9a52", "#8aaa5e", "#9ebc70"]
+    KHAKI = ["#6c6a46", "#858256", "#9d9a68", "#b2ae7a", "#c6c18c"]
+    STONE = ["#3c3a38", "#4c4844", "#5c5752", "#6e6862", "#837c74"]
+    WOOD = ["#2c2018", "#3a2b1f", "#4a3727", "#5a4632", "#6c563e"]
+    TWIG = ["#4a3e36", "#5c4f45", "#6f6156", "#837468", "#978a7e"]
+    WATER = ["#1d3c96", "#2752bc", "#356ad4", "#4f84e8", "#7aaaf8"]
+    EMER = ["#0c4a26", "#178a48", "#2cc070", "#b4ffd8"]
+    AQUA = ["#14467a", "#2378c0", "#48c4f4", "#dcfaff"]
+    VINE = ["#1e3414", "#28441a", "#335620", "#3e6a26"]
+
+    moss, moss_top, sage, khaki, wood, twig = (P_patch(x) for x in (MOSS, MOSS_TOP, SAGE, KHAKI, WOOD, TWIG))
+    sage_top = P_patch(SAGE, grad=0, edge=False)
+    grass_top = P_patch(MOSS_TOP, scale=2, grad=0, edge=False)
+    rock = P_stack(P_patch(STONE, scale=2, fine=0.3), L_mosscap(MOSS, 0.4, 0.5))
+    water = P_stack(P_patch(WATER, scale=2, grad=0, fine=0.35, edge=False), L_streaks("#a8c8ff", 4), L_streaks("#e2eeff", 2))
+    water_fall = P_stack(P_patch(WATER, scale=2, grad=-0.1, fine=0.4, edge=False), L_streaks("#a8c8ff", 6), L_streaks("#e8f2ff", 3))
 
     m.bone("root", [0, 0, 0])
-    m.bone("body", [0, 10, 4], "root")
-    m.bone("head", [0, 22, -16], "body")
-    m.bone("jaw", [0, 22, -16], "head")
-    m.bone("arm_r", [-18, 14, -24], "root")
-    m.bone("arm_l", [18, 14, -24], "root")
-    m.bone("leg_r", [-24, 16, 12], "root")
-    m.bone("leg_l", [24, 16, 12], "root")
-    m.bone("back", [0, 32, 8], "body")
+    m.bone("body", [0, 6, 2], "root")
+    m.bone("back", [0, 28, 4], "body")
+    m.bone("head", [0, 19, -18], "body")
+    m.bone("jaw", [0, 19, -18], "head")
+    m.bone("arm_r", [-23, 16, -24], "root")
+    m.bone("arm_l", [23, 16, -24], "root")
+    m.bone("leg_r", [-26, 16, 12], "root")
+    m.bone("leg_l", [26, 16, 12], "root")
 
-    # 胴：苔の大きな塊。側面は苔と岩、下の方にカーキの腹
-    side = P_stack(moss, L_box(0, 0.75, 1, 1, "#3e6422"), L_drips("#2e4e1c", 0.2, 0.4, top=0.0))
-    m.cube("body", [-20, 9, -17], [40, 23, 41], side, faces={"up": grass_top, "down": P_cells(BELLY)}, density=D)
-    # 背中の段々の岩（上は苔と草）
-    m.cube("back", [-17, 32, -9], [34, 7, 31], moss_top, faces={"up": grass_top}, density=D)
-    m.cube("back", [-12, 39, -3], [21, 7, 19], moss_top, faces={"up": grass_top}, density=D)
-    m.cube("back", [-18.5, 32, 4], [8, 4, 10], moss_top, faces={"up": grass_top}, density=D)
-    m.cube("back", [11, 32, -4], [7, 5, 8], moss_top, faces={"up": grass_top}, density=D)
-    # 滝：上の段の溝 → 段の背中側 → 胴の背中と左の脇へ流れ落ちる
-    m.cube("back", [3, 45.8, -3.2], [6, 0.4, 19.4], water, density=D)
-    m.cube("back", [3, 38.6, 15.8], [6, 7.6, 0.6], water, density=D)
-    m.cube("back", [3, 38.8, 16], [6, 0.4, 6.2], water, density=D)
-    m.cube("back", [3, 9, 22.1], [6, 30, 2.2], water, faces={"north": water}, density=D)
-    m.cube("back", [9, 38.8, -3], [9.4, 0.4, 6], water, density=D)
-    m.cube("back", [18.2, 31.8, -3], [2.2, 7.2, 6], water, density=D)
-    m.cube("back", [20.1, 6, -3], [1.2, 26, 6], water, density=D)
-    m.cube("back", [17, 0, -6], [9, 0.6, 12], water, density=D)  # 足元の水たまり
-    # 草の房（交差した板）
-    rnd = random.Random(11)
-    for (x, y, z) in ((-14, 39, -6), (-8, 46, 2), (6, 46, 10), (-15, 39, 18), (14, 39, 14), (-3, 46, 13), (12, 32, 20), (-19, 32, -14), (15, 37, -2)):
-        hgt = rnd.uniform(3, 5)
+    # 胴：暗い苔の塊（下は少しカーキ）
+    body_side = P_stack(moss, L_box(0, 0.86, 1, 1, "#4a5a30"))
+    m.cube("body", [-19, 6, -18], [38, 22, 40], body_side, faces={"up": grass_top, "down": P_patch(KHAKI)}, density=D)
+    # 背中の岩：ずれて積まれた段。上の段は2つの岩の間に水路
+    m.cube("back", [-17, 28, -13], [34, 7.5, 32], rock, faces={"up": grass_top}, density=D)
+    m.cube("back", [-15, 35.5, -9], [16, 8, 23], rock, faces={"up": grass_top}, density=D)
+    m.cube("back", [7, 35.5, -3], [10, 6.5, 18], rock, faces={"up": grass_top}, density=D)
+    m.cube("back", [-18.5, 28, 8], [9, 4, 9], rock, faces={"up": grass_top}, density=D)
+    m.cube("back", [-12, 43.5, -4], [8, 3, 8], rock, faces={"up": grass_top}, density=D)
+    # 水路の水 → 後ろへ落ちる滝、前の方から右の脇へあふれる滝
+    m.cube("back", [1, 35.5, -9], [6, 4, 23], water, density=D)
+    m.cube("back", [1, 28.5, 14], [6, 11, 1.6], water_fall, density=D)
+    m.cube("back", [1, 6, 19.4], [6, 23, 3.2], water_fall, density=D)
+    m.cube("back", [7, 35.3, -12], [10.5, 0.6, 8], water, density=D)
+    m.cube("back", [17, 26, -12], [2.4, 10, 8], water_fall, density=D)
+    m.cube("back", [18.8, 3, -12], [1.4, 24, 8], water_fall, density=D)
+    m.cube("root", [14, 0, -16], [12, 0.6, 14], water, density=D)  # 足元の水たまり
+    m.cube("root", [-2, 0, 20], [10, 0.6, 8], water, density=D)
+    # 草の房
+    rnd = random.Random(21)
+    for (x, y, z) in ((-12, 43.5, -7), (-3, 43.5, 4), (12, 42, 10), (-14, 35.5, 14), (14, 35.5, -8), (-17, 35.5, -11), (-8, 46.5, 0), (-16, 32, 12), (10, 42, -1)):
+        hgt = rnd.uniform(3, 6)
         for rot in (45, -45):
-            m.cube("back", [x - 2, y, z], [4, hgt, 0], P_stack(L_grass()), rotation=[0, rot, 0], pivot=[x, y, z], density=D)
+            m.cube("back", [x - 2.5, y, z], [5, hgt, 0], P_stack(L_grass()), rotation=[0, rot, 0], pivot=[x, y, z], density=D)
 
-    # 頭：明るい緑の平たい上あご、カーキの下あご、赤黒い口の線
-    head_front = P_stack(moss_lt, L_box(0, 0, 1, 0.12, "#86b054"), L_box(0, 0.88, 1, 1, "#4e7a2e"))
-    m.cube("head", [-17.5, 22, -35], [35, 9, 21], moss_lt, faces={"north": head_front, "up": P_stack(moss_lt, L_box(0.1, 0.1, 0.9, 0.5, "#7aa64a"))}, density=D)
-    jawtex = P_stack(belly, L_drips("#4f7a2a", 0.35, 0.6), L_drips("#3e6422", 0.2, 0.85))
-    m.cube("jaw", [-16.5, 11, -33], [33, 11, 18], jawtex, faces={"down": belly}, density=D)
-    m.cube("jaw", [-16.8, 21, -33.3], [33.6, 1.2, 18.3], P_cells([("#5a1e1e", 4), ("#3e1212", 3), ("#7a2a26", 1)]), density=D)
-    # 目：頭の角から飛び出す箱。オレンジに光る、縦長の瞳
-    eye_shell = P_stack(moss, L_box(0, 0, 1, 0.15, "#6f9a44"))
-    iris = P_stack(L_glow("#ffe060", "#ffb020", "#ff7010", alpha=40), L_box(0.42, 0.12, 0.58, 0.88, "#3a1000", alpha=60), L_box(0.12, 0.62, 0.3, 0.8, "#ff6010", alpha=40))
+    # 頭：明るいセージ色の平たい上あご（前に張り出す）
+    head_front = P_stack(sage, L_box(0, 0, 1, 0.12, "#a6c27a"), L_box(0.06, 0.2, 0.3, 0.32, "#8eae62"), L_box(0.55, 0.2, 0.8, 0.32, "#8eae62"))
+    m.cube("head", [-18, 19, -38], [36, 9, 22], sage, faces={"north": head_front, "up": P_stack(sage_top, L_box(0.1, 0.55, 0.45, 0.75, "#8eae62"), L_box(0.55, 0.6, 0.9, 0.8, "#8eae62"))}, density=D)
+    # 下あご：大きなカーキの箱。苔の筋が垂れる
+    jaw_tex = P_stack(khaki, L_mosscap(MOSS, 0.15, 0.4))
+    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"down": khaki, "up": khaki}, density=D)
+    m.cube("jaw", [-17.4, 17.2, -36.6], [34.8, 1.9, 20.1], P_patch(["#2e0c0a", "#4a1412", "#621c18"], grad=0, edge=False), density=D)
+    # あごの下に垂れるつる
+    m.cube("jaw", [-16, -1, -36.4], [32, 8, 0], P_stack(L_vines(VINE, 0.35)), density=D)
+    m.cube("jaw", [-17.4, -1, -35], [0, 8, 18], P_stack(L_vines(VINE, 0.3)), density=D)
+    m.cube("jaw", [17.4, -1, -35], [0, 8, 18], P_stack(L_vines(VINE, 0.3)), density=D)
+    # 目：頭の後ろの角から上と横に飛び出す
+    eye_shell = P_stack(sage, L_box(0, 0, 1, 0.15, "#a6c27a"))
     for sx in (-1, 1):
-        x0 = -18 if sx < 0 else 10
-        m.cube("head", [x0, 27, -34], [8, 8, 8], eye_shell, density=D)
-        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4, 31, -34], "head")
-        m.cube(g, [x0 + 1, 28, -34.3], [6, 6, 0.4], iris, density=D)
-        ox = x0 - 0.3 if sx < 0 else x0 + 7.9
-        m.cube(g, [ox, 28, -33], [0.4, 6, 6], iris, density=D)
-    # 枯れ枝の冠
-    for (x, z, h, br) in ((-7, -30, 7, 1), (-3.5, -27, 9, -1), (0, -31, 5, 0), (3, -26, 8, 1), (6.5, -30, 6, -1), (-1, -23, 6, 1), (-6, -24, 4, 0), (5, -22, 5, 0)):
-        m.cube("head", [x - 1, 31, z - 1], [2, h, 2], twig, density=D)
+        x0 = -21 if sx < 0 else 12
+        m.cube("head", [x0, 24, -28], [9, 9, 9], eye_shell, density=D)
+        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4.5, 28.5, -28], "head")
+        m.cube(g, [x0 + 1, 25, -28.3], [7, 7, 0.4], L_eye(), density=D)
+        ox = x0 - 0.3 if sx < 0 else x0 + 8.9
+        m.cube(g, [ox, 25, -27], [0.4, 7, 7], L_eye(), density=D)
+    # 枯れ枝の冠（頭の後ろ寄り）
+    for (x, z, h, br) in ((-8, -27, 6, 1), (-5, -22, 10, -1), (-1.5, -26, 7, 1), (2, -21, 9, 0), (5.5, -26, 6, -1), (8, -21, 5, 1), (-2, -18.5, 5, 0), (4, -30, 4, 0), (-6, -31, 3, 0)):
+        m.cube("head", [x - 1, 28, z - 1], [2, h, 2], twig, density=D)
         if br:
-            m.cube("head", [x - 1 + br * 1.5, 31 + h * 0.55, z - 0.75], [1.5, 3, 1.5], twig, rotation=[0, 0, -br * 30], pivot=[x, 31 + h * 0.55, z], density=D)
-    m.cube("head", [-8, 31, -31], [16, 1.2, 10], P_cells(MOSS + TWIG), density=D)  # 冠の根元の苔
-    # あごと胴から垂れるつる
-    for (x, z, ln) in ((-14, -33.6, 9), (-9, -33.6, 6), (-3, -33.6, 11), (4, -33.6, 7), (10, -33.6, 10), (15, -33.6, 5)):
-        m.cube("jaw", [x - 1, 22 - ln, z], [2, ln, 0], P_stack(L_vine()), density=3)
-    for (x, z, ln) in ((-20.1, -10, 14), (-20.1, 0, 10), (-20.1, 12, 16), (20.1, -12, 12), (20.1, 10, 15)):
-        m.cube("body", [x, 30 - ln, z - 1], [0, ln, 2], P_stack(L_vine()), density=3)
+            m.cube("head", [x - 0.75 + br * 1.6, 28 + h * 0.5, z - 0.75], [1.5, 3.5, 1.5], twig, rotation=[0, 0, -br * 35], pivot=[x, 28 + h * 0.5, z], density=D)
+    m.cube("head", [-10, 28, -32], [20, 1.4, 15], P_patch(MOSS + TWIG[:2], grad=0, edge=False), density=D)  # 冠の根元の苔
 
-    # 前足：木の根のような3本指
+    # 前足：長い腕（宝石入り）＋木の根のような手（3本指と親指）
     for bn, sx in (("arm_r", -1), ("arm_l", 1)):
-        ax = -26 if sx < 0 else 18
-        m.cube(bn, [ax, 3, -33], [8, 13, 8], P_stack(moss, L_drips("#2e4e1c", 0.3, 0.5)), density=D)
-        m.cube(bn, [ax - 3, 0, -38], [14, 3.5, 10], wood, density=D)
-        for k in range(3):
-            m.cube(bn, [ax - 2.5 + k * 4.6, 0, -46], [3.8, 3, 9], P_stack(wood, L_box(0, 0, 1, 0.3, "#5a7a30")), density=D)
-
-    # 後ろ足：大きなもも（宝石入り）と3本指の足
-    for bn, sx in (("leg_r", -1), ("leg_l", 1)):
-        lx = -33 if sx < 0 else 21
-        thigh_side = P_stack(P_cells(MOSS_LT), L_box(0, 0.78, 1, 0.92, "#3c2c1e"),
-                             L_gem(0.45, 0.35, 0.22, "#1aa050", "#2fd070", "#a0ffc8"), L_gem(0.78, 0.62, 0.12, "#2a70c8", "#5ad8ff", "#e0ffff"))
-        thigh_front = P_stack(P_cells(MOSS_LT), L_box(0, 0.78, 1, 0.92, "#3c2c1e"), L_gem(0.5, 0.4, 0.2, "#2a70c8", "#5ad8ff", "#e0ffff"))
+        ax = -27 if sx < 0 else 19
         outer = "west" if sx < 0 else "east"
-        m.cube(bn, [lx, 7, 2], [12, 20, 19], P_cells(MOSS_LT), faces={outer: thigh_side, "north": thigh_front, "up": P_cells(MOSS_LT)}, density=D)
-        m.cube(bn, [lx, 0, -6], [12, 8, 14], P_stack(P_cells(MOSS_LT), L_drips("#3e6422", 0.3, 0.4)), density=D)
+        up_out = P_stack(sage, L_mosscap(MOSS, 0.3, 0.4), L_gem_px(0.45, 0.55, EMER, 2))
+        m.cube(bn, [ax + sx * 1, 9, -27], [8, 13, 9], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), faces={outer: up_out}, density=D)
+        fore_out = P_stack(sage, L_gem_px(0.5, 0.35, AQUA, 2), L_gem_px(0.35, 0.75, EMER, 1))
+        m.cube(bn, [ax, 2, -35], [8, 11, 9], P_stack(sage, L_mosscap(MOSS, 0.2, 0.3)), faces={outer: fore_out, "north": P_stack(sage, L_gem_px(0.5, 0.4, AQUA, 1))}, density=D)
+        hx = ax - 3
+        m.cube(bn, [hx, 0, -40], [14, 3.5, 10], P_stack(wood, L_mosscap(MOSS, 0.25, 0.4)), faces={"up": P_stack(wood, L_box(0.2, 0.3, 0.6, 0.7, "#4a6a2c"))}, density=D)
         for k in range(3):
-            m.cube(bn, [lx + 0.3 + k * 4, 0, -12], [3.4, 3, 7], P_cells(MOSS_LT), density=D)
+            m.cube(bn, [hx + 0.5 + k * 4.7, 0, -49], [3.8, 3, 9.5], P_stack(wood, L_box(0, 0, 0.5, 0.25, "#4a6a2c")), density=D)
+        tx = hx - 5 if sx < 0 else hx + 14
+        m.cube(bn, [tx, 0, -38], [5, 2.6, 3.6], wood, density=D)
+
+    # 後ろ足：太いもも（宝石）＋3本指の足
+    for bn, sx in (("leg_r", -1), ("leg_l", 1)):
+        lx = -33 if sx < 0 else 20
+        outer = "west" if sx < 0 else "east"
+        thigh_out = P_stack(sage, L_box(0, 0.8, 1, 0.92, "#2e2218"), L_gem_px(0.4, 0.38, EMER, 4), L_gem_px(0.8, 0.62, AQUA, 2))
+        thigh_front = P_stack(sage, L_box(0, 0.8, 1, 0.92, "#2e2218"), L_gem_px(0.5, 0.4, EMER, 3))
+        m.cube(bn, [lx, 4, 3], [13, 21, 18], sage, faces={outer: thigh_out, "north": thigh_front, "up": P_stack(sage_top, L_mosscap(MOSS, 0.5, 0.5))}, density=D)
+        m.cube(bn, [lx - 0.5, 0, -5], [14, 4.5, 13], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), density=D)
+        for k in range(3):
+            m.cube(bn, [lx + 0.2 + k * 4.7, 0, -12], [3.8, 3, 7.5], sage, density=D)
+        m.cube(bn, [lx + (13 if sx > 0 else 0), 6, 4], [0, 14, 16], P_stack(L_vines(VINE, 0.25)), density=D)
     return m
 
 def chef():
