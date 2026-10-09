@@ -284,23 +284,23 @@ def jailer():
                 m.cube("body", [x - 0.4, y - 2.2, -11.1], [0.8, 4.4, 3.2], link_s, faces={"east": link_f, "west": link_f}, density=D)
 
     # 頭：檻のかぶと（中は暗く、光る赤い目）
-    m.cube("head", [-6.6, 45.5, -6.6], [13.2, 13.5, 13.2], dark, density=D)
+    m.cube("head", [-7.6, 45.5, -6.6], [15.2, 11, 13.2], dark, density=D)
     eyes_cut = P_stack(L_poly([(0.12, 0.29), (0.42, 0.41), (0.42, 0.52), (0.12, 0.52)], MET, alpha=0),
                        L_poly([(0.88, 0.29), (0.58, 0.41), (0.58, 0.52), (0.88, 0.52)], MET, alpha=0))
     helm_front = P_stack(metal, L_box(0.08, 0.27, 0.92, 0.54, MET_DK), L_frame(0.08, 0.27, 0.92, 0.54, OL), eyes_cut,
                          L_holes(0.1, 0.62, 0.9, 0.92, 4, 2, 2, rim=MET_DK, shade=MET_HI),
                          L_pixels([(0.06, 0.07), (0.94, 0.07), (0.06, 0.93), (0.94, 0.93), (0.5, 0.08)], MET_HI), L_frame(0, 0, 1, 1, OL))
-    helm_side = P_stack(metal, L_holes(0.12, 0.12, 0.88, 0.9, 3, 3, 2, rim=MET_DK, shade=MET_HI), L_frame(0, 0, 1, 1, OL))
-    m.cube("head", [-8, 45, -8], [16, 15, 16], helm_side, faces={"north": helm_front, "up": metal, "down": P_stack(metal, L_holes(0.2, 0.2, 0.8, 0.8, 1, 1, 0))}, density=D)
+    helm_side = P_stack(metal, L_holes(0.12, 0.14, 0.88, 0.88, 3, 2, 2, rim=MET_DK, shade=MET_HI), L_frame(0, 0, 1, 1, OL))
+    m.cube("head", [-9, 45, -8], [18, 12, 16], helm_side, faces={"north": helm_front, "up": metal, "down": P_stack(metal, L_holes(0.2, 0.2, 0.8, 0.8, 1, 1, 0))}, density=D)
     m.bone("glow_eyes", [0, 50, 0], "head")
-    m.cube("glow_eyes", [-6.5, 52, -7.8], [13, 3.4, 0.6], L_glow2("#fff0c8", "#ff4a1a", "#c01008", alpha=30), density=D)
+    m.cube("glow_eyes", [-7.5, 50.5, -7.8], [15, 3.4, 0.6], L_glow2("#fff0c8", "#ff4a1a", "#c01008", alpha=30), density=D)
     # 帽子：つば＋山＋帯＋正面の留め金
     hat = S_surface("#223049", "#34476a", "#141c2a", blots=["#1a2538", "#2c3d5a"], blot_rate=0.05)
-    m.cube("head", [-12.5, 60, -12.5], [25, 1.6, 25], hat, density=D)
-    m.cube("head", [-8.5, 61.6, -8.5], [17, 8, 17], hat, density=D)
-    m.cube("head", [-8.8, 61.6, -8.8], [17.6, 2.2, 17.6], S_surface("#141b28", "#222e44", "#0c111a"), density=D)
+    m.cube("head", [-13, 57, -12.5], [26, 1.6, 25], hat, density=D)
+    m.cube("head", [-9, 58.6, -8.5], [18, 7, 17], hat, density=D)
+    m.cube("head", [-9.3, 58.6, -8.8], [18.6, 2.2, 17.6], S_surface("#141b28", "#222e44", "#0c111a"), density=D)
     badge = P_stack(S_surface("#a8afb6", "#d6dade", "#5e656d"), L_box(0.3, 0.3, 0.7, 0.7, LEA), L_frame(0, 0, 1, 1, OL))
-    m.cube("head", [-2.2, 63.3, -9.3], [4.4, 4.4, 0.8], badge, density=D)
+    m.cube("head", [-2.2, 60.3, -9.3], [4.4, 4.4, 0.8], badge, density=D)
 
     # 肩当て：紺の大きな箱に鉄のふち、外側に紋章
     def glyph(mirror):
