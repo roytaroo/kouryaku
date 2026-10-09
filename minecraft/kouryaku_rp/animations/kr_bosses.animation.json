@@ -47,14 +47,21 @@
         "body": {
           "scale": [
             1,
-            "1+math.sin(query.anim_time*150)*0.03",
+            "1+math.sin(query.anim_time*150)*0.02",
             1
+          ]
+        },
+        "jaw": {
+          "scale": [
+            "1+math.max(0,math.sin(query.anim_time*200))*0.05",
+            1,
+            "1+math.max(0,math.sin(query.anim_time*200))*0.05"
           ]
         },
         "head": {
           "rotation": [
-            "math.sin(query.anim_time*60)*3",
-            0,
+            "math.sin(query.anim_time*60)*2",
+            "math.sin(query.anim_time*35)*6",
             0
           ]
         }

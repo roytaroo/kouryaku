@@ -347,32 +347,163 @@ def jailer():
     m.cube("glow_lantern", [17, -1.2, -10.5], [5, 5.8, 5], L_glow("#fff6c0", "#ffc040", "#ff8a10", alpha=20), density=D)
     return m
 
+def P_cells(palette, cell=2, seed_shift=0):
+    """マイクラ風のまだら：cell×cell のマスごとに palette [(色, 重み)...] から選ぶ"""
+    cols = [hexc(c) for c, _ in palette]; wts = [w for _, w in palette]
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img)
+        for y in range(0, h, cell):
+            for x in range(0, w, cell):
+                c = rnd.choices(cols, wts)[0]
+                d.rectangle([x, y, x + cell - 1, y + cell - 1], fill=jitter(c, 3, rnd))
+    return paint
+def L_drips(color, rate=0.25, maxlen=0.5, cell=2, top=0.0):
+    """上から垂れる苔"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img)
+        for x in range(0, w, cell):
+            if rnd.random() < rate:
+                ln = int(h * maxlen * rnd.random()) + cell
+                y0 = int(top * h)
+                d.rectangle([x, y0, x + cell - 1, min(h - 1, y0 + ln)], fill=jitter(hexc(color), 6, rnd))
+    return paint
+def L_streaks(color, n=3, cell=2):
+    """縦の光の筋（流れる水）"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img)
+        for _ in range(n):
+            x = rnd.randrange(0, max(1, w - cell)); y = rnd.randrange(0, h); ln = rnd.randint(h // 4 + 1, h // 2 + 2)
+            d.rectangle([x, y, x + cell - 1, min(h - 1, y + ln)], fill=hexc(color))
+    return paint
+def L_gem(cx, cy, r, c1, c2, c3):
+    """宝石のかたまり（ひし形）"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img); X, Y, R = cx * w, cy * h, r * min(w, h)
+        d.polygon([(X, Y - R), (X + R, Y), (X, Y + R), (X - R, Y)], fill=hexc(c1))
+        d.polygon([(X, Y - R * 0.55), (X + R * 0.55, Y), (X, Y + R * 0.55), (X - R * 0.55, Y)], fill=hexc(c2))
+        d.rectangle([X - R * 0.3, Y - R * 0.45, X - R * 0.05, Y - R * 0.15], fill=hexc(c3))
+    return paint
+def L_vine(alpha_bg=True):
+    """垂れるつる（縦の細い板用）。すき間は透明"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img)
+        d.rectangle([0, 0, w - 1, h - 1], fill=(0, 0, 0, 0))
+        x = w // 2
+        for y in range(h):
+            c = rnd.choice(("#2f5a1e", "#3e6e26", "#24481a"))
+            d.rectangle([max(0, x - 1), y, min(w - 1, x), y], fill=hexc(c))
+            if rnd.random() < 0.15: d.point((min(w - 1, x + 1), y), fill=hexc("#5a8a32"))
+            if rnd.random() < 0.12: x = max(1, min(w - 1, x + rnd.choice((-1, 1))))
+    return paint
+def L_grass():
+    """草の房（板用）。すき間は透明"""
+    def paint(img, w, h, rnd):
+        d = ImageDraw.Draw(img)
+        d.rectangle([0, 0, w - 1, h - 1], fill=(0, 0, 0, 0))
+        for x in range(0, w, 2):
+            if rnd.random() < 0.6:
+                top = rnd.randint(0, h // 2)
+                d.rectangle([x, top, x, h - 1], fill=hexc(rnd.choice(("#5a8a30", "#6f9e3c", "#47722a", "#88b04a"))))
+    return paint
+
+# ---------------- 第2大陸 苔の巨像レキシス（背中に滝の大ガエル） ----------------
 def toad():
-    m = Model("kr_boss_toad", "苔の巨像レキシス")
-    MOSS, MOSS2, BELLY, ROCK, WATER, WOOD = "#4e7a2c", "#3b5e22", "#a8a878", "#7a7268", "#3a6fd0", "#5a4632"
+    m = Model("kr_boss_toad", "苔の巨像レキシス", atlas=512)
+    m.glow = True
+    D = 2
+    MOSS = [("#3f6624", 5), ("#33561e", 4), ("#527f2e", 3), ("#25401a", 2), ("#6a9238", 1)]
+    MOSS_LT = [("#7c9c52", 5), ("#6c8c48", 4), ("#8eae62", 3), ("#5a7a3c", 2)]
+    BELLY = [("#b3ad7a", 5), ("#a49e6c", 4), ("#c4bd8a", 3), ("#8f8a5c", 1)]
+    STONE = [("#7a736b", 5), ("#655f58", 4), ("#8a837a", 2), ("#4f7a2a", 2), ("#3e6422", 2)]
+    WOOD = [("#4e3a28", 5), ("#3c2c1e", 4), ("#5e4834", 3), ("#4f7a2a", 1)]
+    TWIG = [("#7a6658", 5), ("#655244", 4), ("#8e7a6a", 2), ("#4a3a2e", 2)]
+    WATER = [("#3a6fd0", 5), ("#2f5cb8", 4), ("#4f86e6", 3), ("#2448a0", 1)]
+    moss, moss_lt, belly, stone, wood, twig = (P_cells(x) for x in (MOSS, MOSS_LT, BELLY, STONE, WOOD, TWIG))
+    water = P_stack(P_cells(WATER), L_streaks("#9cc4ff", 4), L_streaks("#d6e8ff", 1))
+    moss_top = P_stack(stone, L_drips("#3e6422", 0.5, 0.35), L_drips("#4f7a2a", 0.4, 0.2))  # 側面：上が苔の岩
+    grass_top = P_cells(MOSS + [("#88b04a", 2)])
+
     m.bone("root", [0, 0, 0])
-    m.bone("body", [0, 8, 6], "root")
-    m.bone("head", [0, 18, -14], "body")
-    moss = P_noise(MOSS, 14, [MOSS2, "#6f9a3a", ROCK], 0.12)
-    back = P_stack(moss, L_rect(0.45, 0, 0.58, 1, WATER))
-    m.cube("body", [-21, 8, -14], [42, 24, 42], moss, faces={"up": back, "south": back, "north": P_stack(P_noise(BELLY, 10), L_rect(0, 0, 1, 0.25, MOSS))})
-    for (x, z, s) in ((-14, 0, 14), (2, 10, 16), (-6, 18, 12)):  # 背中の岩と苔
-        m.cube("body", [x, 32, z], [s, 8, s], P_noise(ROCK, 12, [MOSS, MOSS2], 0.35), faces={"up": P_noise(MOSS2, 14, ["#7aa040"], 0.2)})
-    m.cube("body", [-2, 20, 28], [6, 20, 2], P_noise(WATER, 16, ["#8ab8ff"], 0.2))  # 背中の滝
-    head_front = P_stack(P_noise(MOSS, 12, [MOSS2], 0.1), L_rect(0, 0.55, 1, 0.66, "#6a1e1e"), L_rect(0, 0.66, 1, 1, BELLY))
-    m.cube("head", [-19, 12, -32], [38, 16, 18], P_noise(MOSS, 12, [MOSS2], 0.1), faces={"north": head_front})
-    for sx in (-1, 1):  # 目
-        x0 = -17 if sx < 0 else 9
-        m.cube("head", [x0, 26, -30], [8, 8, 8], P_noise(MOSS2, 8), faces={"north": P_stack(P_noise(MOSS2, 6), L_rect(0.15, 0.15, 0.85, 0.85, "#ffb020"), L_rect(0.4, 0.3, 0.6, 0.8, "#5a1a00"))})
-    for (x, h) in ((-8, 6), (-3, 8), (2, 5), (6, 7)):  # 頭の木の冠
-        m.cube("head", [x, 28, -24], [2, h, 2], P_noise(WOOD, 10))
-    for sx in (-1, 1):  # 前足・後ろ足
-        xf = -24 if sx < 0 else 12
-        m.cube("root", [xf, 0, -38], [12, 6, 14], P_noise(WOOD, 12, [MOSS2], 0.25))
-        xb = -30 if sx < 0 else 16
-        m.cube("root", [xb, 0, 8], [14, 18, 18], moss, faces={"north": P_stack(moss, L_rect(0.3, 0.3, 0.7, 0.6, "#2fb060"))})
-    for x in (-15, -9, 9, 15):  # 垂れる苔
-        m.cube("head", [x, 4, -33], [1, 10, 1], P_noise(MOSS2, 10))
+    m.bone("body", [0, 10, 4], "root")
+    m.bone("head", [0, 22, -16], "body")
+    m.bone("jaw", [0, 22, -16], "head")
+    m.bone("arm_r", [-18, 14, -24], "root")
+    m.bone("arm_l", [18, 14, -24], "root")
+    m.bone("leg_r", [-24, 16, 12], "root")
+    m.bone("leg_l", [24, 16, 12], "root")
+    m.bone("back", [0, 32, 8], "body")
+
+    # 胴：苔の大きな塊。側面は苔と岩、下の方にカーキの腹
+    side = P_stack(moss, L_box(0, 0.75, 1, 1, "#3e6422"), L_drips("#2e4e1c", 0.2, 0.4, top=0.0))
+    m.cube("body", [-20, 9, -17], [40, 23, 41], side, faces={"up": grass_top, "down": P_cells(BELLY)}, density=D)
+    # 背中の段々の岩（上は苔と草）
+    m.cube("back", [-17, 32, -9], [34, 7, 31], moss_top, faces={"up": grass_top}, density=D)
+    m.cube("back", [-12, 39, -3], [21, 7, 19], moss_top, faces={"up": grass_top}, density=D)
+    m.cube("back", [-18.5, 32, 4], [8, 4, 10], moss_top, faces={"up": grass_top}, density=D)
+    m.cube("back", [11, 32, -4], [7, 5, 8], moss_top, faces={"up": grass_top}, density=D)
+    # 滝：上の段の溝 → 段の背中側 → 胴の背中と左の脇へ流れ落ちる
+    m.cube("back", [3, 45.8, -3.2], [6, 0.4, 19.4], water, density=D)
+    m.cube("back", [3, 38.6, 15.8], [6, 7.6, 0.6], water, density=D)
+    m.cube("back", [3, 38.8, 16], [6, 0.4, 6.2], water, density=D)
+    m.cube("back", [3, 9, 22.1], [6, 30, 2.2], water, faces={"north": water}, density=D)
+    m.cube("back", [9, 38.8, -3], [9.4, 0.4, 6], water, density=D)
+    m.cube("back", [18.2, 31.8, -3], [2.2, 7.2, 6], water, density=D)
+    m.cube("back", [20.1, 6, -3], [1.2, 26, 6], water, density=D)
+    m.cube("back", [17, 0, -6], [9, 0.6, 12], water, density=D)  # 足元の水たまり
+    # 草の房（交差した板）
+    rnd = random.Random(11)
+    for (x, y, z) in ((-14, 39, -6), (-8, 46, 2), (6, 46, 10), (-15, 39, 18), (14, 39, 14), (-3, 46, 13), (12, 32, 20), (-19, 32, -14), (15, 37, -2)):
+        hgt = rnd.uniform(3, 5)
+        for rot in (45, -45):
+            m.cube("back", [x - 2, y, z], [4, hgt, 0], P_stack(L_grass()), rotation=[0, rot, 0], pivot=[x, y, z], density=D)
+
+    # 頭：明るい緑の平たい上あご、カーキの下あご、赤黒い口の線
+    head_front = P_stack(moss_lt, L_box(0, 0, 1, 0.12, "#86b054"), L_box(0, 0.88, 1, 1, "#4e7a2e"))
+    m.cube("head", [-17.5, 22, -35], [35, 9, 21], moss_lt, faces={"north": head_front, "up": P_stack(moss_lt, L_box(0.1, 0.1, 0.9, 0.5, "#7aa64a"))}, density=D)
+    jawtex = P_stack(belly, L_drips("#4f7a2a", 0.35, 0.6), L_drips("#3e6422", 0.2, 0.85))
+    m.cube("jaw", [-16.5, 11, -33], [33, 11, 18], jawtex, faces={"down": belly}, density=D)
+    m.cube("jaw", [-16.8, 21, -33.3], [33.6, 1.2, 18.3], P_cells([("#5a1e1e", 4), ("#3e1212", 3), ("#7a2a26", 1)]), density=D)
+    # 目：頭の角から飛び出す箱。オレンジに光る、縦長の瞳
+    eye_shell = P_stack(moss, L_box(0, 0, 1, 0.15, "#6f9a44"))
+    iris = P_stack(L_glow("#ffe060", "#ffb020", "#ff7010", alpha=40), L_box(0.42, 0.12, 0.58, 0.88, "#3a1000", alpha=60), L_box(0.12, 0.62, 0.3, 0.8, "#ff6010", alpha=40))
+    for sx in (-1, 1):
+        x0 = -18 if sx < 0 else 10
+        m.cube("head", [x0, 27, -34], [8, 8, 8], eye_shell, density=D)
+        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4, 31, -34], "head")
+        m.cube(g, [x0 + 1, 28, -34.3], [6, 6, 0.4], iris, density=D)
+        ox = x0 - 0.3 if sx < 0 else x0 + 7.9
+        m.cube(g, [ox, 28, -33], [0.4, 6, 6], iris, density=D)
+    # 枯れ枝の冠
+    for (x, z, h, br) in ((-7, -30, 7, 1), (-3.5, -27, 9, -1), (0, -31, 5, 0), (3, -26, 8, 1), (6.5, -30, 6, -1), (-1, -23, 6, 1), (-6, -24, 4, 0), (5, -22, 5, 0)):
+        m.cube("head", [x - 1, 31, z - 1], [2, h, 2], twig, density=D)
+        if br:
+            m.cube("head", [x - 1 + br * 1.5, 31 + h * 0.55, z - 0.75], [1.5, 3, 1.5], twig, rotation=[0, 0, -br * 30], pivot=[x, 31 + h * 0.55, z], density=D)
+    m.cube("head", [-8, 31, -31], [16, 1.2, 10], P_cells(MOSS + TWIG), density=D)  # 冠の根元の苔
+    # あごと胴から垂れるつる
+    for (x, z, ln) in ((-14, -33.6, 9), (-9, -33.6, 6), (-3, -33.6, 11), (4, -33.6, 7), (10, -33.6, 10), (15, -33.6, 5)):
+        m.cube("jaw", [x - 1, 22 - ln, z], [2, ln, 0], P_stack(L_vine()), density=3)
+    for (x, z, ln) in ((-20.1, -10, 14), (-20.1, 0, 10), (-20.1, 12, 16), (20.1, -12, 12), (20.1, 10, 15)):
+        m.cube("body", [x, 30 - ln, z - 1], [0, ln, 2], P_stack(L_vine()), density=3)
+
+    # 前足：木の根のような3本指
+    for bn, sx in (("arm_r", -1), ("arm_l", 1)):
+        ax = -26 if sx < 0 else 18
+        m.cube(bn, [ax, 3, -33], [8, 13, 8], P_stack(moss, L_drips("#2e4e1c", 0.3, 0.5)), density=D)
+        m.cube(bn, [ax - 3, 0, -38], [14, 3.5, 10], wood, density=D)
+        for k in range(3):
+            m.cube(bn, [ax - 2.5 + k * 4.6, 0, -46], [3.8, 3, 9], P_stack(wood, L_box(0, 0, 1, 0.3, "#5a7a30")), density=D)
+
+    # 後ろ足：大きなもも（宝石入り）と3本指の足
+    for bn, sx in (("leg_r", -1), ("leg_l", 1)):
+        lx = -33 if sx < 0 else 21
+        thigh_side = P_stack(P_cells(MOSS_LT), L_box(0, 0.78, 1, 0.92, "#3c2c1e"),
+                             L_gem(0.45, 0.35, 0.22, "#1aa050", "#2fd070", "#a0ffc8"), L_gem(0.78, 0.62, 0.12, "#2a70c8", "#5ad8ff", "#e0ffff"))
+        thigh_front = P_stack(P_cells(MOSS_LT), L_box(0, 0.78, 1, 0.92, "#3c2c1e"), L_gem(0.5, 0.4, 0.2, "#2a70c8", "#5ad8ff", "#e0ffff"))
+        outer = "west" if sx < 0 else "east"
+        m.cube(bn, [lx, 7, 2], [12, 20, 19], P_cells(MOSS_LT), faces={outer: thigh_side, "north": thigh_front, "up": P_cells(MOSS_LT)}, density=D)
+        m.cube(bn, [lx, 0, -6], [12, 8, 14], P_stack(P_cells(MOSS_LT), L_drips("#3e6422", 0.3, 0.4)), density=D)
+        for k in range(3):
+            m.cube(bn, [lx + 0.3 + k * 4, 0, -12], [3.4, 3, 7], P_cells(MOSS_LT), density=D)
     return m
 
 def chef():
@@ -471,8 +602,9 @@ def animations():
                          "arm_l": {"rotation": ["math.sin(query.anim_time*90+60)*4", 0, 0]},
                          "lantern": {"rotation": ["math.sin(query.anim_time*140)*8", 0, "math.sin(query.anim_time*110)*6"]},
                          "head": {"rotation": ["math.sin(query.anim_time*55)*3", "math.sin(query.anim_time*40)*12", 0]}})
-    a("kr_boss_toad", {"body": {"scale": [1, "1+math.sin(query.anim_time*150)*0.03", 1]},
-                       "head": {"rotation": ["math.sin(query.anim_time*60)*3", 0, 0]}})
+    a("kr_boss_toad", {"body": {"scale": [1, "1+math.sin(query.anim_time*150)*0.02", 1]},
+                       "jaw": {"scale": ["1+math.max(0,math.sin(query.anim_time*200))*0.05", 1, "1+math.max(0,math.sin(query.anim_time*200))*0.05"]},
+                       "head": {"rotation": ["math.sin(query.anim_time*60)*2", "math.sin(query.anim_time*35)*6", 0]}})
     a("kr_boss_chef", {"root": {"position": [0, "math.sin(query.anim_time*110)*0.6", 0]},
                        "arm_r": {"rotation": ["-20+math.sin(query.anim_time*100)*25", 0, 0]}})
     a("kr_boss_kraken", dict({"head": {"position": [0, "math.sin(query.anim_time*80)*1.2", 0]}},
