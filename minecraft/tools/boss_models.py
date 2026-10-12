@@ -318,7 +318,7 @@ def jailer():
         m.cube(bn, [xa - 0.2, 13.5, -4.7], [9.4, 8.5, 9.4], gaunt, density=D)
 
     # 右手：トゲ付きこん棒（前下に向ける）
-    m.bone("club", [-16.5, 16, -3], "arm_r", rotation=[-30, 18, 0])
+    m.bone("club", [-16.5, 16, -3], "arm_r", rotation=[30, -18, 0])
     wood = S_surface("#5a3a22", "#7a5232", "#3a2414", blots=["#4a2e1a", "#6a4428"], blot_rate=0.3)
     m.cube("club", [-18, 14.5, -14], [3, 3, 12], P_stack(wood, L_box(0, 0, 1, 1, "#3a2414")), faces={"north": wood}, density=D)
     m.cube("club", [-19.5, 13, -33], [6, 6, 19.5], wood, density=D)
@@ -331,7 +331,7 @@ def jailer():
     m.cube("club", [-19.8, 12.7, -33.6], [6.6, 6.6, 1.2], S_surface("#4a2e1a", "#6a4428", "#2e1c10"), density=D)  # 先の木口
 
     # 左手：鉄格子の盾＋ランタン
-    m.bone("shield", [19, 24, -12], "arm_l", rotation=[0, -22, 0])
+    m.bone("shield", [19, 24, -12], "arm_l", rotation=[0, 22, 0])
     rivets = [(x, y) for x in (0.05, 0.95) for y in (0.03, 0.27, 0.5, 0.73, 0.97)] + [(0.5, 0.03), (0.5, 0.97)]
     sh = P_stack(S_surface("#6e757d", MET_HI, MET_DK, noise=3), L_holes(0.13, 0.07, 0.87, 0.93, 3, 4, 3, rim=MET_DK, shade=MET_HI),
                  L_pixels(rivets, "#d8dce0"), L_frame(0, 0, 1, 1, OL))
@@ -519,7 +519,7 @@ def toad():
     m.bone("body", [0, 6, 2], "root")
     m.bone("back", [0, 28, 4], "body")
     m.bone("head", [0, 19, -18], "body")
-    m.bone("jaw", [0, 19, -18], "head")
+    m.bone("jaw", [0, 17, -18], "body")
     m.bone("arm_r", [-23, 16, -24], "root")
     m.bone("arm_l", [23, 16, -24], "root")
     m.bone("leg_r", [-26, 16, 12], "root")
@@ -555,7 +555,15 @@ def toad():
     m.cube("head", [-18, 19, -38], [36, 9, 22], sage, faces={"north": head_front, "up": P_stack(sage_top, L_box(0.1, 0.55, 0.45, 0.75, "#8eae62"), L_box(0.55, 0.6, 0.9, 0.8, "#8eae62"))}, density=D)
     # 下あご：大きなカーキの箱。苔の筋が垂れる
     jaw_tex = P_stack(khaki, L_mosscap(MOSS, 0.15, 0.4))
-    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"down": khaki, "up": khaki}, density=D)
+    MOUTH = P_patch(["#3a0e0c", "#521614", "#6a201c"], grad=0, edge=False)
+    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"down": khaki, "up": MOUTH}, density=D)
+    m.cube("head", [-16, 19.2, -36], [32, 0.6, 18], MOUTH, density=D)  # 口の中（上）
+    m.cube("head", [-15, 19.5, -20], [30, 7, 2], MOUTH, density=D)  # のどの奥
+    m.bone("tongue", [0, 19.3, -22], "jaw")
+    PINK = P_patch(["#a8404c", "#c2566a", "#d86e80", "#ea8c9a"], scale=2, grad=0.2)
+    m.cube("tongue", [-3, 19.2, -30], [6, 1.6, 8], PINK, density=D)
+    m.bone("tongue_tip", [0, 19.3, -31], "jaw")
+    m.cube("tongue_tip", [-4, 18.9, -33.5], [8, 2.6, 4.5], PINK, density=D)
     m.cube("jaw", [-17.4, 17.2, -36.6], [34.8, 1.9, 20.1], P_patch(["#2e0c0a", "#4a1412", "#621c18"], grad=0, edge=False), density=D)
     # あごの下に垂れるつる
     m.cube("jaw", [-16, -1, -36.4], [32, 8, 0], P_stack(L_vines(VINE, 0.35)), density=D)
@@ -568,8 +576,6 @@ def toad():
         m.cube("head", [x0, 24, -28], [9, 9, 9], eye_shell, density=D)
         g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4.5, 28.5, -28], "head")
         m.cube(g, [x0 + 1, 25, -28.3], [7, 7, 0.4], L_eye(), density=D)
-        ox = x0 - 0.3 if sx < 0 else x0 + 8.9
-        m.cube(g, [ox, 25, -27], [0.4, 7, 7], L_eye(), density=D)
     # 枯れ枝の冠（頭の後ろ寄り）
     for (x, z, h, br) in ((-8, -27, 6, 1), (-5, -22, 10, -1), (-1.5, -26, 7, 1), (2, -21, 9, 0), (5.5, -26, 6, -1), (8, -21, 5, 1), (-2, -18.5, 5, 0), (4, -30, 4, 0), (-6, -31, 3, 0)):
         m.cube("head", [x - 1, 28, z - 1], [2, h, 2], twig, density=D)
@@ -581,10 +587,9 @@ def toad():
     for bn, sx in (("arm_r", -1), ("arm_l", 1)):
         ax = -27 if sx < 0 else 19
         outer = "west" if sx < 0 else "east"
-        up_out = P_stack(sage, L_mosscap(MOSS, 0.3, 0.4), L_gem_px(0.45, 0.55, EMER, 2))
+        up_out = P_stack(sage, L_mosscap(MOSS, 0.3, 0.4))
         m.cube(bn, [ax + sx * 1, 9, -27], [8, 13, 9], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), faces={outer: up_out}, density=D)
-        fore_out = P_stack(sage, L_gem_px(0.5, 0.35, AQUA, 2), L_gem_px(0.35, 0.75, EMER, 1))
-        m.cube(bn, [ax, 2, -35], [8, 11, 9], P_stack(sage, L_mosscap(MOSS, 0.2, 0.3)), faces={outer: fore_out, "north": P_stack(sage, L_gem_px(0.5, 0.4, AQUA, 1))}, density=D)
+        m.cube(bn, [ax, 2, -35], [8, 11, 9], P_stack(sage, L_mosscap(MOSS, 0.2, 0.3)), density=D)
         hx = ax - 3
         m.cube(bn, [hx, 0, -40], [14, 3.5, 10], P_stack(wood, L_mosscap(MOSS, 0.25, 0.4)), faces={"up": P_stack(wood, L_box(0.2, 0.3, 0.6, 0.7, "#4a6a2c"))}, density=D)
         for k in range(3):
@@ -596,8 +601,8 @@ def toad():
     for bn, sx in (("leg_r", -1), ("leg_l", 1)):
         lx = -33 if sx < 0 else 20
         outer = "west" if sx < 0 else "east"
-        thigh_out = P_stack(sage, L_box(0, 0.8, 1, 0.92, "#2e2218"), L_gem_px(0.4, 0.38, EMER, 4), L_gem_px(0.8, 0.62, AQUA, 2))
-        thigh_front = P_stack(sage, L_box(0, 0.8, 1, 0.92, "#2e2218"), L_gem_px(0.5, 0.4, EMER, 3))
+        thigh_out = P_stack(sage, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
+        thigh_front = P_stack(sage, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
         m.cube(bn, [lx, 4, 3], [13, 21, 18], sage, faces={outer: thigh_out, "north": thigh_front, "up": P_stack(sage_top, L_mosscap(MOSS, 0.5, 0.5))}, density=D)
         m.cube(bn, [lx - 0.5, 0, -5], [14, 4.5, 13], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), density=D)
         for k in range(3):
@@ -703,7 +708,20 @@ def animations():
                          "head": {"rotation": ["math.sin(query.anim_time*55)*3", "math.sin(query.anim_time*40)*12", 0]}})
     a("kr_boss_toad", {"body": {"scale": [1, "1+math.sin(query.anim_time*150)*0.02", 1]},
                        "jaw": {"scale": ["1+math.max(0,math.sin(query.anim_time*200))*0.05", 1, "1+math.max(0,math.sin(query.anim_time*200))*0.05"]},
-                       "head": {"rotation": ["math.sin(query.anim_time*60)*2", "math.sin(query.anim_time*35)*6", 0]}})
+                       "head": {"rotation": ["math.sin(query.anim_time*60)*1.5", 0, 0]}})
+    # 跳ねる：かがむ→体が伸びて後ろ足で蹴る→着地でつぶれる（移動はスクリプトが受け持つ）
+    anims["animation.kr_boss_toad.jump"] = {"animation_length": 1.0, "bones": {
+        "body": {"scale": {"0.0": [1, 1, 1], "0.2": [1.08, 0.84, 1.08], "0.35": [0.94, 1.12, 0.94], "0.8": [1, 1, 1], "0.88": [1.1, 0.86, 1.1], "1.0": [1, 1, 1]}},
+        "leg_r": {"rotation": {"0.0": [0, 0, 0], "0.2": [-10, 0, 0], "0.35": [55, 0, 0], "0.75": [40, 0, 0], "0.9": [0, 0, 0]}},
+        "leg_l": {"rotation": {"0.0": [0, 0, 0], "0.2": [-10, 0, 0], "0.35": [55, 0, 0], "0.75": [40, 0, 0], "0.9": [0, 0, 0]}},
+        "arm_r": {"rotation": {"0.0": [0, 0, 0], "0.35": [-35, 0, 0], "0.75": [-20, 0, 0], "0.9": [0, 0, 0]}},
+        "arm_l": {"rotation": {"0.0": [0, 0, 0], "0.35": [-35, 0, 0], "0.75": [-20, 0, 0], "0.9": [0, 0, 0]}}}}
+    # ベロ攻撃：上あごを持ち上げて口を開け、ベロを前へ伸ばして戻す
+    anims["animation.kr_boss_toad.tongue"] = {"animation_length": 1.2, "bones": {
+        "head": {"rotation": {"0.0": [0, 0, 0], "0.15": [-28, 0, 0], "0.85": [-28, 0, 0], "1.1": [0, 0, 0]}},
+        "jaw": {"rotation": {"0.0": [0, 0, 0], "0.15": [6, 0, 0], "0.85": [6, 0, 0], "1.1": [0, 0, 0]}},
+        "tongue": {"scale": {"0.0": [1, 1, 1], "0.2": [1, 1, 1], "0.38": [1, 1, 8], "0.58": [1, 1, 8], "0.78": [1, 1, 1]}},
+        "tongue_tip": {"position": {"0.0": [0, 0, 0], "0.2": [0, 0, 0], "0.38": [0, 0, -56], "0.58": [0, 0, -56], "0.78": [0, 0, 0]}}}}
     a("kr_boss_chef", {"root": {"position": [0, "math.sin(query.anim_time*110)*0.6", 0]},
                        "arm_r": {"rotation": ["-20+math.sin(query.anim_time*100)*25", 0, 0]}})
     a("kr_boss_kraken", dict({"head": {"position": [0, "math.sin(query.anim_time*80)*1.2", 0]}},
@@ -728,7 +746,8 @@ def write():
         (RP / f"entity/{m.ident}.entity.json").write_text(json.dumps({"format_version": "1.10.0", "minecraft:client_entity": {"description": {
             "identifier": ident, "materials": dict({"default": "entity_alphatest"}, **({"glow": "entity_emissive_alpha"} if m.glow else {})),
             "textures": {"default": f"textures/entity/kr_bosses/{m.ident}"}, "geometry": {"default": f"geometry.{m.ident}"},
-            "animations": {"idle": f"animation.{m.ident}.idle"}, "scripts": {"animate": ["idle"]},
+            "animations": dict({"idle": f"animation.{m.ident}.idle"}, **({"jump": "animation.kr_boss_toad.jump", "tongue": "animation.kr_boss_toad.tongue"} if m.ident == "kr_boss_toad" else {})),
+            "scripts": {"animate": ["idle"]},
             "render_controllers": ["controller.render.kr_boss_glow" if m.glow else "controller.render.kr_pet"]}}}, ensure_ascii=False, indent=2))
         (BP / f"entities/{m.ident}.json").write_text(json.dumps({"format_version": "1.16.0", "minecraft:entity": {
             "description": {"identifier": ident, "is_spawnable": False, "is_summonable": True, "is_experimental": False},
@@ -751,21 +770,32 @@ def write():
 # ---------------- 確認用のプレビュー（テクスチャ付き。正面と斜めから。回転も反映） ----------------
 def _rot(p, r, piv):
     x, y, z = (p[k] - piv[k] for k in range(3))
-    ax, ay, az = (math.radians(v) for v in r)
+    ax, ay, az = math.radians(-r[0]), math.radians(-r[1]), math.radians(r[2])  # マイクラ統合版はXとYが逆回り
     x, y = x * math.cos(az) - y * math.sin(az), x * math.sin(az) + y * math.cos(az)
     x, z = x * math.cos(ay) + z * math.sin(ay), -x * math.sin(ay) + z * math.cos(ay)
     y, z = y * math.cos(ax) - z * math.sin(ax), y * math.sin(ax) + z * math.cos(ax)
     return (x + piv[0], y + piv[1], z + piv[2])
 
-def _faces(geo, img):
-    """面ごとに (テクスチャ, 左上, 右上, 左下 の3D座標) を返す。外から見てテクスチャが正しい向きになる並び"""
+def _faces(geo, img, pose=None):
+    """面ごとに (テクスチャ, 左上, 右上, 左下 の3D座標) を返す。外から見てテクスチャが正しい向きになる並び。
+    pose: {ボーン名: {"rotation": [...], "position": [...], "scale": [...]}} でアニメの1コマを再現"""
     bones = {b["name"]: b for b in geo["minecraft:geometry"][0]["bones"]}
+    pose = pose or {}
     def chain(b):
         out = []
         while b:
-            if b.get("rotation"): out.append((b["rotation"], b["pivot"]))
+            pv, ps = b["pivot"], pose.get(b["name"], {})
+            if ps.get("scale"): out.append(("s", ps["scale"], pv))
+            r = [a + c for a, c in zip(b.get("rotation", [0, 0, 0]), ps.get("rotation", [0, 0, 0]))]
+            if any(r): out.append(("r", r, pv))
+            if ps.get("position"): out.append(("t", [-ps["position"][0], ps["position"][1], ps["position"][2]], pv))
             b = bones.get(b.get("parent"))
         return out
+    def apply(q, op):
+        k, v, pv = op
+        if k == "r": return _rot(q, v, pv)
+        if k == "s": return tuple(pv[i] + (q[i] - pv[i]) * v[i] for i in range(3))
+        return tuple(q[i] + v[i] for i in range(3))
     out = []
     for b in bones.values():
         for c in b["cubes"]:
@@ -773,9 +803,9 @@ def _faces(geo, img):
             F = {"north": ((x0, y1, z0), (x1, y1, z0), (x0, y0, z0)), "south": ((x1, y1, z1), (x0, y1, z1), (x1, y0, z1)),
                  "east": ((x1, y1, z0), (x1, y1, z1), (x1, y0, z0)), "west": ((x0, y1, z1), (x0, y1, z0), (x0, y0, z1)),
                  "up": ((x0, y1, z1), (x1, y1, z1), (x0, y1, z0)), "down": ((x0, y0, z0), (x1, y0, z0), (x0, y0, z1))}
-            tr = ([(c["rotation"], c["pivot"])] if c.get("rotation") else []) + chain(b)
+            tr = ([("r", c["rotation"], c["pivot"])] if c.get("rotation") else []) + chain(b)
             for f, pts in F.items():
-                for (r, pv) in tr: pts = tuple(_rot(q, r, pv) for q in pts)
+                for op in tr: pts = tuple(apply(q, op) for q in pts)
                 u, v = c["uv"][f]["uv"]; w, h = c["uv"][f]["uv_size"]
                 out.append((img.crop((u, v, u + w, v + h)), pts, b["name"].startswith("glow")))
     return out

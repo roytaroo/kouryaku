@@ -1578,8 +1578,97 @@ async function startRaid(p, c, replay = false) {
   sound(p, "mob.enderdragon.growl");
   p.sendMessage("§4[レイド] §f" + c.boss + "：" + (c.final ? "" : "大陸の") + "全" + total + "語を即答するまで倒れない。" + RAID_BATCH + "問ごとに、ミスの数だけ眷属が現れる。途中でやめても、即答した単語は残る。");
   await wait(120);
+  if (c.mob === "kr:boss_toad") toadLoop(p, c);
   raidLoop(p, c);
 }
+/* =========================================================
+   苔の巨像レキシス（カエル）：アリーナを跳ね回り、口を開けてベロで攻撃する
+   ・問題の間はときどき跳ねる。ミスするとこっちへ跳んできてベロで引き寄せる（ダメージはミスの分だけ）
+   ・眷属と戦っている間は、近づいてベロで攻撃してくる（死なない程度のダメージ）
+   ========================================================= */
+let toadBusy = false;
+function bossAnim(boss, name) { try { boss.runCommand("playanimation @s " + name); } catch (e) {} }
+const flatDist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+/** 跳ねる。toward=true ならプレイヤーの4〜5マス手前に着地する @param {Player} p */
+async function toadJump(p, boss, toward) {
+  const d = st().dun, r = d?.rooms?.[0];
+  if (!r || !boss?.isValid) return;
+  const from = boss.location, pl = p.location, cx = r.cx + 0.5, cz = r.cz + 0.5, y0 = d.Y + 1;
+  let to;
+  if (toward) {
+    const dd = Math.max(0.01, flatDist(from, pl)), keep = Math.min(4.5, dd);
+    to = { x: pl.x + (from.x - pl.x) / dd * keep, z: pl.z + (from.z - pl.z) / dd * keep };
+  } else {
+    for (let k = 0; k < 12; k++) {
+      const a = Math.random() * Math.PI * 2, rr = 3 + Math.random() * 6;
+      to = { x: cx + Math.cos(a) * rr, z: cz + Math.sin(a) * rr };
+      if (flatDist(to, pl) > 5) break;
+    }
+  }
+  const off = Math.hypot(to.x - cx, to.z - cz);
+  if (off > 10) { to.x = cx + (to.x - cx) / off * 10; to.z = cz + (to.z - cz) / off * 10; }
+  bossAnim(boss, "animation.kr_boss_toad.jump");
+  await wait(5);
+  const steps = 14, h = 3.2;
+  for (let k = 1; k <= steps; k++) {
+    if (!boss.isValid) return;
+    const t = k / steps;
+    try { boss.teleport({ x: from.x + (to.x - from.x) * t, y: y0 + h * 4 * t * (1 - t), z: from.z + (to.z - from.z) * t }, { facingLocation: { x: p.location.x, y: y0 + 1, z: p.location.z } }); } catch (e) {}
+    await wait(1);
+  }
+  try {
+    boss.dimension.spawnParticle("minecraft:large_explosion", boss.location);
+    boss.dimension.playSound("mob.slime.big", boss.location);
+    if (flatDist(boss.location, p.location) < 7) p.runCommand("camerashake add @s 0.35 0.4 positional");
+  } catch (e) {}
+}
+/** 口を開けてベロを伸ばす。届いたら引き寄せる。dmg>0 ならダメージも @param {Player} p */
+async function toadTongue(p, boss, dmg) {
+  if (!boss?.isValid) return;
+  try { boss.teleport(boss.location, { facingLocation: { x: p.location.x, y: boss.location.y + 1, z: p.location.z } }); } catch (e) {}
+  bossAnim(boss, "animation.kr_boss_toad.tongue");
+  try { boss.dimension.playSound("mob.frog.tongue", boss.location); } catch (e) {}
+  await wait(8);
+  if (!boss.isValid || !p.isValid) return;
+  const b = boss.location, pl = p.location, dist = flatDist(b, pl);
+  if (dist > 6.5) return;
+  if (dmg > 0) hurtSafely(p, dmg);
+  try {
+    const dx = (b.x - pl.x) / Math.max(0.01, dist), dz = (b.z - pl.z) / Math.max(0.01, dist);
+    p.applyKnockback({ x: dx * 1.1, z: dz * 1.1 }, 0.35);
+  } catch (e) {}
+  sound(p, "random.pop");
+}
+/** ミスしたとき：こっちへ跳んでベロ（ダメージはミスの分で受けているので0） @param {Player} p */
+async function toadPunish(p) {
+  const boss = raidActive?.boss;
+  if (toadBusy || !boss?.isValid) return;
+  toadBusy = true;
+  try {
+    if (flatDist(boss.location, p.location) > 6) await toadJump(p, boss, true);
+    await toadTongue(p, boss, 0);
+  } finally { toadBusy = false; }
+}
+/** レイドの間ずっと動かす @param {Player} p */
+async function toadLoop(p, c) {
+  const me = raidActive;
+  while (raidActive === me && me?.boss?.isValid && p.isValid && isInDungeon(p) && st().dun?.raid === c.id) {
+    const fighting = ow().getEntities({ tags: ["kr_minion"] }).length > 0;
+    await wait(fighting ? 50 + Math.floor(Math.random() * 40) : 120 + Math.floor(Math.random() * 100));
+    if (raidActive !== me || !me.boss.isValid || toadBusy) continue;
+    toadBusy = true;
+    try {
+      if (fighting) {
+        if (flatDist(me.boss.location, p.location) > 6) await toadJump(p, me.boss, true);
+        await wait(6);
+        await toadTongue(p, me.boss, 3);
+      } else {
+        await toadJump(p, me.boss, false);
+      }
+    } finally { toadBusy = false; }
+  }
+}
+
 /** @param {Player} p */
 async function raidLoop(p, c) {
   raiding.add(p.id);
@@ -1604,6 +1693,7 @@ async function raidLoop(p, c) {
         } else {
           miss++;
           sound(p, "mob.ravager.roar");
+          if (c.mob === "kr:boss_toad") toadPunish(p);
         }
         updateRaidName(c);
       }

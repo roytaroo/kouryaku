@@ -14,7 +14,9 @@
         "default": "geometry.kr_boss_toad"
       },
       "animations": {
-        "idle": "animation.kr_boss_toad.idle"
+        "idle": "animation.kr_boss_toad.idle",
+        "jump": "animation.kr_boss_toad.jump",
+        "tongue": "animation.kr_boss_toad.tongue"
       },
       "scripts": {
         "animate": [
