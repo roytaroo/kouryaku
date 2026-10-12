@@ -208,116 +208,102 @@ def L_glow(core, mid, edge, alpha=40):
     return paint
 
 # ---------------- 5体 ----------------
-# ---------------- 第1大陸 獄王ヴォカブ（絵の右の看守） ----------------
+# ---------------- 絵から切り出した面を貼る ----------------
+ART = Path(__file__).resolve().parent / "art_faces"
+def P_img(name, flip=False, mirror_half=False, crop=None, alpha=None, white_to=None):
+    """tools/art_faces/<name>.png を面に貼る。flip: 左右反転。mirror_half: 左半分を右へ写す（邪魔な物を消す）。
+    crop: (x0,y0,x1,y1) 割合で一部だけ使う。alpha: 全体のアルファ（光る素材用）"""
+    def paint(img, w, h, rnd):
+        src = Image.open(ART / f"{name}.png").convert("RGBA")
+        if crop: src = src.crop((int(crop[0] * src.width), int(crop[1] * src.height), int(crop[2] * src.width), int(crop[3] * src.height)))
+        if mirror_half:
+            half = src.crop((0, 0, src.width // 2, src.height))
+            src.paste(half.transpose(Image.FLIP_LEFT_RIGHT), (src.width - half.width, 0))
+        if flip: src = src.transpose(Image.FLIP_LEFT_RIGHT)
+        t = src.resize((w, h), Image.LANCZOS)
+        if alpha is not None or white_to:
+            px = t.load()
+            for y in range(h):
+                for x in range(w):
+                    r, g, b, a = px[x, y]
+                    if white_to and a < 128: r, g, b, a = hexc(white_to)
+                    if alpha is not None: a = alpha
+                    px[x, y] = (r, g, b, a)
+        else:
+            px = t.load()  # アルファは0か255に（ふちのにじみを消す）
+            for y in range(h):
+                for x in range(w):
+                    r, g, b, a = px[x, y]; px[x, y] = (r, g, b, 255 if a >= 128 else 0)
+        img.paste(t, (0, 0))
+    return paint
+
+# ---------------- 第1大陸 獄王ヴォカブ（1枚目の右の看守。正面の面は絵から切り出して貼る） ----------------
 def jailer():
-    m = Model("kr_boss_jailer", "獄王ヴォカブ", atlas=512)
+    m = Model("kr_boss_jailer", "獄王ヴォカブ", atlas=1024)
     m.glow = True
-    D = 2  # テクスチャの細かさ
-    NAVY, NAVY_HI, NAVY_LO, NAVY_DK = "#26344c", "#3a4f70", "#18212f", "#121925"
-    LEA, LEA_HI, LEA_LO, LEA_DK = "#5f3c24", "#7d5434", "#43291a", "#2e1c12"
-    MET, MET_HI, MET_LO, MET_DK = "#8f979f", "#c4cad0", "#5e656d", "#2b3036"
-    ROPE, ROPE_LO = "#c9a466", "#8c6a3c"
-    RUST = ["#6a3f22", "#7a4a28", "#4a2c18"]
-    navy = S_surface(NAVY, NAVY_HI, NAVY_LO, blots=RUST + [NAVY_LO, NAVY_HI], blot_rate=0.05)
-    navy_plain = S_surface(NAVY, NAVY_HI, NAVY_LO, blots=[NAVY_LO, NAVY_HI], blot_rate=0.06)
-    leather = S_surface(LEA, LEA_HI, LEA_LO, blots=[LEA_DK, LEA_HI, "#6e4a2c"], blot_rate=0.25)
-    metal = S_surface(MET, MET_HI, MET_LO, noise=3, blots=[MET_LO, "#a7aeb5"], blot_rate=0.04)
-    dark = S_surface("#14161b", None, None, ol=None, noise=2)
+    D, A = 2, 3  # 手描きの面の細かさ、絵を貼る面の細かさ
+    NAVY, NAVY_HI, NAVY_LO = "#2a3a52", "#3c5272", "#1a2434"
+    LEA, LEA_HI, LEA_LO, LEA_DK = "#6a4428", "#865a36", "#4a2e1a", "#2e1c12"
+    MET, MET_HI, MET_LO, MET_DK = "#9aa2aa", "#c8ced4", "#646c74", "#2b3036"
+    RUST = ["#6a3f22", "#7a4a28"]
+    navy = S_surface(NAVY, NAVY_HI, NAVY_LO, blots=RUST + [NAVY_LO, NAVY_HI], blot_rate=0.04)
+    navy_plain = S_surface(NAVY, NAVY_HI, NAVY_LO, blots=[NAVY_LO, NAVY_HI], blot_rate=0.05)
+    leather = S_surface(LEA, LEA_HI, LEA_LO, blots=[LEA_DK, LEA_HI], blot_rate=0.2)
+    metal = S_surface(MET, MET_HI, MET_LO, noise=3)
+    dark = S_surface("#121418", None, None, ol=None, noise=2)
 
     m.bone("root", [0, 0, 0])
     m.bone("body", [0, 20, 0], "root")
     m.bone("head", [0, 45, 0], "body")
-    m.bone("arm_r", [-17, 41, 0], "body")
-    m.bone("arm_l", [17, 41, 0], "body")
-    m.bone("leg_r", [-5.5, 19, 0], "root")
-    m.bone("leg_l", [5.5, 19, 0], "root")
+    m.bone("arm_r", [-16, 41, 0], "body")
+    m.bone("arm_l", [16, 41, 0], "body")
+    m.bone("leg_r", [-5, 14, 0], "root")
+    m.bone("leg_l", [5, 14, 0], "root")
 
-    # 脚：紺のズボン＋茶色のブーツ（折り返し付き）
-    boot = S_surface("#5a3520", "#76482c", "#3a2214", blots=["#4a2a18", "#6a4026"], blot_rate=0.15)
-    sole = P_stack(boot, L_box(0, 0.8, 1, 1, "#24150d"))
-    for bn, x0 in (("leg_r", -10), ("leg_l", 1)):
-        m.cube(bn, [x0, 8, -4.5], [9, 12, 9], P_stack(navy_plain, L_box(0, 0, 1, 0.12, NAVY_LO)), density=D)
-        m.cube(bn, [x0 - 0.5, 0, -6], [10, 7, 11], sole, faces={"up": boot}, density=D)
-        m.cube(bn, [x0 - 1, 7, -5.5], [11, 3.5, 10.5], S_surface("#6a4028", "#8a5636", "#3e2516", blots=["#5a3420"], blot_rate=0.2), density=D)
+    # 脚：短い紺のズボン＋大きな茶色のブーツ
+    boot = S_surface("#5e3822", "#7a4a2c", "#3a2214", blots=["#4a2a18", "#6a4026"], blot_rate=0.12)
+    for bn, x0 in (("leg_r", -9.5), ("leg_l", 0.5)):
+        m.cube(bn, [x0, 8, -4], [9, 6.5, 8], navy_plain, density=D)
+        m.cube(bn, [x0 - 0.5, 0, -6.5], [10, 7.5, 11.5], P_stack(boot, L_box(0, 0.82, 1, 1, "#24150d")), faces={"up": boot}, density=D)
+        m.cube(bn, [x0 - 1, 7, -5.2], [11, 3, 10], S_surface("#6e432a", "#8c5838", "#3e2516"), density=D)
 
-    # 胴：紺のコート、すそはぼろぼろ
-    m.cube("body", [-13, 20, -7], [26, 25, 14], navy, density=D)
-    skirt = P_stack(navy, L_box(0.1, 0.2, 0.3, 0.6, "#4a2c18"), L_box(0.72, 0.3, 0.86, 0.7, "#5a3620"), L_ragged(seed=3))
-    m.cube("body", [-13.5, 11, -7.5], [27, 10, 15], skirt, faces={"up": navy_plain, "down": dark}, density=D)
-    # 革の胸当て（下がぎざぎざ）＋縄の結び目
-    plate = P_stack(leather, L_line([(0.12, 0.05), (0.5, 0.92)], ROPE_LO, 3), L_line([(0.88, 0.05), (0.5, 0.92)], ROPE_LO, 3),
-                    L_line([(0.12, 0.04), (0.5, 0.9)], ROPE, 2), L_line([(0.88, 0.04), (0.5, 0.9)], ROPE, 2),
-                    L_pixels([(0.06, 0.15), (0.94, 0.15), (0.06, 0.55), (0.94, 0.55)], MET_HI), L_ragged(seed=5, depth=0.12))
-    m.cube("body", [-11.5, 28, -8.3], [23, 17, 1.3], plate, faces={"up": leather, "down": leather}, density=D)
-    m.cube("body", [-11.5, 30, 7], [23, 15, 1.3], P_stack(leather, L_ragged(seed=9, depth=0.12)), density=D)
-    for sx in (-1, 1):  # 肩ひも
-        m.cube("body", [sx * 7.5 - 2, 44.5, -8.3], [4, 1, 16.6], leather, density=D)
-    # 胸の鉄格子のプレート
-    grate = P_stack(metal, L_holes(0.14, 0.14, 0.86, 0.86, 4, 3, 2, rim=MET_DK, shade=MET_HI), L_frame(0, 0, 1, 1, OL))
-    m.cube("body", [-5.5, 33, -9.4], [11, 9, 1.1], metal, faces={"north": grate}, density=D)
-    m.cube("body", [-5, 33.5, -8.9], [10, 8, 0.5], dark, density=D)  # 格子の奥
-    # 縄の結び目と垂れた先
-    knot = S_surface(ROPE, "#e2c48a", ROPE_LO, ol="#5a4020")
-    m.cube("body", [-1.8, 28.6, -9.8], [3.6, 3, 1.6], knot, density=D)
-    m.cube("body", [-2.4, 26.6, -9.6], [1.2, 2.4, 1.2], knot, density=D)
-    m.cube("body", [1.2, 26.9, -9.6], [1.2, 2.1, 1.2], knot, density=D)
-    # ベルトと大きなバックル
-    belt = P_stack(S_surface("#4a2c1a", "#6a4228", "#2e1b10", blots=["#3a2214"], blot_rate=0.2),
-                   L_pixels([(x / 14, 0.5) for x in range(1, 14, 2)], "#8a6a4a"))
-    m.cube("body", [-14, 21.5, -8], [28, 4, 16], belt, density=D)
-    buckle = P_stack(metal, L_box(0.3, 0.3, 0.7, 0.72, LEA_DK), L_frame(0.28, 0.28, 0.72, 0.74, MET_DK), L_frame(0, 0, 1, 1, OL))
-    m.cube("body", [-3.2, 20.5, -9.2], [6.4, 6, 1.4], metal, faces={"north": buckle}, density=D)
-    # 前垂れ（革、ぼろぼろ）
-    m.cube("body", [-5.5, 10, -8.8], [11, 11.5, 1], P_stack(leather, L_frame(0.08, 0, 0.92, 0.9, LEA_DK), L_ragged(seed=7, depth=0.2)), density=D)
-    # 腰の鎖（左右で輪になって垂れる）
-    link_f = P_stack(S_surface(MET, MET_HI, MET_DK, noise=3), L_box(0.3, 0.22, 0.7, 0.78, MET, alpha=0), L_frame(0, 0, 1, 1, OL))
-    link_s = P_stack(S_surface(MET_LO, MET, MET_DK, noise=3), L_box(0.32, 0.25, 0.68, 0.75, MET, alpha=0))
-    for sx in (-1, 1):
-        xa, xb = sx * 13, sx * 5
-        n = 11
-        for k in range(n):
-            t = k / (n - 1)
-            x = xa + (xb - xa) * t; y = 22 - 11 * 4 * t * (1 - t)
-            if k % 2 == 0:
-                m.cube("body", [x - 1.6, y - 2.2, -9.9], [3.2, 4.4, 0.8], link_f, faces={"east": link_s, "west": link_s}, density=D)
-            else:
-                m.cube("body", [x - 0.4, y - 2.2, -11.1], [0.8, 4.4, 3.2], link_s, faces={"east": link_f, "west": link_f}, density=D)
+    # すそ（前は絵。ランタンの棒が写っているので左半分を右へ写す）＋ベルト＋胴
+    skirt_side = P_stack(navy, L_box(0.15, 0.2, 0.4, 0.6, "#4a2c18"), L_ragged(seed=3))
+    m.cube("body", [-11.5, 9.5, -7.5], [23, 11, 15], skirt_side, faces={"north": P_img("jailer_skirt_n", mirror_half=True), "up": navy_plain, "down": dark}, density=A)
+    m.cube("body", [-11, 20, -7], [22, 6, 14], navy_plain, density=D)
+    belt_side = P_stack(S_surface("#4e2e1a", "#6e4428", "#2e1b10"), L_pixels([(x / 10, 0.5) for x in range(1, 10, 2)], "#8a6a4a"))
+    m.cube("body", [-11.8, 20, -7.8], [23.6, 5.5, 15.6], belt_side, faces={"north": P_img("jailer_belt_n", mirror_half=True)}, density=A)
+    m.cube("body", [-3.7, 18.6, -8.9], [7.4, 7, 1.1], metal, faces={"north": P_img("jailer_buckle")}, density=A)
+    torso_side = P_stack(navy, L_box(0, 0, 0.35, 0.75, LEA), L_box(0.65, 0, 1, 0.75, LEA))
+    m.cube("body", [-11, 25.5, -7], [22, 19.5, 14], torso_side, faces={"north": P_img("jailer_torso_n"), "south": P_stack(navy, L_box(0.12, 0, 0.88, 0.8, LEA), L_ragged(seed=9, depth=0.1))}, density=A)
+    m.cube("body", [-5.6, 31.9, -8.2], [12.2, 10.4, 1.2], metal, faces={"north": P_img("jailer_grate")}, density=A)
+    m.cube("body", [-3.2, 26.9, -8.6], [5.2, 3.6, 1.6], S_surface("#c9a466", "#e2c48a", "#8c6a3c", ol="#5a4020"), faces={"north": P_img("jailer_knot")}, density=A)
 
-    # 頭：檻のかぶと（中は暗く、光る赤い目）
-    m.cube("head", [-7.6, 45.5, -6.6], [15.2, 11, 13.2], dark, density=D)
-    eyes_cut = P_stack(L_poly([(0.12, 0.29), (0.42, 0.41), (0.42, 0.52), (0.12, 0.52)], MET, alpha=0),
-                       L_poly([(0.88, 0.29), (0.58, 0.41), (0.58, 0.52), (0.88, 0.52)], MET, alpha=0))
-    helm_front = P_stack(metal, L_box(0.08, 0.27, 0.92, 0.54, MET_DK), L_frame(0.08, 0.27, 0.92, 0.54, OL), eyes_cut,
-                         L_holes(0.1, 0.62, 0.9, 0.92, 4, 2, 2, rim=MET_DK, shade=MET_HI),
-                         L_pixels([(0.06, 0.07), (0.94, 0.07), (0.06, 0.93), (0.94, 0.93), (0.5, 0.08)], MET_HI), L_frame(0, 0, 1, 1, OL))
-    helm_side = P_stack(metal, L_holes(0.12, 0.14, 0.88, 0.88, 3, 2, 2, rim=MET_DK, shade=MET_HI), L_frame(0, 0, 1, 1, OL))
-    m.cube("head", [-9, 45, -8], [18, 12, 16], helm_side, faces={"north": helm_front, "up": metal, "down": P_stack(metal, L_holes(0.2, 0.2, 0.8, 0.8, 1, 1, 0))}, density=D)
+    # 頭：檻のかぶと（正面と横は絵）。中は暗い
+    m.cube("head", [-7.6, 45.5, -6.6], [15.2, 10.5, 13.2], dark, density=D)
+    m.cube("head", [-9, 45, -8], [18, 11.5, 16], metal, faces={"north": P_img("jailer_helm_n"), "east": P_img("jailer_helm_e"), "west": P_img("jailer_helm_e", flip=True),
+                                                             "south": P_img("jailer_helm_e"), "up": metal, "down": P_stack(metal, L_holes(0.2, 0.2, 0.8, 0.8, 1, 1, 0))}, density=A)
+    # 目の窓だけ光る素材で重ねる（絵の赤い目がそのまま光る）
     m.bone("glow_eyes", [0, 50, 0], "head")
-    m.cube("glow_eyes", [-7.5, 50.5, -7.8], [15, 3.4, 0.6], L_glow2("#fff0c8", "#ff4a1a", "#c01008", alpha=30), density=D)
-    # 帽子：つば＋山＋帯＋正面の留め金
-    hat = S_surface("#223049", "#34476a", "#141c2a", blots=["#1a2538", "#2c3d5a"], blot_rate=0.05)
-    m.cube("head", [-13, 57, -12.5], [26, 1.6, 25], hat, density=D)
-    m.cube("head", [-9, 58.6, -8.5], [18, 7, 17], hat, density=D)
-    m.cube("head", [-9.3, 58.6, -8.8], [18.6, 2.2, 17.6], S_surface("#141b28", "#222e44", "#0c111a"), density=D)
-    badge = P_stack(S_surface("#a8afb6", "#d6dade", "#5e656d"), L_box(0.3, 0.3, 0.7, 0.7, LEA), L_frame(0, 0, 1, 1, OL))
-    m.cube("head", [-2.2, 60.3, -9.3], [4.4, 4.4, 0.8], badge, density=D)
+    m.cube("glow_eyes", [-9 + 18 * 0.07, 56.5 - 11.5 * 0.52, -8.06], [18 * 0.42, 11.5 * 0.5, 0.05], P_img("jailer_helm_n", crop=(0.07, 0.02, 0.49, 0.52), alpha=50), density=A)
+    m.cube("glow_eyes", [-9 + 18 * 0.51, 56.5 - 11.5 * 0.52, -8.06], [18 * 0.44, 11.5 * 0.5, 0.05], P_img("jailer_helm_n", crop=(0.51, 0.02, 0.95, 0.52), alpha=50), density=A)
+    # 帽子：つば（手描き）＋山（絵）
+    hat = S_surface("#26354e", "#3a4f70", "#141c2a", blots=["#1e2b40"], blot_rate=0.04)
+    m.cube("head", [-13, 56.5, -12.5], [26, 2, 25], hat, faces={"up": P_stack(hat, L_frame(0, 0, 1, 1, "#4a6288", 1), L_frame(0, 0, 1, 1, OL))}, density=D)
+    m.cube("head", [-9, 58.5, -8.5], [18, 5.5, 17], hat, faces={"north": P_img("jailer_hat_n"), "east": P_img("jailer_hat_e"), "west": P_img("jailer_hat_e", flip=True),
+                                                               "south": P_img("jailer_hat_e"), "up": P_img("jailer_hat_up")}, density=A)
 
-    # 肩当て：紺の大きな箱に鉄のふち、外側に紋章
-    def glyph(mirror):
-        pts = [(0.25, 0.2), (0.75, 0.2), (0.75, 0.45), (0.45, 0.45), (0.45, 0.7), (0.75, 0.7), (0.75, 0.82)]
-        if mirror: pts = [(1 - x, y) for x, y in pts]
-        return P_stack(L_line(pts, "#536680", 2), L_line([(0.25, 0.2), (0.25, 0.82), (0.55, 0.82)] if not mirror else [(0.75, 0.2), (0.75, 0.82), (0.45, 0.82)], "#536680", 2))
-    for bn, x0, outer in (("arm_r", -25.5, "west"), ("arm_l", 11.5, "east")):
-        pad = P_stack(navy, L_box(0, 0.78, 1, 1, MET), L_box(0, 0.78, 1, 0.82, MET_HI), L_frame(0, 0, 1, 1, OL))
-        m.cube(bn, [x0, 35, -9.5], [14, 12.5, 19], pad, faces={outer: P_stack(pad, glyph(outer == "east")), "up": P_stack(navy, L_frame(0, 0, 1, 1, MET, 2), L_frame(0, 0, 1, 1, OL)), "down": dark}, density=D)
-        # 腕：紺の袖、茶色の帯、鉄の小手
+    # 肩当て（正面と外側は絵。左右で反転）＋腕
+    pad_top = P_stack(navy, L_box(0, 0.85, 1, 1, MET), L_frame(0, 0, 1, 1, OL))
+    for bn, x0, outer, inner, fl in (("arm_r", -23.5, "west", "east", True), ("arm_l", 9.5, "east", "west", False)):
+        m.cube(bn, [x0, 34, -9.5], [14, 13, 19], navy, faces={"north": P_img("jailer_pad_n", flip=fl), outer: P_img("jailer_pad_e", flip=fl), "up": pad_top,
+                                                             "south": P_img("jailer_pad_n", flip=not fl), "down": dark}, density=A)
         xa = x0 + 2.5
-        m.cube(bn, [xa, 25, -4.5], [9, 11, 9], navy_plain, density=D)
-        m.cube(bn, [xa - 0.4, 22, -4.9], [9.8, 3.2, 9.8], S_surface(LEA, LEA_HI, LEA_LO), density=D)
-        gaunt = P_stack(metal, L_box(0, 0.75, 1, 1, MET_LO), L_pixels([(0.25, 0.85), (0.5, 0.85), (0.75, 0.85)], MET_HI))
-        m.cube(bn, [xa - 0.2, 13.5, -4.7], [9.4, 8.5, 9.4], gaunt, density=D)
+        m.cube(bn, [xa, 24, -4.5], [9, 11, 9], P_stack(navy_plain, L_box(0, 0.55, 1, 0.68, LEA)), density=D)
+        m.cube(bn, [xa - 0.4, 21.5, -4.9], [9.8, 3, 9.8], S_surface(LEA, LEA_HI, LEA_LO), density=D)
+        m.cube(bn, [xa - 0.2, 13.5, -4.7], [9.4, 8.5, 9.4], P_stack(S_surface("#7a828b", "#9aa2aa", "#4e555d", noise=3), L_box(0, 0.75, 1, 1, "#4e555d"), L_frame(0, 0, 1, 1, OL)), density=D)
 
-    # 右手：トゲ付きこん棒（前下に向ける）
+    # 右手：トゲ付きこん棒（前下へ）
     m.bone("club", [-16.5, 16, -3], "arm_r", rotation=[30, -18, 0])
     wood = S_surface("#5a3a22", "#7a5232", "#3a2414", blots=["#4a2e1a", "#6a4428"], blot_rate=0.3)
     m.cube("club", [-18, 14.5, -14], [3, 3, 12], P_stack(wood, L_box(0, 0, 1, 1, "#3a2414")), faces={"north": wood}, density=D)
@@ -328,23 +314,24 @@ def jailer():
             zz = z + off
             m.cube("club", [x - 1.2, y - 1.2, zz - 1.2], [2.4, 2.4, 2.4], spike, rotation=[0, 0, 45], pivot=[x, y, zz], density=D)
     m.cube("club", [-17.5, 15, -34.4], [2, 2, 2], spike, rotation=[0, 0, 45], pivot=[-16.5, 16, -33.4], density=D)
-    m.cube("club", [-19.8, 12.7, -33.6], [6.6, 6.6, 1.2], S_surface("#4a2e1a", "#6a4428", "#2e1c10"), density=D)  # 先の木口
+    m.cube("club", [-19.8, 12.7, -33.6], [6.6, 6.6, 1.2], S_surface("#4a2e1a", "#6a4428", "#2e1c10"), density=D)
 
-    # 左手：鉄格子の盾＋ランタン
+    # 左手：鉄格子の盾（3列×5段）＋ランタン
     m.bone("shield", [19, 24, -12], "arm_l", rotation=[0, 22, 0])
-    rivets = [(x, y) for x in (0.05, 0.95) for y in (0.03, 0.27, 0.5, 0.73, 0.97)] + [(0.5, 0.03), (0.5, 0.97)]
-    sh = P_stack(S_surface("#6e757d", MET_HI, MET_DK, noise=3), L_holes(0.13, 0.07, 0.87, 0.93, 3, 4, 3, rim=MET_DK, shade=MET_HI),
-                 L_pixels(rivets, "#d8dce0"), L_frame(0, 0, 1, 1, OL))
-    m.cube("shield", [17, 9, -15], [19, 29, 1.6], P_stack(S_surface("#6e757d", MET_HI, MET_DK)), faces={"north": sh, "south": sh}, density=D)
+    rivets = [(x, y) for x in (0.05, 0.95) for y in (0.03, 0.27, 0.5, 0.73, 0.97)]
+    sh = P_stack(S_surface("#6e757d", MET_HI, MET_DK, noise=3), L_holes(0.14, 0.06, 0.86, 0.94, 3, 5, 4, rim=MET_DK, shade=MET_HI),
+                 L_pixels(rivets, "#d8dce0"), L_frame(0, 0, 1, 1, OL), L_frame(0.005, 0.005, 0.995, 0.995, OL))
+    m.cube("shield", [17, 7, -15], [20, 32, 1.8], S_surface("#6e757d", MET_HI, MET_DK), faces={"north": sh, "south": sh}, density=D)
     m.bone("lantern", [19.5, 13.5, -8], "arm_l")
     iron = S_surface("#2c2f35", "#4a4f57", "#16181c", ol=OL, noise=2)
-    win = P_stack(iron, L_box(0.22, 0.15, 0.78, 0.85, "#000000", alpha=0))
-    m.cube("lantern", [19.1, 6.5, -8.4], [0.8, 7, 0.8], P_stack(iron), density=D)  # つるす鎖
+    win = P_stack(iron, L_box(0.2, 0.12, 0.8, 0.88, "#000000", alpha=0))
+    m.cube("lantern", [19.1, 6.5, -8.4], [0.8, 7, 0.8], iron, density=D)
     m.cube("lantern", [16.5, 5, -11], [6, 1.6, 6], iron, density=D)
     m.cube("lantern", [16.2, -1.5, -11.3], [6.6, 6.5, 6.6], win, faces={"up": iron, "down": iron}, density=D)
     m.cube("lantern", [16.2, -2.6, -11.3], [6.6, 1.1, 6.6], iron, density=D)
     m.bone("glow_lantern", [19.5, 2, -8], "lantern")
-    m.cube("glow_lantern", [17, -1.2, -10.5], [5, 5.8, 5], L_glow("#fff6c0", "#ffc040", "#ff8a10", alpha=20), density=D)
+    lamp = P_stack(L_glow("#fff6c0", "#ffc040", "#ff8a10", alpha=20), L_box(0.47, 0, 0.53, 1, "#b05a10", alpha=20), L_box(0, 0.47, 1, 0.53, "#b05a10", alpha=20))
+    m.cube("glow_lantern", [17, -1.2, -10.5], [5, 5.8, 5], lamp, density=D)
     return m
 
 def P_cells(palette, cell=2, seed_shift=0):
@@ -496,19 +483,21 @@ def toad():
     m = Model("kr_boss_toad", "苔の巨像レキシス", atlas=1024)
     m.glow = True
     D = 2
-    MOSS = ["#22361a", "#2d4720", "#395a26", "#47702d", "#588536", "#6c9a40"]
-    MOSS_TOP = ["#3a5c26", "#4a722e", "#5a8838", "#6c9c42", "#80b04e"]
-    SAGE = ["#4c6834", "#5a783e", "#6a8a48", "#7a9a52", "#8aaa5e", "#9ebc70"]
-    KHAKI = ["#6c6a46", "#858256", "#9d9a68", "#b2ae7a", "#c6c18c"]
-    STONE = ["#3c3a38", "#4c4844", "#5c5752", "#6e6862", "#837c74"]
-    WOOD = ["#2c2018", "#3a2b1f", "#4a3727", "#5a4632", "#6c563e"]
-    TWIG = ["#4a3e36", "#5c4f45", "#6f6156", "#837468", "#978a7e"]
-    WATER = ["#1d3c96", "#2752bc", "#356ad4", "#4f84e8", "#7aaaf8"]
+    # 色はすべて絵から取った
+    MOSS = ["#24281a", "#2d3d1e", "#394627", "#3e4c2a", "#4f5e34", "#66744a"]
+    MOSS_TOP = ["#283616", "#384a19", "#475e34", "#546a28", "#6d823f"]
+    SAGE = ["#58663f", "#6f8250", "#798d54", "#90a965", "#98b26b", "#a6bf78"]
+    KHAKI = ["#5c6338", "#84825c", "#959369", "#a9a676", "#bebc86"]
+    STONE = ["#3d4729", "#4d4c3f", "#5b564e", "#6e685e", "#8a897f"]
+    WOOD = ["#2f2a1c", "#423b28", "#5a5037", "#6c6246", "#7c7258"]
+    TWIG = ["#423d2e", "#545134", "#706150", "#797556", "#9a9580"]
+    WATER = ["#2a4f9a", "#3463b8", "#4a7cd0", "#6a98e0", "#9cc0f4"]
+    LIMB = ["#3a4226", "#4c5638", "#5a6a40", "#6f8250", "#7f9358"]
     EMER = ["#0c4a26", "#178a48", "#2cc070", "#b4ffd8"]
     AQUA = ["#14467a", "#2378c0", "#48c4f4", "#dcfaff"]
     VINE = ["#1e3414", "#28441a", "#335620", "#3e6a26"]
 
-    moss, moss_top, sage, khaki, wood, twig = (P_patch(x) for x in (MOSS, MOSS_TOP, SAGE, KHAKI, WOOD, TWIG))
+    moss, moss_top, sage, khaki, wood, twig, limb = (P_patch(x) for x in (MOSS, MOSS_TOP, SAGE, KHAKI, WOOD, TWIG, LIMB))
     sage_top = P_patch(SAGE, grad=0, edge=False)
     grass_top = P_patch(MOSS_TOP, scale=2, grad=0, edge=False)
     rock = P_stack(P_patch(STONE, scale=2, fine=0.3), L_mosscap(MOSS, 0.4, 0.5))
@@ -536,11 +525,11 @@ def toad():
     m.cube("back", [-12, 43.5, -4], [8, 3, 8], rock, faces={"up": grass_top}, density=D)
     # 水路の水 → 後ろへ落ちる滝、前の方から右の脇へあふれる滝
     m.cube("back", [1, 35.5, -9], [6, 4, 23], water, density=D)
-    m.cube("back", [1, 28.5, 14], [6, 11, 1.6], water_fall, density=D)
-    m.cube("back", [1, 6, 19.4], [6, 23, 3.2], water_fall, density=D)
-    m.cube("back", [7, 35.3, -12], [10.5, 0.6, 8], water, density=D)
-    m.cube("back", [17, 26, -12], [2.4, 10, 8], water_fall, density=D)
-    m.cube("back", [18.8, 3, -12], [1.4, 24, 8], water_fall, density=D)
+    m.cube("back", [0, 28.5, 14], [8, 11, 1.6], water_fall, density=D)
+    m.cube("back", [0, 6, 19.4], [8, 23, 3.2], water_fall, density=D)
+    m.cube("back", [7, 35.3, -13], [10.5, 0.6, 11], water, density=D)
+    m.cube("back", [17, 26, -13], [2.4, 10, 11], water_fall, density=D)
+    m.cube("back", [18.8, 3, -13], [1.6, 24, 11], water_fall, density=D)
     m.cube("root", [14, 0, -16], [12, 0.6, 14], water, density=D)  # 足元の水たまり
     m.cube("root", [-2, 0, 20], [10, 0.6, 8], water, density=D)
     # 草の房
@@ -552,13 +541,14 @@ def toad():
 
     # 頭：明るいセージ色の平たい上あご（前に張り出す）
     head_front = P_stack(sage, L_box(0, 0, 1, 0.12, "#a6c27a"), L_box(0.06, 0.2, 0.3, 0.32, "#8eae62"), L_box(0.55, 0.2, 0.8, 0.32, "#8eae62"))
-    m.cube("head", [-18, 19, -38], [36, 9, 22], sage, faces={"north": head_front, "up": P_stack(sage_top, L_box(0.1, 0.55, 0.45, 0.75, "#8eae62"), L_box(0.55, 0.6, 0.9, 0.8, "#8eae62"))}, density=D)
+    m.cube("head", [-18, 19.5, -38], [36, 5, 22], sage, faces={"north": P_img("toad_head_n"), "east": P_img("toad_head_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_head_n", crop=(0.4, 0, 1, 1)), "up": P_stack(sage_top, L_box(0.1, 0.55, 0.45, 0.75, "#8eae62"), L_box(0.55, 0.6, 0.9, 0.8, "#8eae62"))}, density=D)
     # 下あご：大きなカーキの箱。苔の筋が垂れる
     jaw_tex = P_stack(khaki, L_mosscap(MOSS, 0.15, 0.4))
     MOUTH = P_patch(["#3a0e0c", "#521614", "#6a201c"], grad=0, edge=False)
-    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"down": khaki, "up": MOUTH}, density=D)
+    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"north": P_img("toad_jaw_n"), "east": P_img("toad_jaw_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_jaw_n", crop=(0.4, 0, 1, 1)),
+                                                                  "down": khaki, "up": MOUTH}, density=3)
     m.cube("head", [-16, 19.2, -36], [32, 0.6, 18], MOUTH, density=D)  # 口の中（上）
-    m.cube("head", [-15, 19.5, -20], [30, 7, 2], MOUTH, density=D)  # のどの奥
+    m.cube("head", [-15, 19.5, -20], [30, 4.5, 2], MOUTH, density=D)  # のどの奥
     m.bone("tongue", [0, 19.3, -22], "jaw")
     PINK = P_patch(["#a8404c", "#c2566a", "#d86e80", "#ea8c9a"], scale=2, grad=0.2)
     m.cube("tongue", [-3, 19.2, -30], [6, 1.6, 8], PINK, density=D)
@@ -573,23 +563,23 @@ def toad():
     eye_shell = P_stack(sage, L_box(0, 0, 1, 0.15, "#a6c27a"))
     for sx in (-1, 1):
         x0 = -21 if sx < 0 else 12
-        m.cube("head", [x0, 24, -28], [9, 9, 9], eye_shell, density=D)
-        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4.5, 28.5, -28], "head")
-        m.cube(g, [x0 + 1, 25, -28.3], [7, 7, 0.4], L_eye(), density=D)
+        m.cube("head", [x0, 23, -28], [9, 9, 9], eye_shell, density=D)
+        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4.5, 27.5, -28], "head")
+        m.cube(g, [x0 + 1, 24, -28.3], [7, 7, 0.4], L_eye(), density=D)
     # 枯れ枝の冠（頭の後ろ寄り）
     for (x, z, h, br) in ((-8, -27, 6, 1), (-5, -22, 10, -1), (-1.5, -26, 7, 1), (2, -21, 9, 0), (5.5, -26, 6, -1), (8, -21, 5, 1), (-2, -18.5, 5, 0), (4, -30, 4, 0), (-6, -31, 3, 0)):
-        m.cube("head", [x - 1, 28, z - 1], [2, h, 2], twig, density=D)
+        m.cube("head", [x - 1, 24.5, z - 1], [2, h + 2, 2], twig, density=D)
         if br:
-            m.cube("head", [x - 0.75 + br * 1.6, 28 + h * 0.5, z - 0.75], [1.5, 3.5, 1.5], twig, rotation=[0, 0, -br * 35], pivot=[x, 28 + h * 0.5, z], density=D)
-    m.cube("head", [-10, 28, -32], [20, 1.4, 15], P_patch(MOSS + TWIG[:2], grad=0, edge=False), density=D)  # 冠の根元の苔
+            m.cube("head", [x - 0.75 + br * 1.6, 24.5 + h * 0.6, z - 0.75], [1.5, 3.5, 1.5], twig, rotation=[0, 0, -br * 35], pivot=[x, 24.5 + h * 0.6, z], density=D)
+    m.cube("head", [-10, 24.5, -32], [20, 1.4, 15], P_patch(MOSS + TWIG[:2], grad=0, edge=False), density=D)  # 冠の根元の苔
 
     # 前足：長い腕（宝石入り）＋木の根のような手（3本指と親指）
     for bn, sx in (("arm_r", -1), ("arm_l", 1)):
         ax = -27 if sx < 0 else 19
         outer = "west" if sx < 0 else "east"
-        up_out = P_stack(sage, L_mosscap(MOSS, 0.3, 0.4))
-        m.cube(bn, [ax + sx * 1, 9, -27], [8, 13, 9], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), faces={outer: up_out}, density=D)
-        m.cube(bn, [ax, 2, -35], [8, 11, 9], P_stack(sage, L_mosscap(MOSS, 0.2, 0.3)), density=D)
+        up_out = P_stack(limb, L_mosscap(MOSS, 0.3, 0.4))
+        m.cube(bn, [ax + sx * 1, 9, -27], [8, 13, 9], P_stack(limb, L_mosscap(MOSS, 0.3, 0.4)), faces={outer: up_out}, density=D)
+        m.cube(bn, [ax, 2, -35], [8, 11, 9], P_stack(limb, L_mosscap(MOSS, 0.2, 0.3)), density=D)
         hx = ax - 3
         m.cube(bn, [hx, 0, -40], [14, 3.5, 10], P_stack(wood, L_mosscap(MOSS, 0.25, 0.4)), faces={"up": P_stack(wood, L_box(0.2, 0.3, 0.6, 0.7, "#4a6a2c"))}, density=D)
         for k in range(3):
@@ -601,12 +591,12 @@ def toad():
     for bn, sx in (("leg_r", -1), ("leg_l", 1)):
         lx = -33 if sx < 0 else 20
         outer = "west" if sx < 0 else "east"
-        thigh_out = P_stack(sage, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
-        thigh_front = P_stack(sage, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
-        m.cube(bn, [lx, 4, 3], [13, 21, 18], sage, faces={outer: thigh_out, "north": thigh_front, "up": P_stack(sage_top, L_mosscap(MOSS, 0.5, 0.5))}, density=D)
-        m.cube(bn, [lx - 0.5, 0, -5], [14, 4.5, 13], P_stack(sage, L_mosscap(MOSS, 0.3, 0.4)), density=D)
+        thigh_out = P_stack(limb, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
+        thigh_front = P_stack(limb, L_mosscap(MOSS, 0.25, 0.4), L_box(0, 0.8, 1, 0.92, "#2e2218"))
+        m.cube(bn, [lx, 4, 3], [13, 21, 18], limb, faces={outer: thigh_out, "north": thigh_front, "up": P_stack(limb, L_mosscap(MOSS, 0.5, 0.5))}, density=D)
+        m.cube(bn, [lx - 0.5, 0, -5], [14, 4.5, 13], P_stack(limb, L_mosscap(MOSS, 0.3, 0.4)), density=D)
         for k in range(3):
-            m.cube(bn, [lx + 0.2 + k * 4.7, 0, -12], [3.8, 3, 7.5], sage, density=D)
+            m.cube(bn, [lx + 0.2 + k * 4.7, 0, -12], [3.8, 3, 7.5], limb, density=D)
         m.cube(bn, [lx + (13 if sx > 0 else 0), 6, 4], [0, 14, 16], P_stack(L_vines(VINE, 0.25)), density=D)
     return m
 

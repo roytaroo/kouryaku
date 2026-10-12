@@ -261,14 +261,47 @@ function title(p, main, sub) {
   try { p.onScreenDisplay.setTitle(main, { fadeInDuration: 5, stayDuration: 40, fadeOutDuration: 10, subtitle: sub }); } catch (e) {}
 }
 
-/** フォームを出す。インベントリ等を開いていて出せない時は少し待って出し直す */
-async function showForm(p, form) {
-  let res = await form.show(p);
-  for (let tries = 0; tries < 60 && res.canceled && res.cancelationReason === FormCancelationReason.UserBusy && p.isValid; tries++) {
-    await wait(10);
-    res = await form.show(p);
+/* ---------- 画面を見ている間は敵を止める ----------
+   問題やメニューが開いている間、まわりの敵は動けず攻撃もできない（速さ0・攻撃力0）。飛んでくる矢や火の玉は消す。
+   効果は短い時間で付け直すので、画面を閉じると1秒ほどで元に戻る */
+let freezeDepth = 0;
+const PROJECTILES = new Set(["minecraft:arrow", "minecraft:small_fireball", "minecraft:fireball", "minecraft:splash_potion", "minecraft:lingering_potion",
+  "minecraft:evocation_fang", "minecraft:shulker_bullet", "minecraft:thrown_trident", "minecraft:wind_charge_projectile", "minecraft:breeze_wind_charge_projectile"]);
+function freezeTick() {
+  if (freezeDepth <= 0) return;
+  for (const p of world.getPlayers()) {
+    /** @type {any[]} */
+    let near = [];
+    try { near = p.dimension.getEntities({ location: p.location, maxDistance: 48 }); } catch (e) {}
+    for (const e of near) {
+      try {
+        if (!e.isValid || e.typeId === "minecraft:player") continue;
+        if (PROJECTILES.has(e.typeId)) { e.remove(); continue; }
+        if (!isMonster(e) && !e.hasTag("kr_wave")) continue;
+        e.addEffect("slowness", 12, { amplifier: 255, showParticles: false });
+        e.addEffect("weakness", 12, { amplifier: 255, showParticles: false });
+      } catch (err) {}
+    }
   }
-  return res;
+}
+system.runInterval(freezeTick, 4);
+/** fn を実行している間、敵を止める */
+async function frozen(fn) {
+  freezeDepth++;
+  freezeTick();
+  try { return await fn(); } finally { freezeDepth = Math.max(0, freezeDepth - 1); }
+}
+
+/** フォームを出す。インベントリ等を開いていて出せない時は少し待って出し直す */
+function showForm(p, form) {
+  return frozen(async () => {
+    let res = await form.show(p);
+    for (let tries = 0; tries < 60 && res.canceled && res.cancelationReason === FormCancelationReason.UserBusy && p.isValid; tries++) {
+      await wait(10);
+      res = await form.show(p);
+    }
+    return res;
+  });
 }
 
 /* ---------- UI（ICE BOW のやり込みキットと同じ見た目：アイコン付きボタン、太字＋灰色の補足、ゲージ） ---------- */
@@ -370,7 +403,8 @@ async function runQueue(p) {
  * @param {number} i word index
  * @param {{title?: string, dmg?: number, reward?: boolean, progress?: string, cloze?: boolean}} [opt]
  */
-async function askOne(p, i, opt = {}) {
+function askOne(p, i, opt = {}) { return frozen(() => askOneInner(p, i, opt)); }
+async function askOneInner(p, i, opt = {}) {
   const s = st();
   const [word, meaning] = WORDS[i];
   const head = (opt.progress ? "§f" + opt.progress + "   " : "") + comboGauge(s.stats.combo);
@@ -482,66 +516,27 @@ async function askOne(p, i, opt = {}) {
   return { ok, fast };
 }
 
-/* ---------- events: mobs（単語シールド） ----------
-   ダンジョンの敵は「単語シールド」（ダメージ80%カット）を持っている。最初に攻撃すると、その敵の単語が出題される。
-   即答 → シールドが割れて、敵は弱体化（楽に倒せる）  遅い正解 → シールドが割れるだけ
-   ミス → シールドはそのままで敵が強化。3秒たつと、もう一度攻撃して挑み直せる
-   → 単語を覚えていれば楽勝、覚えていなければ苦戦する */
-const SHIELD_RES = 3;
-world.afterEvents.entityHurt.subscribe(ev => {
-  const p = ev.damageSource.damagingEntity;
-  if (!(p instanceof Player)) return;
-  const e = ev.hurtEntity;
-  if (!e.isValid || !isMonster(e)) return;
-  if (wordOf(e) === undefined) {
-    if (!st().cfg.outside && !e.hasTag("kr_wave")) return;
-    tagWord(e, pickWord());
-  }
-  if (!e.hasTag("kr_shield") || e.hasTag("kr_quiz")) return;
-  if (Date.now() < Number(e.getDynamicProperty("kr:retry") ?? 0)) return;
-  e.addTag("kr_quiz");
-  const idx = wordOf(e);
-  enqueue(p, async () => {
-    const elite = e.hasTag("kr_elite");
-    const r = await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l単語シールド" });
-    if (!e.isValid) return;
-    try {
-      e.removeTag("kr_quiz");
-      e.addTag("kr_asked");
-      if (r.ok) {
-        e.removeTag("kr_shield");
-        e.removeEffect("resistance");
-        if (r.fast) { e.addEffect("weakness", 20 * 30, { amplifier: 1 }); e.addEffect("slowness", 20 * 30, { amplifier: 1 }); }
-        e.nameTag = "§a" + WORDS[idx][0];
-        addStat(p, "shield");
-        e.dimension.spawnParticle("minecraft:critical_hit_emitter", e.location);
-        sound(p, "random.break");
-      } else {
-        e.setDynamicProperty("kr:retry", Date.now() + 3000);
-        e.addEffect("strength", 20 * 20, { amplifier: 1 });
-        e.addEffect("speed", 20 * 20, { amplifier: 0 });
-        sound(p, "mob.ravager.roar");
-      }
-    } catch (err) {}
-  });
-});
-
-// シールドの問題を一度も出さずに倒した敵は、倒した時に出題する
+/* ---------- events: mobs（倒したら出題） ----------
+   ダンジョンの敵を倒すと、その敵の単語が出題される（精鋭は例文の穴埋め）。ミスするとダメージ。
+   殴るたびに出すと忙しすぎるので、倒した時だけにした */
 world.afterEvents.entityDie.subscribe(ev => {
   const p = ev.damageSource.damagingEntity;
   if (!(p instanceof Player)) return;
   const e = ev.deadEntity;
-  let boss = false, wave = false, asked = false;
-  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); asked = e.hasTag("kr_asked") || e.hasTag("kr_quiz"); } catch (err) {}
+  let boss = false, wave = false, elite = false;
+  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); elite = e.hasTag("kr_elite"); } catch (err) {}
   let i = wordOf(e);
   mobWord.delete(e.id);
-  if (boss || asked) return; // ボスは部屋の監視側で試練を出す
+  if (boss) return; // 門番は部屋の監視側で試練を出す
   if (i === undefined) {
     if (!wave && (!st().cfg.outside || !isMonster(e))) return;
     i = pickWord();
   }
   const idx = i;
-  enqueue(p, async () => { await askOne(p, idx); });
+  enqueue(p, async () => {
+    const r = await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l討伐の問い" });
+    if (r.ok) addStat(p, "shield");
+  });
 });
 
 /* ---------- compass menu ---------- */
@@ -829,12 +824,12 @@ function ensureMapBoard() {
   cmd(dim, `fill ${cx + 7} ${y + 1} ${wz} ${cx + 7} ${y + 8} ${wz} stripped_dark_oak_log`);
   cmd(dim, `setblock ${cx - 7} ${y + 9} ${wz} shroomlight`);
   cmd(dim, `setblock ${cx + 7} ${y + 9} ${wz} shroomlight`);
-  const at = { x: cx + 0.5, y: y + 3, z: wz + 0.95 };
+  const at = { x: cx + 0.5, y: y + 3, z: wz - 0.03 };
   const boards = dim.getEntities({ type: "kr:map_board" });
   boards.slice(1).forEach(e => { try { e.remove(); } catch (err) {} });
   try {
     const b = boards[0] ?? dim.spawnEntity("kr:map_board", at);
-    b.teleport(at, { rotation: { x: 0, y: 0 } });
+    b.teleport(at, { rotation: { x: 0, y: 180 } }); // 北（部屋の中）を向く＝絵の面が部屋側
   } catch (e) { console.warn("[kouryaku] map board: " + e); }
 }
 /** プレイヤーの準備：アドベンチャーモード、空腹なし、最初の装備 */
@@ -1227,10 +1222,6 @@ function startWave(k) {
         e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(3, 1 + Math.floor(n / 3)), showParticles: false });
         e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
         e.addEffect("speed", 20 * 3600, { amplifier: 0, showParticles: false });
-      }
-      if (!(r.type === "boss" && idx === 0)) {
-        e.addTag("kr_shield");
-        e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
       }
       tagWord(e, pickWord(undefined, floorScope(n)));
       if (r.type === "elite" && idx === 0) e.nameTag = "§6§l精鋭 §r§e" + WORDS[mobWord.get(e.id) ?? 0][0];
@@ -1632,6 +1623,7 @@ async function toadTongue(p, boss, dmg) {
   if (!boss.isValid || !p.isValid) return;
   const b = boss.location, pl = p.location, dist = flatDist(b, pl);
   if (dist > 6.5) return;
+  if (freezeDepth > 0) return; // 画面を見ている間は引き寄せない
   if (dmg > 0) hurtSafely(p, dmg);
   try {
     const dx = (b.x - pl.x) / Math.max(0.01, dist), dz = (b.z - pl.z) / Math.max(0.01, dist);
@@ -1655,7 +1647,7 @@ async function toadLoop(p, c) {
   while (raidActive === me && me?.boss?.isValid && p.isValid && isInDungeon(p) && st().dun?.raid === c.id) {
     const fighting = ow().getEntities({ tags: ["kr_minion"] }).length > 0;
     await wait(fighting ? 50 + Math.floor(Math.random() * 40) : 120 + Math.floor(Math.random() * 100));
-    if (raidActive !== me || !me.boss.isValid || toadBusy) continue;
+    if (raidActive !== me || !me.boss.isValid || toadBusy || freezeDepth > 0) continue;
     toadBusy = true;
     try {
       if (fighting) {
@@ -1713,8 +1705,6 @@ async function raidMinions(p, c, count) {
       const e = dim.spawnEntity(pick(pool), { x: r.cx + 0.5 + Math.cos(ang) * 8, y: d.Y + 1, z: r.cz + 0.5 + Math.sin(ang) * 8 });
       e.addTag("kr_wave");
       e.addTag("kr_minion");
-      e.addTag("kr_shield");
-      e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
       tagWord(e, pickWord(undefined, sc));
     } catch (err) {}
   }
