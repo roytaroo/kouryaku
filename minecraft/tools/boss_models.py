@@ -539,39 +539,40 @@ def toad():
         for rot in (45, -45):
             m.cube("back", [x - 2.5, y, z], [5, hgt, 0], P_stack(L_grass()), rotation=[0, rot, 0], pivot=[x, y, z], density=D)
 
-    # 頭：明るいセージ色の平たい上あご（前に張り出す）
-    head_front = P_stack(sage, L_box(0, 0, 1, 0.12, "#a6c27a"), L_box(0.06, 0.2, 0.3, 0.32, "#8eae62"), L_box(0.55, 0.2, 0.8, 0.32, "#8eae62"))
-    m.cube("head", [-18, 19.5, -38], [36, 5, 22], sage, faces={"north": P_img("toad_head_n"), "east": P_img("toad_head_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_head_n", crop=(0.4, 0, 1, 1)), "up": P_stack(sage_top, L_box(0.1, 0.55, 0.45, 0.75, "#8eae62"), L_box(0.55, 0.6, 0.9, 0.8, "#8eae62"))}, density=D)
-    # 下あご：大きなカーキの箱。苔の筋が垂れる
+    # 頭：体の前に大きく突き出す平たいくさび。上あご（明るいセージ）＋後ろの盛り上がった額
+    m.cube("head", [-19, 20, -42], [38, 7, 28], sage, faces={"north": P_img("toad_head_n"), "east": P_img("toad_head_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_head_n", crop=(0.4, 0, 1, 1)),
+                                                         "up": P_stack(sage_top, L_box(0.08, 0.1, 0.4, 0.35, "#a6bf78"), L_box(0.55, 0.15, 0.85, 0.4, "#98b26b"), L_box(0.3, 0.45, 0.7, 0.6, "#90a965"))}, density=D)
+    m.cube("head", [-15, 27, -31], [30, 4, 17], P_stack(P_patch(SAGE[:4]), L_mosscap(MOSS, 0.6, 0.4)), faces={"up": P_patch(MOSS + TWIG[:2], grad=0, edge=False)}, density=D)
+    # 下あご：頭とほぼ同じ幅の大きなカーキの箱。上あごが前に2マス張り出す
     jaw_tex = P_stack(khaki, L_mosscap(MOSS, 0.15, 0.4))
     MOUTH = P_patch(["#3a0e0c", "#521614", "#6a201c"], grad=0, edge=False)
-    m.cube("jaw", [-17, 6, -36], [34, 13.5, 19.5], jaw_tex, faces={"north": P_img("toad_jaw_n"), "east": P_img("toad_jaw_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_jaw_n", crop=(0.4, 0, 1, 1)),
-                                                                  "down": khaki, "up": MOUTH}, density=3)
-    m.cube("head", [-16, 19.2, -36], [32, 0.6, 18], MOUTH, density=D)  # 口の中（上）
-    m.cube("head", [-15, 19.5, -20], [30, 4.5, 2], MOUTH, density=D)  # のどの奥
-    m.bone("tongue", [0, 19.3, -22], "jaw")
+    m.cube("jaw", [-18, 6, -40], [36, 14, 24], jaw_tex, faces={"north": P_img("toad_jaw_n"), "east": P_img("toad_jaw_n", crop=(0, 0, 0.6, 1)), "west": P_img("toad_jaw_n", crop=(0.4, 0, 1, 1)),
+                                                             "down": khaki, "up": MOUTH}, density=3)
+    m.cube("jaw", [-18.6, 17.4, -41.2], [37.2, 2.6, 25.2], P_patch(["#2e0c0a", "#4a1412", "#621c18"], grad=0, edge=False), density=D)  # 口の線
+    m.cube("head", [-17, 19.6, -40], [34, 0.4, 22], MOUTH, density=D)  # 口の中（上）
+    m.cube("head", [-16, 20, -18], [32, 6, 2], MOUTH, density=D)  # のどの奥
+    m.bone("tongue", [0, 20.3, -24], "jaw")
     PINK = P_patch(["#a8404c", "#c2566a", "#d86e80", "#ea8c9a"], scale=2, grad=0.2)
-    m.cube("tongue", [-3, 19.2, -30], [6, 1.6, 8], PINK, density=D)
-    m.bone("tongue_tip", [0, 19.3, -31], "jaw")
-    m.cube("tongue_tip", [-4, 18.9, -33.5], [8, 2.6, 4.5], PINK, density=D)
-    m.cube("jaw", [-17.4, 17.2, -36.6], [34.8, 1.9, 20.1], P_patch(["#2e0c0a", "#4a1412", "#621c18"], grad=0, edge=False), density=D)
+    m.cube("tongue", [-3, 20.1, -32], [6, 1.6, 8], PINK, density=D)
+    m.bone("tongue_tip", [0, 20.3, -33], "jaw")
+    m.cube("tongue_tip", [-4, 19.8, -35.5], [8, 2.6, 4.5], PINK, density=D)
     # あごの下に垂れるつる
-    m.cube("jaw", [-16, -1, -36.4], [32, 8, 0], P_stack(L_vines(VINE, 0.35)), density=D)
-    m.cube("jaw", [-17.4, -1, -35], [0, 8, 18], P_stack(L_vines(VINE, 0.3)), density=D)
-    m.cube("jaw", [17.4, -1, -35], [0, 8, 18], P_stack(L_vines(VINE, 0.3)), density=D)
-    # 目：頭の後ろの角から上と横に飛び出す
-    eye_shell = P_stack(sage, L_box(0, 0, 1, 0.15, "#a6c27a"))
+    m.cube("jaw", [-17, -1, -40.4], [34, 8, 0], P_stack(L_vines(VINE, 0.35)), density=D)
+    m.cube("jaw", [-18.4, -1, -39], [0, 8, 22], P_stack(L_vines(VINE, 0.3)), density=D)
+    m.cube("jaw", [18.4, -1, -39], [0, 8, 22], P_stack(L_vines(VINE, 0.3)), density=D)
+    # 目：額の両はしに半分埋まった大きな目。上に暗い眉
+    eye_shell = P_stack(P_patch(SAGE[:4]), L_mosscap(MOSS, 0.3, 0.4))
     for sx in (-1, 1):
-        x0 = -21 if sx < 0 else 12
-        m.cube("head", [x0, 23, -28], [9, 9, 9], eye_shell, density=D)
-        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 4.5, 27.5, -28], "head")
-        m.cube(g, [x0 + 1, 24, -28.3], [7, 7, 0.4], L_eye(), density=D)
-    # 枯れ枝の冠（頭の後ろ寄り）
-    for (x, z, h, br) in ((-8, -27, 6, 1), (-5, -22, 10, -1), (-1.5, -26, 7, 1), (2, -21, 9, 0), (5.5, -26, 6, -1), (8, -21, 5, 1), (-2, -18.5, 5, 0), (4, -30, 4, 0), (-6, -31, 3, 0)):
-        m.cube("head", [x - 1, 24.5, z - 1], [2, h + 2, 2], twig, density=D)
+        x0 = -21 if sx < 0 else 11
+        m.cube("head", [x0, 25, -33], [10, 10, 10], eye_shell, density=D)
+        m.cube("head", [x0 - 0.5, 34, -34], [11, 2.5, 4], P_patch(MOSS[:4], grad=0), density=D)
+        g = m.bone(f"glow_eye{'r' if sx < 0 else 'l'}", [x0 + 5, 29.5, -33], "head")
+        m.cube(g, [x0 + 1.5, 26.5, -33.3], [7, 7, 0.4], L_eye(), density=D)
+    # 枯れ枝の冠（額の上）
+    for (x, z, h, br) in ((-7, -27, 6, 1), (-4.5, -21, 10, -1), (-1.5, -26, 7, 1), (2, -20, 9, 0), (5, -26, 6, -1), (8, -21, 5, 1), (-1, -17.5, 5, 0), (3.5, -29.5, 4, 0), (-6, -30, 3, 0)):
+        m.cube("head", [x - 1, 31, z - 1], [2, h, 2], twig, density=D)
         if br:
-            m.cube("head", [x - 0.75 + br * 1.6, 24.5 + h * 0.6, z - 0.75], [1.5, 3.5, 1.5], twig, rotation=[0, 0, -br * 35], pivot=[x, 24.5 + h * 0.6, z], density=D)
-    m.cube("head", [-10, 24.5, -32], [20, 1.4, 15], P_patch(MOSS + TWIG[:2], grad=0, edge=False), density=D)  # 冠の根元の苔
+            m.cube("head", [x - 0.75 + br * 1.6, 31 + h * 0.6, z - 0.75], [1.5, 3.5, 1.5], twig, rotation=[0, 0, -br * 35], pivot=[x, 31 + h * 0.6, z], density=D)
 
     # 前足：長い腕（宝石入り）＋木の根のような手（3本指と親指）
     for bn, sx in (("arm_r", -1), ("arm_l", 1)):
