@@ -1,4 +1,4 @@
-import { world, system, Player, ItemStack, EasingType, DisplaySlotId, EquipmentSlot } from "@minecraft/server";
+import { world, system, Player, ItemStack, ItemLockMode, EasingType, DisplaySlotId, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData, MessageFormData, ModalFormData, FormCancelationReason, uiManager } from "@minecraft/server-ui";
 import { WORDS } from "./words.js";
 import { addStat, addCoins, addCoinsQuiet, setBest, showYarikomiMenu, getData, spendCoins } from "./yarikomi.js";
@@ -250,6 +250,7 @@ function hurtSafely(p, dmg) {
     const hp = /** @type {any} */ (p.getComponent("minecraft:health"));
     const cur = hp ? hp.currentValue : 20;
     const amount = Math.min(dmg, Math.max(0, cur - 2));
+    if (freezeDepth > 0) { try { p.removeEffect("resistance"); } catch (e) {} } // 画面中のダメージ無効を外して、ミスの分だけ受ける
     if (amount > 0) p.applyDamage(amount);
   } catch (e) {}
 }
@@ -262,14 +263,21 @@ function title(p, main, sub) {
 }
 
 /* ---------- 画面を見ている間は敵を止める ----------
-   問題やメニューが開いている間、まわりの敵は動けず攻撃もできない（速さ0・攻撃力0）。飛んでくる矢や火の玉は消す。
-   効果は短い時間で付け直すので、画面を閉じると1秒ほどで元に戻る */
+   問題・答え・メニューが開いている間（と、出題の待ち行列が残っている間）は、毎tick：
+   ・まわりの敵の勢いを0にして、速さ0（鈍足255）と攻撃力ダウン（弱体化レベル10）をかけ直す
+   ・飛んでくる矢・火の玉・ポーション・牙などを消す
+   ・プレイヤーはダメージ無効（耐性V）。ミスのダメージだけは hurtSafely で受ける
+   画面を閉じると、数tickで元に戻る */
 let freezeDepth = 0;
 const PROJECTILES = new Set(["minecraft:arrow", "minecraft:small_fireball", "minecraft:fireball", "minecraft:splash_potion", "minecraft:lingering_potion",
-  "minecraft:evocation_fang", "minecraft:shulker_bullet", "minecraft:thrown_trident", "minecraft:wind_charge_projectile", "minecraft:breeze_wind_charge_projectile"]);
+  "minecraft:evocation_fang", "minecraft:shulker_bullet", "minecraft:thrown_trident", "minecraft:wind_charge_projectile", "minecraft:breeze_wind_charge_projectile", "minecraft:llama_spit"]);
 function freezeTick() {
   if (freezeDepth <= 0) return;
   for (const p of world.getPlayers()) {
+    try {
+      p.addEffect("resistance", 6, { amplifier: 4, showParticles: false });
+      p.addEffect("fire_resistance", 6, { amplifier: 0, showParticles: false });
+    } catch (e) {}
     /** @type {any[]} */
     let near = [];
     try { near = p.dimension.getEntities({ location: p.location, maxDistance: 48 }); } catch (e) {}
@@ -278,18 +286,22 @@ function freezeTick() {
         if (!e.isValid || e.typeId === "minecraft:player") continue;
         if (PROJECTILES.has(e.typeId)) { e.remove(); continue; }
         if (!isMonster(e) && !e.hasTag("kr_wave")) continue;
-        e.addEffect("slowness", 12, { amplifier: 255, showParticles: false });
-        e.addEffect("weakness", 12, { amplifier: 255, showParticles: false });
+        e.addEffect("slowness", 6, { amplifier: 255, showParticles: false });
+        e.addEffect("weakness", 6, { amplifier: 9, showParticles: false });
+        e.clearVelocity();
       } catch (err) {}
     }
   }
 }
-system.runInterval(freezeTick, 4);
+system.runInterval(freezeTick, 1);
 /** fn を実行している間、敵を止める */
 async function frozen(fn) {
   freezeDepth++;
   freezeTick();
-  try { return await fn(); } finally { freezeDepth = Math.max(0, freezeDepth - 1); }
+  try { return await fn(); } finally {
+    freezeDepth = Math.max(0, freezeDepth - 1);
+    if (freezeDepth === 0) system.runTimeout(() => { for (const p of world.getPlayers()) applyBlessings(p); }, 7);
+  }
 }
 
 /** フォームを出す。インベントリ等を開いていて出せない時は少し待って出し直す */
@@ -388,12 +400,15 @@ function enqueue(p, task, must = false) {
 /** @param {Player} p */
 async function runQueue(p) {
   running.add(p.id);
-  const q = queues.get(p.id) ?? [];
-  while (q.length) {
-    const task = q.shift();
-    if (!p.isValid) break;
-    try { await task(); } catch (e) { console.warn("[kouryaku] " + e); }
-  }
+  // 待ち行列が残っている間は、問題と問題のすき間も敵を止めたまま
+  await frozen(async () => {
+    const q = queues.get(p.id) ?? [];
+    while (q.length) {
+      const task = q.shift();
+      if (!p.isValid) break;
+      try { await task(); } catch (e) { console.warn("[kouryaku] " + e); }
+    }
+  });
   queues.delete(p.id);
   running.delete(p.id);
 }
@@ -612,24 +627,35 @@ world.afterEvents.entityDie.subscribe(ev => {
 });
 
 /* ---------- compass menu ---------- */
+const COMPASS_SLOT = 8; // ホットバーのいちばん右
+const isMenuCompass = it => !!it && it.typeId === "minecraft:compass" && it.nameTag === COMPASS_NAME;
 function hasCompass(p) {
   const inv = /** @type {any} */ (p.getComponent("minecraft:inventory"));
-  const c = inv && inv.container;
-  if (!c) return false;
-  for (let k = 0; k < c.size; k++) {
-    const it = c.getItem(k);
-    if (it && it.typeId === "minecraft:compass" && it.nameTag === COMPASS_NAME) return true;
-  }
-  return false;
+  const it = inv?.container?.getItem(COMPASS_SLOT);
+  return isMenuCompass(it) && it.lockMode === ItemLockMode.slot;
 }
+/** コンパスをホットバーのいちばん右に固定する（動かせない・捨てられない・死んでも消えない） */
 function giveCompass(p) {
   const inv = /** @type {any} */ (p.getComponent("minecraft:inventory"));
-  if (!inv || !inv.container) return;
+  const c = inv?.container;
+  if (!c) return;
+  for (let k = 0; k < c.size; k++) if (k !== COMPASS_SLOT && isMenuCompass(c.getItem(k))) c.setItem(k, undefined);
+  const cur = c.getItem(COMPASS_SLOT);
+  if (cur && !isMenuCompass(cur)) {
+    c.setItem(COMPASS_SLOT, undefined);
+    const left = c.addItem(cur);
+    if (left) { try { p.dimension.spawnItem(left, p.location); } catch (e) {} }
+  }
   const it = new ItemStack("minecraft:compass", 1);
   it.nameTag = COMPASS_NAME;
   it.setLore(["§7使うとメニューが開く"]);
-  inv.container.addItem(it);
+  it.lockMode = ItemLockMode.slot;
+  it.keepOnDeath = true;
+  c.setItem(COMPASS_SLOT, it);
 }
+system.runInterval(() => { for (const p of world.getPlayers()) { try { if (!hasCompass(p)) giveCompass(p); } catch (e) {} } }, 40);
+// ワールドを開いたらすぐ、コマンドの結果を出さない設定にする
+system.runTimeout(() => { for (const c of ["gamerule sendcommandfeedback false", "gamerule commandblockoutput false"]) { try { world.getDimension("overworld").runCommand(c); } catch (e) {} } }, 1);
 
 world.beforeEvents.itemUse.subscribe(ev => {
   const it = ev.itemStack;
@@ -795,6 +821,7 @@ const CAMP_R = 15;          // キャンプの壁までの距離（内側 29x29�
 const SLOT_GAP = 30;        // キャンプの壁からダンジョン置き場まで
 const CELL = 19, GRID_W = 5, GRID_H = 3;
 const RULES = [
+  "gamerule sendcommandfeedback false", "gamerule commandblockoutput false",
   "gamerule domobspawning false", "gamerule dodaylightcycle false", "time set noon",
   "gamerule doweathercycle false", "weather clear", "gamerule keepinventory true",
   "gamerule mobgriefing false", "gamerule dofiretick false", "gamerule doinsomnia false",
@@ -871,6 +898,7 @@ function campSpawn() {
 function ensureWorld(p) {
   const s = st();
   const dim = ow();
+  for (const c of RULES.slice(0, 2)) cmd(dim, c); // コマンドの結果をチャットに出さない（最初に）
   if (!s.camp) {
     if (p.dimension.id !== OVERWORLD) return;
     const cx = Math.floor(p.location.x), cz = Math.floor(p.location.z), y = Math.floor(p.location.y) - 1;
