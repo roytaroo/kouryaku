@@ -377,9 +377,10 @@ function wordOf(e) {
 const queues = new Map();
 const running = new Set();
 /** @param {Player} p */
-function enqueue(p, task) {
+/** @param {boolean} [must] 道選び・祝福など、上限があっても必ず入れる */
+function enqueue(p, task, must = false) {
   const q = queues.get(p.id) ?? [];
-  if (q.length >= MAX_QUEUE) return;
+  if (q.length >= MAX_QUEUE && !must) return;
   q.push(task);
   queues.set(p.id, q);
   if (!running.has(p.id)) runQueue(p);
@@ -516,9 +517,57 @@ async function askOneInner(p, i, opt = {}) {
   return { ok, fast };
 }
 
-/* ---------- events: mobs（倒したら出題） ----------
-   ダンジョンの敵を倒すと、その敵の単語が出題される（精鋭は例文の穴埋め）。ミスするとダメージ。
-   殴るたびに出すと忙しすぎるので、倒した時だけにした */
+/* ---------- events: mobs（単語シールド） ----------
+   ダンジョンの敵は「単語シールド」（ダメージ80%カット）を持っている。攻撃すると、その敵の単語が出題される。
+   即答 → シールドが割れて、敵は弱体化（楽に倒せる）  遅い正解 → シールドが割れるだけ
+   ミス → シールドはそのままで敵が強化。3秒たつと、もう一度攻撃して挑み直せる
+   問題を見ている間は、まわりの敵は止まっている（freezeTick）。
+   → 単語を覚えていれば楽勝、覚えていなければ苦戦する */
+const SHIELD_RES = 3;
+world.afterEvents.entityHurt.subscribe(ev => {
+  const p = ev.damageSource.damagingEntity;
+  if (!(p instanceof Player)) return;
+  const e = ev.hurtEntity;
+  if (!e.isValid || !isMonster(e)) return;
+  if (wordOf(e) === undefined) {
+    if (!st().cfg.outside && !e.hasTag("kr_wave")) return;
+    tagWord(e, pickWord());
+  }
+  if (!e.hasTag("kr_shield") || e.hasTag("kr_quiz")) return;
+  if (Date.now() < Number(e.getDynamicProperty("kr:retry") ?? 0)) return;
+  e.addTag("kr_quiz");
+  const idx = wordOf(e);
+  enqueue(p, async () => {
+    const elite = e.hasTag("kr_elite");
+    const r = await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l単語シールド" });
+    if (!e.isValid) return;
+    try {
+      e.removeTag("kr_quiz");
+      e.addTag("kr_asked");
+      if (r.ok) {
+        e.removeTag("kr_shield");
+        e.removeEffect("resistance");
+        e.nameTag = "§a" + WORDS[idx][0];
+        addStat(p, "shield");
+        e.dimension.spawnParticle("minecraft:critical_hit_emitter", e.location);
+        sound(p, "random.break");
+      } else {
+        e.setDynamicProperty("kr:retry", Date.now() + 3000);
+        sound(p, "mob.ravager.roar");
+      }
+    } catch (err) {}
+    // 弱体化・強化は、画面を閉じて「止める効果」が切れてからかける
+    system.runTimeout(() => {
+      try {
+        if (!e.isValid) return;
+        if (r.fast) { e.addEffect("weakness", 20 * 30, { amplifier: 1 }); e.addEffect("slowness", 20 * 30, { amplifier: 1 }); }
+        else if (!r.ok) { e.addEffect("strength", 20 * 20, { amplifier: 1 }); e.addEffect("speed", 20 * 20, { amplifier: 0 }); }
+      } catch (err) {}
+    }, 16);
+  });
+});
+
+// シールドの問題を一度も出さずに倒した敵は、倒した時に出題する
 /* 誰が倒したか：火属性の炎・溶岩・落下などで倒れた時は「とどめ」がプレイヤーにならないので、
    最後に攻撃したプレイヤー（15秒以内）か、ダンジョンの敵ならダンジョンにいるいちばん近いプレイヤーにする */
 const lastHit = new Map();
@@ -547,19 +596,18 @@ world.afterEvents.entityDie.subscribe(ev => {
   lastHit.delete(ev.deadEntity.id);
   if (!p) return;
   const e = ev.deadEntity;
-  let boss = false, wave = false, elite = false;
-  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); elite = e.hasTag("kr_elite"); } catch (err) {}
+  let boss = false, wave = false, elite = false, asked = false;
+  try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); elite = e.hasTag("kr_elite"); asked = e.hasTag("kr_asked") || e.hasTag("kr_quiz"); } catch (err) {}
   let i = wordOf(e);
   mobWord.delete(e.id);
-  if (boss) return; // 門番は部屋の監視側で試練を出す
+  if (boss || asked) return; // 門番は部屋の監視側で試練を出す
   if (i === undefined) {
     if (!wave && (!st().cfg.outside || !isMonster(e))) return;
     i = pickWord();
   }
   const idx = i;
   enqueue(p, async () => {
-    const r = await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l討伐の問い" });
-    if (r.ok) addStat(p, "shield");
+    await askOne(p, idx, elite ? { title: "§l§6精鋭の問い（例文）", cloze: true } : { title: "§l討伐の問い" });
   });
 });
 
@@ -987,6 +1035,7 @@ const ROOM_INFO = {
   treasure: { name: "宝物庫",     sub: "中央の宝箱に近づけ" },
   fountain: { name: "癒しの泉",   sub: "中央の光に触れると全回復" },
   shrine:   { name: "単語の祭壇", sub: "中央の祭壇で試練に挑める" },
+  curse:    { name: "呪いの間",   sub: "敵が強い。突破すればコイン2倍と祝福2回" },
   boss:     { name: "門番の間",   sub: "門番を倒せ。最後に5問の試練" }
 };
 function roomTypes(len, n) {
@@ -1019,7 +1068,186 @@ function waveFor(n, type) {
     return [boss, ...Array.from({ length: 2 + Math.min(3, Math.floor(n / 3)) }, () => pick(pool))];
   }
   if (type === "elite") return [pick(poolFor(n + 3)), pick(pool), pick(pool)];
+  if (type === "curse") return Array.from({ length: Math.min(4 + Math.floor(n / 2), 9) }, () => pick(poolFor(n + 2)));
   return Array.from({ length: Math.min(3 + Math.floor(n / 2), 8) }, () => pick(pool));
+}
+
+/* ---------- 部屋の見た目：壁の色むら・柱と松明・鉄格子の小部屋・天井の梁とランタン・床の縁取りと模様 ---------- */
+const DECO = {
+  "地下牢": { vars: ["cracked_deepslate_bricks", "deepslate_tiles", "cobbled_deepslate", "cracked_deepslate_tiles"], trim: "polished_deepslate", butt: "deepslate_tiles", beam: "polished_deepslate",
+    base: "deepslate_tiles", fvars: ["cracked_deepslate_tiles", "polished_deepslate", "cobbled_deepslate"], border: "polished_deepslate", accent: "chiseled_deepslate",
+    torch: "torch", lamp: "lantern", niche: "cell", litter: ["web", "web", "skeleton_skull", "candle"] },
+  "苔むした遺跡": { vars: ["mossy_stone_bricks", "cracked_stone_bricks", "stone_bricks", "moss_block"], trim: "stone_bricks", butt: "mossy_stone_bricks", beam: "spruce_log",
+    base: "mossy_stone_bricks", fvars: ["moss_block", "cracked_stone_bricks", "stone_bricks", "mossy_cobblestone"], border: "stone_bricks", accent: "chiseled_stone_bricks",
+    torch: "torch", lamp: "lantern", niche: "leaves", litter: ["moss_carpet", "moss_carpet", "moss_carpet", "candle"] },
+  "灼熱の砦": { vars: ["cracked_nether_bricks", "chiseled_nether_bricks", "nether_brick", "blackstone"], trim: "polished_blackstone", butt: "polished_blackstone_bricks", beam: "polished_basalt",
+    base: "polished_blackstone_bricks", fvars: ["cracked_polished_blackstone_bricks", "blackstone", "magma"], border: "polished_blackstone", accent: "gilded_blackstone",
+    torch: "soul_torch", lamp: "soul_lantern", niche: "magma", litter: ["candle", "candle", "skeleton_skull"] },
+  "深淵": { vars: ["prismarine", "dark_prismarine", "prismarine_bricks"], trim: "dark_prismarine", butt: "prismarine_bricks", beam: "dark_prismarine",
+    base: "prismarine_bricks", fvars: ["dark_prismarine", "prismarine"], border: "dark_prismarine", accent: "sea_lantern",
+    torch: "soul_torch", lamp: "soul_lantern", niche: "water", litter: ["sea_pickle", "sea_pickle", "candle"] },
+  "無限の深淵": { vars: ["crying_obsidian", "blackstone", "obsidian"], trim: "polished_blackstone", butt: "crying_obsidian", beam: "obsidian",
+    base: "obsidian", fvars: ["crying_obsidian", "sculk", "blackstone"], border: "polished_blackstone", accent: "crying_obsidian",
+    torch: "soul_torch", lamp: "soul_lantern", niche: "void", litter: ["end_rod", "candle"] }
+};
+const decoOf = th => DECO[th.name] ?? DECO["地下牢"];
+/** setblock を候補の順に試す（名前の違うブロックの予備） */
+function setAny(dim, x, y, z, blocks) {
+  for (const b of blocks) { try { dim.runCommand(`setblock ${x} ${y} ${z} ${b}`); return; } catch (e) {} }
+}
+/** 部屋の壁・天井（1回だけ）。扉は部屋の辺の真ん中にあるので、真ん中±2には柱や小部屋を置かない */
+function decorateShell(dim, r, th, Y) {
+  const dc = decoOf(th);
+  // 壁：下と上に帯、色違いのブロックを混ぜる
+  const walls = [
+    { fixed: "x", at: r.x1, from: r.z1, to: r.z2, mid: r.cz, inward: 1 },
+    { fixed: "x", at: r.x2, from: r.z1, to: r.z2, mid: r.cz, inward: -1 },
+    { fixed: "z", at: r.z1, from: r.x1, to: r.x2, mid: r.cx, inward: 1 },
+    { fixed: "z", at: r.z2, from: r.x1, to: r.x2, mid: r.cx, inward: -1 }
+  ];
+  const P = (w, t, y, depth = 0) => w.fixed === "x" ? [w.at + depth * w.inward, y, t] : [t, y, w.at + depth * w.inward];
+  const facing = w => w.fixed === "x" ? (w.inward > 0 ? "east" : "west") : (w.inward > 0 ? "south" : "north");
+  for (const w of walls) {
+    for (const y of [Y + 1, Y + 5]) {
+      const [a, , b] = P(w, w.from, y), [c, , d] = P(w, w.to, y);
+      cmd(dim, `fill ${a} ${y} ${b} ${c} ${y} ${d} ${dc.trim}`);
+    }
+    for (let t = w.from + 1; t < w.to; t++) for (let y = Y + 2; y <= Y + 4; y++) {
+      if (Math.random() < 0.28) { const [x, , z] = P(w, t, y); setAny(dim, x, y, z, [pick(dc.vars)]); }
+    }
+    // 柱（壁から1マス出る）と松明
+    const len = w.to - w.from, cols = [];
+    for (let t = w.from + 2; t <= w.to - 2; t += 4) if (Math.abs(t - w.mid) > 2) cols.push(t);
+    for (const t of cols) {
+      const [x, , z] = P(w, t, 0, 1);
+      cmd(dim, `fill ${x} ${Y + 1} ${z} ${x} ${Y + 5} ${z} ${dc.butt}`);
+      const [tx, , tz] = P(w, t, 0, 2);
+      setAny(dim, tx, Y + 3, tz, [`${dc.torch} ["torch_facing_direction"="${facing(w)}"]`, "torch"]);
+    }
+    // 壁の小部屋（鉄格子の牢・苔の窪み・マグマ・水槽など）
+    if (len >= 8) {
+      const spots = [];
+      for (let t = w.from + 2; t <= w.to - 3; t++) if (Math.abs(t - w.mid) > 2 && Math.abs(t + 1 - w.mid) > 2 && !cols.includes(t) && !cols.includes(t + 1)) spots.push(t);
+      if (spots.length) {
+        const t0 = pick(spots);
+        const [bx1, , bz1] = P(w, t0, 0, -1), [bx2, , bz2] = P(w, t0 + 1, 0, -1);
+        const [fx1, , fz1] = P(w, t0, 0, 0), [fx2, , fz2] = P(w, t0 + 1, 0, 0);
+        const back = `${bx1} ${Y + 1} ${bz1} ${bx2} ${Y + 3} ${bz2}`, front = `${fx1} ${Y + 1} ${fz1} ${fx2} ${Y + 3} ${fz2}`;
+        if (dc.niche === "cell") {
+          cmd(dim, `fill ${back} air`); cmd(dim, `fill ${front} iron_bars`);
+          setAny(dim, bx1, Y + 1, bz1, ["skeleton_skull", "skull"]); setAny(dim, bx2, Y + 1, bz2, ["web"]); setAny(dim, bx2, Y + 3, bz2, ["chain"]);
+        } else if (dc.niche === "leaves") {
+          cmd(dim, `fill ${back} azalea_leaves`); cmd(dim, `fill ${front} air`); setAny(dim, fx1, Y + 1, fz1, ["moss_carpet"]);
+        } else if (dc.niche === "magma") {
+          cmd(dim, `fill ${back} magma`); cmd(dim, `fill ${front} iron_bars`); setAny(dim, bx1, Y + 3, bz1, ["shroomlight"]);
+        } else if (dc.niche === "water") {
+          cmd(dim, `fill ${back} water`); cmd(dim, `fill ${front} glass`); setAny(dim, bx1, Y + 1, bz1, ["sea_lantern"]);
+        } else {
+          cmd(dim, `fill ${back} crying_obsidian`); cmd(dim, `fill ${front} air`); setAny(dim, fx1, Y + 1, fz1, ["end_rod"]);
+        }
+      }
+    }
+  }
+  // 天井：2本の梁と吊りランタン、真ん中の明かり
+  const hz = Math.max(2, Math.floor((r.z2 - r.z1) / 4));
+  for (const z of [r.cz - hz, r.cz + hz]) {
+    cmd(dim, `fill ${r.x1 + 1} ${Y + 5} ${z} ${r.x2 - 1} ${Y + 5} ${z} ${dc.beam}`);
+    for (const x of [r.cx - 2, r.cx + 2]) setAny(dim, x, Y + 4, z, [`${dc.lamp} ["hanging"=true]`, dc.lamp]);
+  }
+  cmd(dim, `setblock ${r.cx} ${Y + 6} ${r.cz} ${r.boss ? "shroomlight" : th.light}`);
+  if (th.hang) {
+    for (let h = 0; h < randInt(2, 4); h++) {
+      const hx = randInt(r.x1 + 2, r.x2 - 2), hz2 = randInt(r.z1 + 2, r.z2 - 2);
+      if (Math.abs(hx - r.cx) < 2 || Math.abs(hz2 - r.cz) < 2) continue;
+      setAny(dim, hx, Y + 5, hz2, [th.hang]);
+    }
+  }
+}
+/** 部屋の床と中身（部屋の種類が変わったら作り直す） */
+function decorateFloor(dim, r, th, Y, redo = false) {
+  const dc = decoOf(th);
+  if (redo) cmd(dim, `fill ${r.x1 + 2} ${Y + 1} ${r.z1 + 2} ${r.x2 - 2} ${Y + 3} ${r.z2 - 2} air`);
+  fillAny(dim, `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`, [r.boss ? "polished_blackstone_bricks" : dc.base, "polished_deepslate"]);
+  for (const a of [`${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z1 + 1}`, `${r.x1 + 1} ${Y} ${r.z2 - 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`,
+                   `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x1 + 1} ${Y} ${r.z2 - 1}`, `${r.x2 - 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`]) cmd(dim, `fill ${a} ${dc.border}`);
+  const area = (r.x2 - r.x1 - 3) * (r.z2 - r.z1 - 3);
+  for (let k = 0; k < Math.round(area * 0.16); k++) setAny(dim, randInt(r.x1 + 2, r.x2 - 2), Y, randInt(r.z1 + 2, r.z2 - 2), [pick(dc.fvars)]);
+  // 真ん中の模様
+  cmd(dim, `fill ${r.cx - 2} ${Y} ${r.cz - 2} ${r.cx + 2} ${Y} ${r.cz + 2} ${dc.border}`);
+  cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} ${dc.accent}`);
+  setAny(dim, r.cx, Y, r.cz, [dc.trim]);
+  // 床の下を流れる溶岩・水（ガラス越しに見える）
+  if (th.channel) {
+    for (const line of [`${r.cx} ${Y - 1} ${r.z1 + 1} ${r.cx} ${Y - 1} ${r.z2 - 1}`, `${r.x1 + 1} ${Y - 1} ${r.cz} ${r.x2 - 1} ${Y - 1} ${r.cz}`]) cmd(dim, `fill ${line} ${th.channel}`);
+    cmd(dim, `fill ${r.cx} ${Y} ${r.z1 + 1} ${r.cx} ${Y} ${r.cz - 3} glass`);
+    cmd(dim, `fill ${r.cx} ${Y} ${r.cz + 3} ${r.cx} ${Y} ${r.z2 - 1} glass`);
+    cmd(dim, `fill ${r.x1 + 1} ${Y} ${r.cz} ${r.cx - 3} ${Y} ${r.cz} glass`);
+    cmd(dim, `fill ${r.cx + 3} ${Y} ${r.cz} ${r.x2 - 1} ${Y} ${r.cz} glass`);
+  }
+  // 壁ぎわの小物（クモの巣・苔・ろうそく・どくろ…）
+  for (let k = 0; k < randInt(3, 6); k++) {
+    const side = randInt(0, 3), t = side < 2 ? randInt(r.z1 + 2, r.z2 - 2) : randInt(r.x1 + 2, r.x2 - 2);
+    const x = side === 0 ? r.x1 + 2 : side === 1 ? r.x2 - 2 : t, z = side < 2 ? t : side === 2 ? r.z1 + 2 : r.z2 - 2;
+    if (Math.abs(x - r.cx) < 3 && Math.abs(z - r.cz) < 3) continue;
+    if ((side < 2 && Math.abs(z - r.cz) <= 2) || (side >= 2 && Math.abs(x - r.cx) <= 2)) continue; // 扉の前はあける
+    setAny(dim, x, Y + 1, z, [pick(dc.litter)]);
+  }
+  // 部屋の種類ごとの目印
+  if (r.type === "treasure") {
+    cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} chest`);
+    for (const [ox, oz] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) cmd(dim, `setblock ${r.cx + ox} ${Y + 1} ${r.cz + oz} gold_block`);
+  }
+  if (r.type === "fountain") {
+    cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} prismarine`);
+    cmd(dim, `setblock ${r.cx} ${Y} ${r.cz} sea_lantern`);
+    cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} soul_lantern`);
+  }
+  if (r.type === "shrine") {
+    cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} enchanting_table`);
+    for (const [ox, oz] of [[2, 2], [-2, 2], [2, -2], [-2, -2]]) cmd(dim, `fill ${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 2} ${r.cz + oz} bookshelf`);
+  }
+  if (r.type === "elite") cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} redstone_block`);
+  if (r.type === "curse") {
+    cmd(dim, `fill ${r.cx - 2} ${Y} ${r.cz - 2} ${r.cx + 2} ${Y} ${r.cz + 2} crying_obsidian`);
+    for (const [ox, oz] of [[2, 2], [-2, 2], [2, -2], [-2, -2]]) setAny(dim, r.cx + ox, Y + 1, r.cz + oz, ["soul_lantern"]);
+  }
+  if (r.boss) for (const [ox, oz] of [[4, 4], [-4, 4], [4, -4], [-4, -4]]) fillAny(dim, `${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 5} ${r.cz + oz}`, [dc.butt, "deepslate_tiles"]);
+}
+
+/* ---------- 道を選ぶ：部屋を突破したら、次の部屋を3つから選ぶ（扉は選んでから開く） ---------- */
+const ROUTE_ICON = { battle: "textures/items/iron_sword", elite: "textures/items/diamond_sword", treasure: "textures/items/gold_ingot",
+  fountain: "textures/items/apple_golden", shrine: "textures/items/book_enchanted", curse: "textures/items/blaze_powder" };
+const ROUTE_HINT = { battle: "ふつうの戦い", elite: "強敵。コイン2倍と祝福", treasure: "コイン・金のリンゴ・祝福のどれか",
+  fountain: "HP全回復と守りの加護", shrine: "5問の試練。全問即答で祝福", curse: "敵が強い。コイン2倍・祝福2回" };
+function routeOptions(n, cur, rooms) {
+  const used = new Set(rooms.filter(r => r.state === "cleared").map(r => r.type));
+  /** @type {Array<[string, number]>} */
+  const bag = [["battle", 40], ["elite", n >= 2 ? 20 : 0], ["treasure", 14], ["fountain", used.has("fountain") ? 0 : 10], ["shrine", 14], ["curse", n >= 2 ? 14 : 0]];
+  const out = [cur];
+  for (let guard = 0; out.length < 3 && guard < 50; guard++) {
+    const pool = bag.filter(([t, w]) => w > 0 && !out.includes(t));
+    if (!pool.length) break;
+    let x = Math.random() * pool.reduce((a, [, w]) => a + w, 0);
+    for (const [t, w] of pool) { x -= w; if (x <= 0) { out.push(t); break; } }
+  }
+  return out.sort(() => Math.random() - 0.5);
+}
+/** @param {Player} p @param {number} k 突破した部屋 */
+async function chooseRoute(p, k) {
+  const d = st().dun, r = d.rooms[k], next = d.rooms[k + 1];
+  const open = () => { setDoor(ow(), r, "air"); sound(p, "random.door_open"); };
+  if (!next || next.boss || next.state !== "idle") { open(); return; }
+  const opts = routeOptions(d.floor, next.type, d.rooms);
+  let chosen = next.type;
+  await menu(p, "§l次の部屋を選べ", "§7扉の先の部屋を選ぶ。残り " + (d.rooms.length - k - 1) + " 部屋（最後は門番）",
+    opts.map(t => /** @type {[string, string | null, () => any]} */ (["§l" + ROOM_INFO[t].name + "\n§8" + ROUTE_HINT[t], ROUTE_ICON[t], () => { chosen = t; }])));
+  if (chosen !== next.type) {
+    next.type = chosen;
+    decorateFloor(ow(), next, themeOf(d.floor), d.Y, true);
+  }
+  saveNow();
+  open();
+  title(p, "§a扉が開いた", "次は " + ROOM_INFO[chosen].name);
 }
 
 /** n階を作る（前の階は消して作り直す） */
@@ -1039,56 +1267,24 @@ function genFloor(n) {
     const cx = sl.X1 + gx * CELL + 9, cz = sl.Z1 + gz * CELL + 9;
     return { x1: cx - h, x2: cx + h, z1: cz - h, z2: cz + h, cx, cz, state: "idle", type, boss: big, used: false, door: /** @type {number[] | null} */ (null) };
   });
-  rooms.forEach((r, k) => {
+  rooms.forEach(r => {
     cmd(dim, `fill ${r.x1 + 1} ${Y + 1} ${r.z1 + 1} ${r.x2 - 1} ${Y + 5} ${r.z2 - 1} air`);
-    fillAny(dim, `${r.x1 + 1} ${Y} ${r.z1 + 1} ${r.x2 - 1} ${Y} ${r.z2 - 1}`, [r.boss ? "polished_blackstone_bricks" : pick(th.floors), "polished_deepslate"]);
-    for (const [lx, lz] of [[r.x1 + 2, r.z1 + 2], [r.x2 - 2, r.z1 + 2], [r.x1 + 2, r.z2 - 2], [r.x2 - 2, r.z2 - 2], [r.cx, r.cz]]) {
-      cmd(dim, `setblock ${lx} ${Y + 6} ${lz} ${r.boss ? "shroomlight" : th.light}`);
-    }
-    // 天井から垂れる鎖・根・つる
-    if (th.hang) {
-      for (let h = 0; h < randInt(3, 6); h++) {
-        const hx = randInt(r.x1 + 1, r.x2 - 1), hz = randInt(r.z1 + 1, r.z2 - 1);
-        if (hx === r.cx || hz === r.cz) continue;
-        cmd(dim, `setblock ${hx} ${Y + 5} ${hz} ${th.hang}`);
-      }
-    }
-    // 床の下を流れる溶岩・水（ガラス越しに見える。地図の川のイメージ）
-    if (th.channel) {
-      for (const line of [`${r.cx} ${Y - 1} ${r.z1 + 1} ${r.cx} ${Y - 1} ${r.z2 - 1}`, `${r.x1 + 1} ${Y - 1} ${r.cz} ${r.x2 - 1} ${Y - 1} ${r.cz}`]) {
-        cmd(dim, `fill ${line} ${th.channel}`);
-      }
-      cmd(dim, `fill ${r.cx} ${Y} ${r.z1 + 1} ${r.cx} ${Y} ${r.z2 - 1} glass`);
-      cmd(dim, `fill ${r.x1 + 1} ${Y} ${r.cz} ${r.x2 - 1} ${Y} ${r.cz} glass`);
-    }
-    const pillars = r.boss ? [[4, 4], [-4, 4], [4, -4], [-4, -4]] : (r.x2 - r.x1 >= 12 && Math.random() < 0.6 ? [[3, 3], [-3, -3]] : []);
-    for (const [ox, oz] of pillars) fillAny(dim, `${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 5} ${r.cz + oz}`, [th.pillar, "deepslate_tiles"]);
-    // 部屋の種類ごとの目印
-    if (r.type === "treasure") {
-      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} chest`);
-      for (const [ox, oz] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) cmd(dim, `setblock ${r.cx + ox} ${Y + 1} ${r.cz + oz} gold_block`);
-    }
-    if (r.type === "fountain") {
-      cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} prismarine`);
-      cmd(dim, `setblock ${r.cx} ${Y} ${r.cz} sea_lantern`);
-      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} soul_lantern`);
-    }
-    if (r.type === "shrine") {
-      cmd(dim, `setblock ${r.cx} ${Y + 1} ${r.cz} enchanting_table`);
-      for (const [ox, oz] of [[2, 2], [-2, 2], [2, -2], [-2, -2]]) cmd(dim, `fill ${r.cx + ox} ${Y + 1} ${r.cz + oz} ${r.cx + ox} ${Y + 2} ${r.cz + oz} bookshelf`);
-    }
-    if (r.type === "elite") cmd(dim, `fill ${r.cx - 1} ${Y} ${r.cz - 1} ${r.cx + 1} ${Y} ${r.cz + 1} redstone_block`);
+    decorateShell(dim, r, th, Y);
+    decorateFloor(dim, r, th, Y);
+  });
+  const dc = decoOf(th);
+  rooms.forEach((r, k) => {
     const next = rooms[k + 1];
     if (!next) return;
     if (next.cz === r.cz) {
       const fwd = next.cx > r.cx, xa = fwd ? r.x2 : next.x2, xb = fwd ? next.x1 : r.x1, dx = fwd ? r.x2 : r.x1;
       cmd(dim, `fill ${xa} ${Y + 1} ${r.cz - 1} ${xb} ${Y + 3} ${r.cz + 1} air`);
-      cmd(dim, `fill ${xa} ${Y} ${r.cz - 1} ${xb} ${Y} ${r.cz + 1} polished_deepslate`);
+      cmd(dim, `fill ${xa} ${Y} ${r.cz - 1} ${xb} ${Y} ${r.cz + 1} ${dc.border}`);
       r.door = [dx, Y + 1, r.cz - 1, dx, Y + 3, r.cz + 1];
     } else {
       const fwd = next.cz > r.cz, za = fwd ? r.z2 : next.z2, zb = fwd ? next.z1 : r.z1, dz = fwd ? r.z2 : r.z1;
       cmd(dim, `fill ${r.cx - 1} ${Y + 1} ${za} ${r.cx + 1} ${Y + 3} ${zb} air`);
-      cmd(dim, `fill ${r.cx - 1} ${Y} ${za} ${r.cx + 1} ${Y} ${zb} polished_deepslate`);
+      cmd(dim, `fill ${r.cx - 1} ${Y} ${za} ${r.cx + 1} ${Y} ${zb} ${dc.border}`);
       r.door = [r.cx - 1, Y + 1, dz, r.cx + 1, Y + 3, dz];
     }
     setDoor(dim, r, "iron_bars");
@@ -1241,11 +1437,20 @@ function startWave(k) {
         e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(4, n), showParticles: false });
         e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
       }
+      if (r.type === "curse") {
+        e.addEffect("strength", 20 * 3600, { amplifier: 1, showParticles: false });
+        e.addEffect("speed", 20 * 3600, { amplifier: 0, showParticles: false });
+        e.addEffect("health_boost", 20 * 3600, { amplifier: 1, showParticles: false });
+      }
       if (r.type === "elite" && idx === 0) {
         e.addTag("kr_elite");
         e.addEffect("health_boost", 20 * 3600, { amplifier: Math.min(3, 1 + Math.floor(n / 3)), showParticles: false });
         e.addEffect("regeneration", 20 * 6, { amplifier: 4, showParticles: false });
         e.addEffect("speed", 20 * 3600, { amplifier: 0, showParticles: false });
+      }
+      if (!(r.type === "boss" && idx === 0)) {
+        e.addTag("kr_shield");
+        e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
       }
       tagWord(e, pickWord(undefined, floorScope(n)));
       if (r.type === "elite" && idx === 0) e.nameTag = "§6§l精鋭 §r§e" + WORDS[mobWord.get(e.id) ?? 0][0];
@@ -1255,7 +1460,7 @@ function startWave(k) {
     if (!isInDungeon(p)) continue;
     if (bossEnt) { bossIntro(p, bossEnt, "§4§l" + n + "階の門番", ROOM_INFO.boss.sub); sound(p, "mob.wither.spawn"); continue; }
     title(p, "§6" + ROOM_INFO[r.type].name, ROOM_INFO[r.type].sub);
-    sound(p, r.boss ? "mob.wither.spawn" : r.type === "elite" ? "mob.evocation_illager.prepare_summon" : "mob.zombie.say");
+    sound(p, r.boss ? "mob.wither.spawn" : r.type === "elite" || r.type === "curse" ? "mob.evocation_illager.prepare_summon" : "mob.zombie.say");
   }
 }
 /** 戦わない部屋（宝物庫・泉・祭壇）は入った時点で扉を開ける */
@@ -1263,28 +1468,30 @@ function enterPeacefulRoom(k) {
   const d = st().dun, r = d.rooms[k];
   r.state = "cleared";
   saveNow();
-  setDoor(ow(), r, "air");
-  for (const p of world.getPlayers()) {
-    if (!isInDungeon(p)) continue;
+  const ps = world.getPlayers().filter(p => isInDungeon(p));
+  for (const p of ps) {
     title(p, "§b" + ROOM_INFO[r.type].name, ROOM_INFO[r.type].sub);
     sound(p, "random.chestopen");
   }
+  if (ps[0]) enqueue(ps[0], () => chooseRoute(ps[0], k), true); else setDoor(ow(), r, "air");
 }
 function clearRoom(k) {
   const d = st().dun, r = d.rooms[k];
   r.state = "cleared";
   saveNow();
-  setDoor(ow(), r, "air");
-  if (r.boss) return;
-  const elite = r.type === "elite";
-  for (const p of world.getPlayers()) {
-    if (!isInDungeon(p)) continue;
+  if (r.boss) { setDoor(ow(), r, "air"); return; }
+  const elite = r.type === "elite", curse = r.type === "curse";
+  const ps = world.getPlayers().filter(p => isInDungeon(p));
+  if (!ps.length) { setDoor(ow(), r, "air"); return; }
+  ps.forEach((p, i) => {
     addStat(p, "clear");
-    addCoins(p, Math.round((elite ? COIN.room * 2 : COIN.room) * coinMult()), elite ? "精鋭撃破" : "部屋クリア");
-    title(p, "§a扉が開いた", elite ? "精鋭を倒した！ 祝福を選べ" : "祝福を選べ");
-    sound(p, "random.door_open");
-    enqueue(p, () => chooseBlessing(p, elite ? "精鋭を倒した！" : "部屋を突破した！"));
-  }
+    addCoins(p, Math.round((elite || curse ? COIN.room * 2 : COIN.room) * coinMult()), curse ? "呪いを破った" : elite ? "精鋭撃破" : "部屋クリア");
+    title(p, "§a部屋を突破", curse ? "呪いを破った！ 祝福を2回選べ" : elite ? "精鋭を倒した！ 祝福を選べ" : "祝福を選べ");
+    sound(p, "random.levelup");
+    enqueue(p, () => chooseBlessing(p, curse ? "呪いを破った！" : elite ? "精鋭を倒した！" : "部屋を突破した！"), true);
+    if (curse) enqueue(p, () => chooseBlessing(p, "呪いを破った！（2回目）"), true);
+    if (i === 0) enqueue(p, () => chooseRoute(p, k), true);
+  });
 }
 // 宝物庫・泉・祭壇：中央に近づくと発動（1回だけ）
 system.runInterval(() => {
@@ -1480,6 +1687,8 @@ system.runTimeout(() => {
     if (d) {
       const last = d.rooms[d.rooms.length - 1];
       if (last.state === "trial") { last.state = "idle"; saveNow(); }
+      // 道を選ぶ前に抜けた時のために、突破済みの部屋の扉は開けておく
+      if (!d.raid) d.rooms.forEach(r => { if (r.state === "cleared") setDoor(ow(), r, "air"); });
     }
   } catch (e) {}
 }, 20);
@@ -1729,6 +1938,8 @@ async function raidMinions(p, c, count) {
       const e = dim.spawnEntity(pick(pool), { x: r.cx + 0.5 + Math.cos(ang) * 8, y: d.Y + 1, z: r.cz + 0.5 + Math.sin(ang) * 8 });
       e.addTag("kr_wave");
       e.addTag("kr_minion");
+      e.addTag("kr_shield");
+      e.addEffect("resistance", 20 * 3600, { amplifier: SHIELD_RES, showParticles: false });
       tagWord(e, pickWord(undefined, sc));
     } catch (err) {}
   }
