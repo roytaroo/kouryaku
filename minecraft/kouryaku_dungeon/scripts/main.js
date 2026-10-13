@@ -250,7 +250,6 @@ function hurtSafely(p, dmg) {
     const hp = /** @type {any} */ (p.getComponent("minecraft:health"));
     const cur = hp ? hp.currentValue : 20;
     const amount = Math.min(dmg, Math.max(0, cur - 2));
-    if (freezeDepth > 0) { try { p.removeEffect("resistance"); } catch (e) {} } // 画面中のダメージ無効を外して、ミスの分だけ受ける
     if (amount > 0) p.applyDamage(amount);
   } catch (e) {}
 }
@@ -262,45 +261,82 @@ function title(p, main, sub) {
   try { p.onScreenDisplay.setTitle(main, { fadeInDuration: 5, stayDuration: 40, fadeOutDuration: 10, subtitle: sub }); } catch (e) {}
 }
 
-/* ---------- 画面を見ている間は敵を止める ----------
-   問題・答え・メニューが開いている間（と、出題の待ち行列が残っている間）は、毎tick：
-   ・まわりの敵の勢いを0にして、速さ0（鈍足255）と攻撃力ダウン（弱体化レベル10）をかけ直す
-   ・飛んでくる矢・火の玉・ポーション・牙などを消す
-   ・プレイヤーはダメージ無効（耐性V）。ミスのダメージだけは hurtSafely で受ける
-   画面を閉じると、数tickで元に戻る */
+/* ---------- 画面を見ている間は、敵をどかしておく ----------
+   問題・答え・メニューが開いている間（と、出題の待ち行列が残っている間）は、
+   まわりの敵をダンジョンの天井より上の「見えない箱」（バリアで囲った部屋）へ移し、画面を閉じたら元の場所に戻す。
+   → 殴る・弓を撃つ・殴る音、どれも起きない。飛んでいる矢や火の玉も消す。 */
 let freezeDepth = 0;
 const PROJECTILES = new Set(["minecraft:arrow", "minecraft:small_fireball", "minecraft:fireball", "minecraft:splash_potion", "minecraft:lingering_potion",
   "minecraft:evocation_fang", "minecraft:shulker_bullet", "minecraft:thrown_trident", "minecraft:wind_charge_projectile", "minecraft:breeze_wind_charge_projectile", "minecraft:llama_spit"]);
+/** @type {Map<string, {e: any, loc: {x:number,y:number,z:number}, rot: {x:number,y:number}}>} */
+const parked = new Map();
+function vaultPos() {
+  const c = st().camp;
+  if (!c) return null;
+  const sl = c.slot;
+  return { x: Math.floor((sl.X1 + sl.X2) / 2), y: sl.Y + 12, z: Math.floor((sl.Z1 + sl.Z2) / 2) };
+}
+let vaultBuilt = "";
+function buildVault(v) {
+  const key = v.x + "," + v.y + "," + v.z;
+  if (vaultBuilt === key) return;
+  cmd(ow(), `fill ${v.x - 3} ${v.y - 1} ${v.z - 3} ${v.x + 3} ${v.y + 3} ${v.z + 3} barrier hollow`);
+  cmd(ow(), `fill ${v.x - 3} ${v.y + 3} ${v.z - 3} ${v.x + 3} ${v.y + 3} ${v.z + 3} deepslate_bricks`); // 日光で燃えないように屋根
+  vaultBuilt = key;
+}
 function freezeTick() {
   if (freezeDepth <= 0) return;
+  const v = vaultPos();
   for (const p of world.getPlayers()) {
-    try {
-      p.addEffect("resistance", 6, { amplifier: 4, showParticles: false });
-      p.addEffect("fire_resistance", 6, { amplifier: 0, showParticles: false });
-    } catch (e) {}
+    if (!isInDungeon(p)) continue;
     /** @type {any[]} */
     let near = [];
     try { near = p.dimension.getEntities({ location: p.location, maxDistance: 48 }); } catch (e) {}
     for (const e of near) {
       try {
-        if (!e.isValid || e.typeId === "minecraft:player") continue;
+        if (!e.isValid || e.typeId === "minecraft:player" || parked.has(e.id)) continue;
         if (PROJECTILES.has(e.typeId)) { e.remove(); continue; }
-        if (!isMonster(e) && !e.hasTag("kr_wave")) continue;
-        e.addEffect("slowness", 6, { amplifier: 255, showParticles: false });
-        e.addEffect("weakness", 6, { amplifier: 9, showParticles: false });
-        e.clearVelocity();
+        if (!v || (!isMonster(e) && !e.hasTag("kr_wave"))) continue;
+        buildVault(v);
+        parked.set(e.id, { e, loc: e.location, rot: e.getRotation() });
+        e.addTag("kr_parked");
+        e.teleport({ x: v.x + 0.5 + randInt(-2, 2), y: v.y, z: v.z + 0.5 + randInt(-2, 2) });
       } catch (err) {}
     }
   }
 }
+/** 画面を閉じたら、どかしていた敵を元の場所に戻す */
+function unparkAll() {
+  for (const { e, loc, rot } of parked.values()) {
+    try {
+      if (!e.isValid) continue;
+      e.teleport(loc, { rotation: rot });
+      e.removeTag("kr_parked");
+      e.clearVelocity();
+    } catch (err) {}
+  }
+  parked.clear();
+}
 system.runInterval(freezeTick, 1);
+// ワールドを開き直した時に箱に残っていた敵は、自分の部屋の真ん中に戻す
+system.runTimeout(() => {
+  try {
+    const d = st().dun;
+    for (const e of ow().getEntities({ tags: ["kr_parked"] })) {
+      const k = Number((e.getTags().find(t => /^kr_r\d+$/.test(t)) ?? "kr_r0").slice(4));
+      const r = d?.rooms?.[k];
+      if (r && d) e.teleport({ x: r.cx + 0.5, y: d.Y + 1, z: r.cz + 0.5 }); else e.remove();
+      e.removeTag("kr_parked");
+    }
+  } catch (e) {}
+}, 30);
 /** fn を実行している間、敵を止める */
 async function frozen(fn) {
   freezeDepth++;
   freezeTick();
   try { return await fn(); } finally {
     freezeDepth = Math.max(0, freezeDepth - 1);
-    if (freezeDepth === 0) system.runTimeout(() => { for (const p of world.getPlayers()) applyBlessings(p); }, 7);
+    if (freezeDepth === 0) unparkAll();
   }
 }
 
