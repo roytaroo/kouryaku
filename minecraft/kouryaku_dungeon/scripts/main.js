@@ -519,9 +519,33 @@ async function askOneInner(p, i, opt = {}) {
 /* ---------- events: mobs（倒したら出題） ----------
    ダンジョンの敵を倒すと、その敵の単語が出題される（精鋭は例文の穴埋め）。ミスするとダメージ。
    殴るたびに出すと忙しすぎるので、倒した時だけにした */
-world.afterEvents.entityDie.subscribe(ev => {
+/* 誰が倒したか：火属性の炎・溶岩・落下などで倒れた時は「とどめ」がプレイヤーにならないので、
+   最後に攻撃したプレイヤー（15秒以内）か、ダンジョンの敵ならダンジョンにいるいちばん近いプレイヤーにする */
+const lastHit = new Map();
+world.afterEvents.entityHurt.subscribe(ev => {
   const p = ev.damageSource.damagingEntity;
-  if (!(p instanceof Player)) return;
+  if (p instanceof Player) lastHit.set(ev.hurtEntity.id, { pid: p.id, t: Date.now() });
+});
+/** @returns {Player | undefined} */
+function killerOf(ev) {
+  const d = ev.damageSource.damagingEntity;
+  if (d instanceof Player) return d;
+  const e = ev.deadEntity, h = lastHit.get(e.id);
+  if (h && Date.now() - h.t < 15000) {
+    const p = world.getPlayers().find(x => x.id === h.pid);
+    if (p) return p;
+  }
+  let wave = false, loc = null;
+  try { wave = e.hasTag("kr_wave"); loc = e.location; } catch (err) {}
+  if (!wave || !loc) return undefined;
+  const ps = world.getPlayers().filter(x => isInDungeon(x));
+  ps.sort((a, b) => Math.hypot(a.location.x - loc.x, a.location.z - loc.z) - Math.hypot(b.location.x - loc.x, b.location.z - loc.z));
+  return ps[0];
+}
+world.afterEvents.entityDie.subscribe(ev => {
+  const p = killerOf(ev);
+  lastHit.delete(ev.deadEntity.id);
+  if (!p) return;
   const e = ev.deadEntity;
   let boss = false, wave = false, elite = false;
   try { boss = e.hasTag("kr_boss"); wave = e.hasTag("kr_wave"); elite = e.hasTag("kr_elite"); } catch (err) {}
@@ -1190,8 +1214,8 @@ function onAnswer(p, ok, fast, combo) {
 }
 // 吸血：敵を倒すとHP回復
 world.afterEvents.entityDie.subscribe(ev => {
-  const p = ev.damageSource.damagingEntity;
-  if (!(p instanceof Player) || !blessLv("vamp")) return;
+  const p = killerOf(ev);
+  if (!p || !blessLv("vamp")) return;
   try { if (!ev.deadEntity.hasTag("kr_wave")) return; } catch (e) { return; }
   healPlayer(p, 2 * blessLv("vamp"));
 });
@@ -1968,7 +1992,7 @@ const MOB_NAMES = {
   "minecraft:evoker": "エヴォーカー", "minecraft:ravager": "ラヴェジャー", "minecraft:vex": "ヴェックス"
 };
 world.afterEvents.entityDie.subscribe(ev => {
-  if (!(ev.damageSource.damagingEntity instanceof Player)) return;
+  if (!killerOf(ev)) return;
   let t = "";
   try { if (!ev.deadEntity.hasTag("kr_wave")) return; t = ev.deadEntity.typeId; } catch (e) { return; }
   const s = st();
