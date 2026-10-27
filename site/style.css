@@ -94,7 +94,7 @@ input.field,select.field,textarea.field{border:1px solid var(--line);border-radi
 .bname{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .bname b{font-family:var(--display);font-weight:400;font-size:16px}
 .rar{font-size:11px;font-weight:700;border-radius:6px;padding:0 6px;border:1px solid currentColor}
-.rar.r1{color:var(--muted)} .rar.r2{color:var(--sky)} .rar.r3{color:var(--koban)}
+.rar.r1{color:#c8507a} .rar.r2{color:var(--good)} .rar.r3{color:var(--sky)} .rar.r4{color:var(--koban)} .rar.r5{color:#fff;background:linear-gradient(90deg,#9a4aff,#ff4a8a,#ffb02a);border-color:transparent}
 @media (max-width:420px){.buddy{grid-template-columns:120px minmax(0,1fr)}.buddy canvas,.buddy img{width:120px;height:140px}}
 
 /* ---- フェーズとノルマ ---- */
@@ -158,8 +158,9 @@ input.field,select.field,textarea.field{border:1px solid var(--line);border-radi
 .dex button img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
 .dex button.lock img{filter:brightness(0) opacity(.18)}
 .dex button.lock span{color:var(--muted)}
-.dex button[data-r="3"]{border-color:color-mix(in srgb,var(--koban) 60%,var(--line))}
-.dex button[data-r="2"]{border-color:color-mix(in srgb,var(--sky) 45%,var(--line))}
+.dex button[data-r="3"]{border-color:color-mix(in srgb,var(--sky) 45%,var(--line))}
+.dex button[data-r="4"]{border-color:color-mix(in srgb,var(--koban) 60%,var(--line))}
+.dex button[data-r="5"]{border-color:#b06aff}
 .dex button .cur{position:absolute;top:4px;left:4px;background:var(--lantern);color:#1b1206;font-size:10px;border-radius:6px;padding:0 5px}
 .sheet{position:fixed;inset:0;z-index:40;background:rgba(10,10,20,.5);display:grid;align-items:end;justify-items:center;padding:0 max(0px,env(safe-area-inset-right,0px)) 0 max(0px,env(safe-area-inset-left,0px))}
 .sheet .in{background:var(--surface);width:100%;max-width:760px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;display:grid;gap:12px}
@@ -231,16 +232,17 @@ details.box summary{cursor:pointer;font-weight:700}
 #tStart{grid-column:1/-1}
 
 /* レアほど豪華に：珍は青い光、幻は金の光と輝き */
-.dex button[data-r="2"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--sky) 22%,var(--surface2)),var(--surface2) 72%)}
-.dex button[data-r="3"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--koban) 34%,var(--surface2)),var(--surface2) 75%);border-width:2px;overflow:hidden}
-.dex button[data-r="3"]:not(.lock)::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,236,170,.5) 50%,transparent 65%);transform:translateX(-120%);animation:shine 3.2s ease-in-out infinite;pointer-events:none}
+.dex button[data-r="3"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--sky) 22%,var(--surface2)),var(--surface2) 72%)}
+.dex button[data-r="4"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--koban) 34%,var(--surface2)),var(--surface2) 75%);border-width:2px;overflow:hidden}
+.dex button[data-r="5"]:not(.lock){background:radial-gradient(circle at 50% 42%,rgba(176,106,255,.4),rgba(255,74,138,.18) 50%,var(--surface2) 78%);border-width:2px;overflow:hidden}
+.dex button[data-r="4"]:not(.lock)::after,.dex button[data-r="5"]:not(.lock)::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,236,170,.5) 50%,transparent 65%);transform:translateX(-120%);animation:shine 3.2s ease-in-out infinite;pointer-events:none}
 @keyframes shine{60%,100%{transform:translateX(120%)}}
 .aura{border-radius:24px;padding:6px}
-.aura.r2{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--sky) 30%,transparent),transparent 70%)}
-.aura.r3{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--koban) 45%,transparent),transparent 70%);animation:pulse 2.4s ease-in-out infinite}
+.aura.r3{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--sky) 30%,transparent),transparent 70%)}
+.aura.r4{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--koban) 45%,transparent),transparent 70%);animation:pulse 2.4s ease-in-out infinite}
 @keyframes pulse{50%{filter:drop-shadow(0 0 14px color-mix(in srgb,var(--koban) 70%,transparent))}}
-.gacha .box.r3{background:radial-gradient(circle at 50% 40%,#ffe7a0,color-mix(in srgb,var(--koban) 40%,var(--surface2)) 55%,var(--surface2) 80%)}
-.gacha .box.r2{background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--sky) 45%,var(--surface2)),var(--surface2) 72%)}
+.gacha .box.r4{background:radial-gradient(circle at 50% 40%,#ffe7a0,color-mix(in srgb,var(--koban) 40%,var(--surface2)) 55%,var(--surface2) 80%)}
+.gacha .box.r3{background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--sky) 45%,var(--surface2)),var(--surface2) 72%)}
 
 /* イラストのお化け：ふわふわ浮かぶ。着けている小物は札で添える */
 .buddy-fig{position:relative}
@@ -254,3 +256,5 @@ details.box summary{cursor:pointer;font-weight:700}
 .flash .word.small{font-family:var(--body);font-weight:700;font-size:18px;line-height:1.6;text-align:left}
 .flash .word ruby rt{font-size:.4em}
 .flash .word.mid{font-size:clamp(26px,8vw,38px)}
+.aura.r5{background:radial-gradient(circle at 50% 45%,rgba(176,106,255,.45),rgba(255,74,138,.2) 45%,transparent 72%);animation:pulse 2.4s ease-in-out infinite}
+.gacha .box.r5{background:radial-gradient(circle at 50% 40%,#ffe7ff,rgba(176,106,255,.5) 50%,var(--surface2) 80%)}

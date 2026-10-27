@@ -31,7 +31,7 @@
     <div class="buddy">
       <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
       <div style="display:grid;gap:8px;min-width:0">
-        <div class="bname"><b id="bName">灯り小僧</b><span class="rar r1" id="bRar">並</span></div>
+        <div class="bname"><b id="bName">灯り小僧</b><span class="rar r1" id="bRar">梅</span></div>
         <div class="bubble" id="bubble" role="status"></div>
         <div style="display:grid;gap:3px"><div class="note" id="bEvo"></div><div class="bar-p"><i id="bEvoBar" style="background:var(--lantern)"></i></div></div>
         <div class="row"><button class="btn sm" type="button" id="talkBtn">話しかける</button><button class="btn ghost sm" type="button" data-goto="yokai">図鑑</button></div>
@@ -112,8 +112,9 @@
     </div>
   </div>
   <div id="lt-grammar" class="view" hidden>
+    <div class="card flash" id="gqBox" hidden></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
-      <p class="note" style="margin:0">授業を見たら確認問題を解いて点を入れる。8割で合格。</p><ul class="units" id="units-jh"></ul></div>
+      <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
   </div>
   <div id="lt-other" class="view" hidden>
@@ -136,7 +137,7 @@
   </div>
   <div id="yt-gacha" class="card" hidden>
     <div class="gacha">
-      <div class="eyebrow">百鬼ガチャ　並70%・珍25%・幻5%</div>
+      <div class="eyebrow">百鬼ガチャ　梅55%・竹27%・松12%・伝説5%・幻1%</div>
       <div class="box" id="gachaBox"><span class="lan">？</span></div>
       <div id="gachaRes"><div class="note">持っているお化けが出たら小判20枚もどる。</div></div>
       <button class="big-btn" type="button" id="gachaBtn">小判 <span id="yGacha">60</span> 枚で回す</button>

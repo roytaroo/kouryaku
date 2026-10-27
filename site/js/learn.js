@@ -151,7 +151,7 @@ function renderGrammar() {
     const html = GRAMMAR[g].units.map((name, i) => {
       const id = g + i, u = U[id] || {}, b = u.best, pc = b ? Math.round(100 * b[0] / b[1]) : null;
       return `<li class="unit${u.passed ? " pass" : ""}"><span><b style="font-size:14px">${esc(name)}</b>${u.passed ? ' <span class="rar r1" style="color:var(--good)">合格</span>' : ""}<br><span class="note">${u.tries ? "挑戦 " + u.tries + "回" : "まだ記録なし"}</span></span>
-      <button class="btn sm" type="button" data-u="${id}">${pc == null ? "記録する" : "<span class='pc'>" + pc + "%</span>"}</button>
+      <span class="row" style="flex-wrap:nowrap"><button class="btn pri sm" type="button" data-gs="${id}">確認問題</button><button class="btn sm" type="button" data-u="${id}">${pc == null ? "手で記録" : "<span class='pc'>" + pc + "%</span>"}</button></span>
       ${openUnit === id ? `<form data-uf="${id}"><input class="field num" id="uo-${id}" type="number" min="0" inputmode="numeric" placeholder="正解"><span>/</span><input class="field num" id="ut-${id}" type="number" min="1" inputmode="numeric" placeholder="問題数"><button class="btn pri sm" type="submit">保存</button><span class="note">8割で合格（小判＋30・お化けが仲間に）</span></form>` : ""}</li>`;
     }).join("");
     const el = $("units-" + g); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
@@ -159,10 +159,43 @@ function renderGrammar() {
     $("gsum-" + g).textContent = passed + " / " + GRAMMAR[g].units.length + " 単元 合格";
   }
 }
+/* ---- 単元の確認問題（8問・4択）。終わると点数をそのまま記録 ---- */
+let gq = null;
+function startGQ(id) {
+  const src = (typeof GQ !== "undefined" && GQ[id]) || [];
+  if (!src.length) { toast("この単元の問題はまだない。"); return; }
+  const qs = src.map(q => { const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3] }; }).sort(() => Math.random() - 0.5);
+  gq = { id, qs, n: 0, ok: 0, picked: null }; openUnit = ""; renderGQ(); $("gqBox").scrollIntoView({ block: "start", behavior: "smooth" });
+}
+function gqName(id) { return GRAMMAR[id.slice(0, 2)].units[Number(id.slice(2))]; }
+function renderGQ() {
+  const box = $("gqBox"); if (!gq) { box.hidden = true; return; }
+  box.hidden = false;
+  if (gq.n >= gq.qs.length) {
+    const pass = gq.ok / gq.qs.length >= 0.8;
+    box.innerHTML = `<div class="flash"><div class="eyebrow">${esc(gqName(gq.id))}</div><div class="word dot">${gq.ok} / ${gq.qs.length}</div><div class="note">${pass ? "合格！記録した。" : "8割に届かず。記録はした。もう一回やれ。"}</div><button class="big-btn" type="button" data-gq="again">もう一回</button><button class="btn ghost" type="button" data-gq="end">閉じる</button></div>`; return;
+  }
+  const q = gq.qs[gq.n];
+  let h = `<div class="qprog"><span>${esc(gqName(gq.id))}　${gq.n + 1} / ${gq.qs.length}</span><span>正解 ${gq.ok}</span></div><div class="cloze">${esc(q.q).replace("（　）", '<span class="blank">' + (gq.picked == null ? "？" : esc(q.c[q.ans])) + "</span>")}</div><div class="choices">`;
+  q.c.forEach((c, i) => { const cls = gq.picked == null ? "" : i === q.ans ? "right" : i === gq.picked ? "wrong" : ""; h += `<button type="button" class="${cls}" data-gc="${i}" ${gq.picked != null ? "disabled" : ""}>${esc(c)}</button>`; });
+  h += `</div>`;
+  if (gq.picked != null) h += `<div class="mean" style="font-size:14px">${esc(q.ex)}</div><button class="big-btn ink" type="button" data-gq="next">次へ</button>`;
+  box.innerHTML = h;
+}
+function pickGQ(i) {
+  if (!gq || gq.picked != null) return;
+  const q = gq.qs[gq.n]; gq.picked = i; if (i === q.ans) gq.ok++;
+  sfx(i === q.ans ? "ok" : "ng"); renderGQ();
+}
+function nextGQ() {
+  gq.n++; gq.picked = null;
+  if (gq.n >= gq.qs.length) saveUnit(gq.id, gq.ok, gq.qs.length);
+  renderGQ();
+}
 function saveUnit(id, ok, tot) {
   const before = !!((S.grammar.units || {})[id] || {}).passed;
   patchDoc("grammar", v => { v.units = v.units || {}; const u = v.units[id] || { tries: 0 }; u.tries = (u.tries || 0) + 1; if (!u.best || ok / tot > u.best[0] / u.best[1]) u.best = [ok, tot]; if (ok / tot >= 0.8) u.passed = true; v.units[id] = u; })
-    .then(() => { if (!before && ok / tot >= 0.8) { sfx("done"); confetti(); toast("合格！小判＋30。新しいお化けが仲間になる。"); checkUnlocks(); } else sfx(ok / tot >= 0.8 ? "ok" : "tap"); });
+    .then(() => { if (!before && ok / tot >= 0.8) { sfx("done"); confetti(); toast("合格！小判＋30。新しい仲間が来る。"); checkUnlocks(); } else sfx(ok / tot >= 0.8 ? "ok" : "tap"); });
 }
 /* ---- 政経 演習（共通テスト形式の選択問題） ---- */
 let qz = null, qzUnit = "";
@@ -216,7 +249,7 @@ function renderLearn() {
     $("wStartBox").hidden = !!sess && sess.deck === dk; renderFlash();
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
-  if (learnTab === "grammar") renderGrammar();
+  if (learnTab === "grammar") { renderGrammar(); renderGQ(); }
 }
 function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };
@@ -239,12 +272,13 @@ function bindLearn() {
     else if (sess.phase === "miss" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); missNext(); }
   });
   $("czStart").onclick = () => { if (ready()) startCloze(); };
+  $("gqBox").onclick = e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.gc) pickGQ(Number(b.dataset.gc)); else if (b.dataset.gq === "next") nextGQ(); else if (b.dataset.gq === "again") startGQ(gq.id); else if (b.dataset.gq === "end") { gq = null; renderGQ(); } };
   $("qzStart").onclick = () => { if (ready()) startQuiz(); };
   $("qzUnit").onchange = e => { qzUnit = e.target.value; };
   $("quizBox").onclick = e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.qc) pickQuiz(Number(b.dataset.qc)); else if (b.dataset.qz === "next") { qz.n++; qz.picked = null; renderQuiz(); } else if (b.dataset.qz === "again") startQuiz(); else if (b.dataset.qz === "end") { qz = null; renderQuiz(); } };
   $("clozeBox").onclick = e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.c) pickCloze(Number(b.dataset.c)); else if (b.dataset.cz === "next") { cz.n++; cz.picked = null; renderCloze(); } else if (b.dataset.cz === "again") startCloze(); else if (b.dataset.cz === "end") { cz = null; renderLearn(); } };
   for (const g of Object.keys(GRAMMAR)) {
-    $("units-" + g).addEventListener("click", e => { const b = e.target.closest("button[data-u]"); if (!b) return; openUnit = openUnit === b.dataset.u ? "" : b.dataset.u; renderGrammar(); const f = document.getElementById("uo-" + openUnit); if (f) f.focus(); });
+    $("units-" + g).addEventListener("click", e => { const s = e.target.closest("button[data-gs]"); if (s) { if (ready()) startGQ(s.dataset.gs); return; } const b = e.target.closest("button[data-u]"); if (!b) return; openUnit = openUnit === b.dataset.u ? "" : b.dataset.u; renderGrammar(); const f = document.getElementById("uo-" + openUnit); if (f) f.focus(); });
     $("units-" + g).addEventListener("submit", e => { e.preventDefault(); if (!ready()) return; const id = e.target.dataset.uf, ok = parseInt($("uo-" + id).value, 10), tot = parseInt($("ut-" + id).value, 10); if (!(tot > 0) || !(ok >= 0) || ok > tot) { toast("正解数と問題数を入れて。"); return; } openUnit = ""; saveUnit(id, ok, tot); });
   }
 }

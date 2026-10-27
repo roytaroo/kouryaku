@@ -77,7 +77,7 @@ function checkUnlocks() {
   patchDoc("game", v => {
     v.owned = v.owned || {}; v.claims = v.claims || [];
     for (const w of want) {
-      const z = pickNew(w.c.startsWith("g:") ? [1, 2] : [1, 2, 3]); v.claims.push(w.c);
+      const z = pickNew(w.c.startsWith("g:") ? [1, 2] : [1, 2, 3, 4]); v.claims.push(w.c);
       if (z) { v.owned[z.id] = { at: Date.now(), exp: 0, from: w.c }; S.game.owned = v.owned; got.push({ y: z, why: w.why }); }
     }
     if (evolve) { v.owned[y.id] = { ...(v.owned[y.id] || {}), exp }; v.owned[nf.id] = { at: Date.now(), exp: 0, from: "evolve" }; v.partner = nf.id; v.partnerFrom = tot; got.unshift({ y: nf, why: y.name + "が進化した！", evo: true }); }
@@ -99,7 +99,8 @@ function rollGacha() {
   if (!ready() || rolling) return;
   if (!YOKAI.length) { toast("キャラを準備中。そろったら回せる。"); return; }
   if (econ().koban < GACHA_COST) { toast("小判が足りない。あと" + (GACHA_COST - econ().koban) + "枚。勉強して稼げ。"); sfx("ng"); return; }
-  const r = Math.random(); let rar = r < 0.05 ? 3 : r < 0.30 ? 2 : 1, pool = YOKAI.filter(y => y.rarity === rar);
+  let r = Math.random() * 100, rar = 1; for (const [t, p] of GACHA_ODDS) { if (r < p) { rar = t; break; } r -= p; }
+  let pool = YOKAI.filter(y => y.rarity === rar);
   while (!pool.length && rar > 1) { rar--; pool = YOKAI.filter(y => y.rarity === rar); }
   if (!pool.length) pool = YOKAI;
   const y = pool[Math.floor(Math.random() * pool.length)]; rar = y.rarity;
@@ -112,8 +113,8 @@ function rollGacha() {
   });
   const box = $("gachaBox"); box.innerHTML = '<span class="lan">？</span>'; box.classList.remove("shake"); void box.offsetWidth; box.classList.add("shake"); sfx("tap");
   setTimeout(() => {
-    rolling = false; box.classList.remove("shake"); box.classList.remove("r2", "r3"); if (rar > 1) box.classList.add("r" + rar); box.innerHTML = `<img alt="${esc(y.name)}" src="${thumb(y.id)}">`;
-    sfx(rar === 3 ? "done" : "gacha"); if (rar >= 2) confetti();
+    rolling = false; box.classList.remove("shake"); box.classList.remove("r2", "r3", "r4", "r5"); if (rar > 1) box.classList.add("r" + rar); box.innerHTML = `<img alt="${esc(y.name)}" src="${thumb(y.id)}">`;
+    sfx(rar >= 4 ? "done" : "gacha"); if (rar >= 3) confetti();
     $("gachaRes").innerHTML = `<b style="font-family:var(--display);font-weight:400;font-size:20px">${esc(y.name)}</b> <span class="rar ${RARITY[rar].cls}">${RARITY[rar].name}</span><div class="note">${dup ? "もう持っていた。小判" + DUP_BACK + "枚もどってきた。" : esc(y.desc)}</div>`;
     renderYokai();
   }, 1300);
