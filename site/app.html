@@ -1,0 +1,217 @@
+<title>攻略・受験編</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>/*@CSS@*/</style>
+
+<header class="bar"><div class="bar-in">
+  <span class="sync" id="sync" title="接続中"></span>
+  <div class="brand">攻略<small>受験編</small></div>
+  <div class="wallet">
+    <span class="chip" title="小判（ガチャ・着せ替え）"><i class="koban"></i><span id="wKoban" class="num">0</span></span>
+    <span class="chip" title="券ポイント（1ポイント＝ゲーム・動画1分）"><i class="ticket"></i><span id="wTicket" class="num">0</span></span>
+    <span class="chip"><i class="lv" id="wLv">Lv.1</i></span>
+  </div>
+</div></header>
+
+<main>
+<!-- ===== ホーム ===== -->
+<section class="view" id="v-home">
+  <div class="hero">
+    <div class="eyebrow">次の本番まで　<b id="cdName">…</b></div>
+    <div class="cd"><span class="D num" id="cdD">--</span><span class="u">日</span><span class="hms" id="cdHms">--:--:--</span></div>
+    <div class="sub" id="cdSub"></div>
+    <div class="exams" id="cdOthers"></div>
+  </div>
+
+  <div id="homeTicket" class="active-ticket" hidden></div>
+
+  <div class="card">
+    <div class="buddy">
+      <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
+      <div style="display:grid;gap:8px;min-width:0">
+        <div class="bname"><b id="bName">灯り小僧</b><span class="rar r1" id="bRar">並</span></div>
+        <div class="bubble" id="bubble" role="status"></div>
+        <div style="display:grid;gap:3px"><div class="note" id="bEvo"></div><div class="bar-p"><i id="bEvoBar" style="background:var(--lantern)"></i></div></div>
+        <div class="row"><button class="btn sm" type="button" id="talkBtn">話しかける</button><button class="btn ghost sm" type="button" data-goto="yokai">図鑑</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="position:relative">
+    <div class="head"><div><div class="eyebrow">今日のノルマ</div><h2 id="homeTime">0.0h / 10h</h2></div>
+      <div class="row"><span class="chip" id="homeStreak" style="padding:3px 10px">連続 0日</span><button class="chip" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ" style="padding:3px 10px">通常日</button></div></div>
+    <div class="bar-p"><i id="homeTimeBar"></i></div>
+    <div class="phase"><b id="phName"></b><span class="note" id="phTip"></span><span class="note dot" id="phDays"></span></div>
+    <span class="stamp" id="clearStamp" hidden>全クリ</span>
+    <ul class="tasks" id="taskList"></ul>
+    <div class="note" id="taskSum"></div>
+    <details><summary class="note" style="cursor:pointer;font-weight:700">＋ 自分でタスクを足す</summary>
+      <form id="addTask" class="row" style="margin-top:8px">
+        <input class="field" id="atName" placeholder="例：音読" style="flex:1 1 9em" maxlength="40">
+        <input class="field num" id="atGoal" type="number" min="1" value="1" inputmode="numeric" style="width:5em" aria-label="目標の数">
+        <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
+        <button class="btn pri" type="submit">足す</button>
+      </form></details>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">朝のひとこと・今日の目標</div>
+    <input class="field" id="goalText" placeholder="今日いちばんやりきること（例：関係詞の単元を合格）" maxlength="80">
+  </div>
+
+  <div class="card" id="nightCard" hidden>
+    <div class="head"><div><div class="eyebrow">夜の振り返り</div><h2>今日はどうだった？</h2></div></div>
+    <div class="note" id="nightSum"></div>
+    <div class="note">気分</div><div class="mood" id="moodBtns"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <div class="note">体力</div><div class="mood" id="energyBtns"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <textarea class="field" id="reviewText" rows="3" placeholder="できたこと・できなかったこと・明日やること" maxlength="400"></textarea>
+  </div>
+</section>
+
+<!-- ===== タイマー ===== -->
+<section class="view" id="v-timer" hidden>
+  <div class="card">
+    <div class="head"><div><div class="eyebrow">ポモドーロ</div><h2>集中タイマー</h2></div><span class="note" id="timerToday"></span></div>
+    <div class="chips" id="presetChips"><button type="button" data-p="25-5">25分＋5分</button><button type="button" data-p="50-10">50分＋10分</button><button type="button" data-p="90-15">90分＋15分</button></div>
+    <div class="chips" id="subjChips"><button type="button" data-s="en">英語</button><button type="button" data-s="ja">国語</button><button type="button" data-s="se">政経</button></div>
+    <div class="ring" id="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--surface2)" stroke-width="6"/><circle id="ringArc" cx="50" cy="50" r="46" fill="none" stroke="var(--lantern)" stroke-width="6" stroke-linecap="round"/></svg>
+      <div class="t"><span class="clock num" id="tClock">25:00</span><span class="ph" id="tPhase">準備OK</span></div></div>
+    <div class="pair"><button class="big-btn" type="button" id="tStart">はじめる</button><button class="big-btn ink" type="button" id="tPause" hidden>一時停止</button><button class="big-btn ng" type="button" id="tStop" hidden style="background:var(--surface2);color:var(--ink);border:1px solid var(--line)">終わる（記録する）</button></div>
+    <div id="breakBox" hidden style="display:grid;gap:6px;padding:14px;border-radius:12px;background:color-mix(in srgb,var(--good) 10%,var(--surface2))">
+      <div class="eyebrow" style="text-align:center">休憩のことば</div><div class="quote-break" id="breakQuote"></div><div class="note" id="breakBy" style="text-align:center"></div></div>
+    <div class="note" id="pomoCount"></div>
+  </div>
+  <div class="card"><div class="eyebrow">今日の科目別</div><div class="subjbars" id="subjBars"></div></div>
+</section>
+
+<!-- ===== 勉強 ===== -->
+<section class="view" id="v-learn" hidden>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">即答単語</button><button type="button" data-t="cloze">穴埋め4択</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="other">古文・政経</button></div>
+  <div id="lt-words" class="view">
+    <div class="card" id="wStartBox">
+      <div class="eyebrow">ターゲット1900 Part1〜2　1日50語×30日</div>
+      <h2 id="wTitle"></h2>
+      <div class="bar-p"><i id="wBar"></i></div>
+      <div class="note" id="wProg"></div>
+      <p style="margin:0;font-size:14px">英単語を見て<b>2秒以内</b>に意味が浮かばなければ失敗。全部を即答できるまで終わらない。覚えるのはAnki、ここは追い討ち。</p>
+      <button class="big-btn" type="button" id="wGo">今日の50語を始める</button>
+      <div class="row"><button class="btn" type="button" id="wWeak">苦手だけ</button><select class="field" id="wDay" aria-label="何日目の50語か"></select></div>
+      <div class="note" id="wStats"></div>
+    </div>
+    <div class="card flash" id="flash" hidden></div>
+  </div>
+  <div id="lt-cloze" class="view" hidden>
+    <div class="card">
+      <div class="eyebrow">入試の空所補充</div><h2>例文の穴に入る単語を選ぶ</h2>
+      <p class="note" style="margin:0">ここまでに進んだ範囲から10問。間違えた単語ほど出やすい。</p>
+      <button class="big-btn" type="button" id="czStart">10問はじめる</button>
+      <div class="note" id="czStats"></div>
+      <div id="clozeBox" class="flash" hidden></div>
+    </div>
+  </div>
+  <div id="lt-grammar" class="view" hidden>
+    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
+      <p class="note" style="margin:0">授業を見たら確認問題を解いて点を入れる。8割で合格。</p><ul class="units" id="units-jh"></ul></div>
+    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
+  </div>
+  <div id="lt-other" class="view" hidden>
+    <div class="card"><div class="eyebrow">準備中</div><h2>古文単語・政経一問一答</h2>
+      <p style="margin:0">Ankiのデッキを受け取ったら、英単語と同じ「即答できるまで終わらない」モードをここに入れる。それまでは、ホームのノルマで数を記録しておく。</p></div>
+  </div>
+</section>
+
+<!-- ===== お化け ===== -->
+<section class="view" id="v-yokai" hidden>
+  <div class="seg" id="yokaiSeg"><button type="button" data-t="dex">図鑑</button><button type="button" data-t="gacha">ガチャ</button><button type="button" data-t="outfit">着せ替え</button><button type="button" data-t="tix">券</button></div>
+  <div id="yt-dex" class="card">
+    <div class="head"><div><div class="eyebrow">百鬼図鑑</div><h2 id="dexCount"></h2></div><span class="note">20時間ごと・文法合格で仲間が増える</span></div>
+    <div class="bar-p"><i id="dexBar" style="background:var(--koban)"></i></div>
+    <div class="dex" id="dexGrid"></div>
+  </div>
+  <div id="yt-gacha" class="card" hidden>
+    <div class="gacha">
+      <div class="eyebrow">百鬼ガチャ　並70%・珍25%・幻5%</div>
+      <div class="box" id="gachaBox"><span class="lan">？</span></div>
+      <div id="gachaRes"><div class="note">持っているお化けが出たら小判20枚もどる。</div></div>
+      <button class="big-btn" type="button" id="gachaBtn">小判 <span id="yGacha">60</span> 枚で回す</button>
+      <div class="note">いまの小判：<b class="dot" id="yKoban">0</b></div>
+    </div>
+  </div>
+  <div id="yt-outfit" class="card" hidden>
+    <div class="head"><div><div class="eyebrow">着せ替え</div><h2 id="outfitName"></h2></div></div>
+    <img id="outfitPrev" alt="" style="width:min(60vw,220px);margin:0 auto;display:block"><div class="gears" id="outfitGear" style="justify-content:center"></div>
+    <div class="outfits" id="outfitGrid"></div>
+  </div>
+  <div id="yt-tix" class="view" hidden>
+    <div id="tixActive" class="active-ticket" hidden></div>
+    <div class="card">
+      <div class="head"><div><div class="eyebrow">券ポイント（1時間勉強＝10）</div><h2><span class="dot" id="tixPts">0</span> ポイント</h2></div><span class="note">全クリア＋15・連続でボーナス</span></div>
+      <div class="tix" id="tixGrid"></div>
+      <div id="tixFree" class="row" hidden><span class="note" id="tixFreeTxt" style="flex-basis:100%"></span><span class="row" id="tixFreeBtns"></span></div>
+    </div>
+    <div class="card"><div class="eyebrow">使った券</div><ul class="list" id="tixHist"></ul></div>
+  </div>
+</section>
+
+<!-- ===== 記録 ===== -->
+<section class="view" id="v-record" hidden>
+  <div class="card"><div class="eyebrow">数字</div><dl class="stats" id="stats" style="margin:0"></dl></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近30日</div><h2>毎日の勉強時間</h2></div><span class="note">赤い線が目標</span></div><div id="bars"></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">予測</div><h2>目標時間に届くか</h2></div></div><div id="forecast"></div>
+    <div class="note"><span style="color:var(--night2)">━</span> 実績　<span style="color:var(--lantern)">┅</span> 今のペース　<span style="color:var(--seal)">╌</span> 必要なペース</div><div class="note" id="fcNote"></div></div>
+  <div class="card"><div class="eyebrow">毎日の記録（押すと直せる）</div>
+    <div class="heat-wrap"><div class="heat" id="heat"></div></div>
+    <div id="dayEdit" hidden style="display:grid;gap:8px">
+      <b id="deTitle"></b><div class="note" id="deReview"></div>
+      <div class="row"><label class="note">勉強した分 <input class="field num" id="deMin" type="number" min="0" max="1440" inputmode="numeric" style="width:6em"></label>
+        <select class="field" id="deMode" aria-label="日の種類"><option value="normal">通常日</option><option value="refresh">リフレッシュ日</option></select>
+        <button class="btn pri sm" type="button" id="deSave">直す</button></div></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">成績</div><h2>過去問・模試</h2></div></div>
+    <form id="scoreForm" class="row">
+      <input class="field" id="scDate" type="date" aria-label="日付">
+      <select class="field" id="scKind" aria-label="種類"><option value="past">過去問</option><option value="mock">模試</option><option value="drill">本番形式の演習</option></select>
+      <input class="field" id="scName" placeholder="例：東洋 2025 英語" style="flex:1 1 10em" maxlength="40">
+      <input class="field num" id="scScore" type="number" min="0" inputmode="numeric" placeholder="点" style="width:5em" aria-label="点数">
+      <input class="field num" id="scMax" type="number" min="1" inputmode="numeric" placeholder="満点" value="100" style="width:5em" aria-label="満点">
+      <button class="btn pri" type="submit">記録</button></form>
+    <div id="scoreChart"></div><ul class="list" id="scoreList"></ul></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近14日</div><h2>気分と体力</h2></div><span class="note"><span style="color:var(--lantern)">●</span> 気分　<span style="color:var(--sky)">●</span> 体力</span></div><div id="moodChart"></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">実績</div><h2>バッジ</h2></div><span class="note dot" id="badgeSum"></span></div><div class="badges" id="badges"></div></div>
+  <details class="box"><summary>休憩に出す言葉</summary>
+    <form id="quoteForm" class="form"><input class="field" id="qText" placeholder="言葉" maxlength="120"><input class="field" id="qBy" placeholder="だれの言葉（なくてもいい）" maxlength="40"><button class="btn pri" type="submit">足す</button></form>
+    <ul class="list" id="quoteList" style="margin-top:10px"></ul></details>
+  <details class="box"><summary>設定</summary>
+    <form id="setForm" class="form">
+      <label>試験日<span>1行に1つ「2026-11-29 東洋 年内入試」。時刻を入れるなら「2027-01-16 09:30 共通テスト」</span><textarea class="field" id="setExams" rows="5"></textarea></label>
+      <label>通常日の時間割<span>「07:00-09:00 英単語」の形。休憩・食事・ゲームは勉強時間に入らない</span><textarea class="field" id="setNormal" rows="8"></textarea></label>
+      <label>リフレッシュ日の時間割<span>「ゲーム」と書いた行がゲームの時間</span><textarea class="field" id="setRefresh" rows="8"></textarea></label>
+      <div class="note" id="setSum"></div>
+      <div class="row">
+        <label>リフレッシュの曜日<select class="field" id="setDow"><option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option><option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option><option value="6">土曜</option></select></label>
+        <label>1日の単語数<input class="field num" id="setWords" type="number" min="10" max="200" style="width:6em"></label>
+        <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
+      <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <button class="btn pri" type="submit">保存</button>
+    </form></details>
+  <div class="card"><div class="eyebrow">保存について</div>
+    <p style="margin:0;font-size:13px">押したらすぐクラウドに保存される。スマホとPCで同じ記録。お金（小判・券）は記録から毎回計算するので、巻き戻ったり消えたりしない。左上の点が緑なら保存できている。</p>
+    <button class="btn" type="button" id="backupBtn">記録をファイルに書き出す</button></div>
+</section>
+</main>
+
+<nav class="tabs" id="tabs" aria-label="画面"><div class="tabs-in">
+  <button type="button" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>ホーム</button>
+  <button type="button" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>タイマー</button>
+  <button type="button" data-v="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h6a2 2 0 012 2v13a2 2 0 00-2-2H4zM20 5h-6a2 2 0 00-2 2v13a2 2 0 012-2h6z"/></svg>勉強</button>
+  <button type="button" data-v="yokai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 21V10a6 6 0 0112 0v11l-2-2-2 2-2-2-2 2-2-2z"/><circle cx="10" cy="10" r="1" fill="currentColor"/><circle cx="14" cy="10" r="1" fill="currentColor"/></svg>お化け</button>
+  <button type="button" data-v="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>記録</button>
+</div></nav>
+
+<div class="sheet" id="sheet" hidden><div class="in" id="sheetIn" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>/*@JS@*/</script>
