@@ -43,8 +43,8 @@ function migrate() {
   const ps = [];
   if (Object.keys(fix).length) ps.push(backend.save("settings", { ...s, ...fix }));
   if (reset || needStarter) ps.push(patchDoc("game", v => {
-    if (reset) { v.owned = {}; v.partner = null; v.partnerFrom = null; v.claims = []; v.roster = ROSTER_VER; }
-    if (sid) { v.owned = v.owned || {}; v.owned[sid] = { at: Date.now(), exp: 0, from: "start" }; v.partner = sid; v.partnerFrom = econ().totalMin; }
+    if (reset) { v.owned = {}; v.partner = null; v.claims = []; v.freeRolls = 0; v.roster = ROSTER_VER; }
+    if (sid) { v.owned = v.owned || {}; v.owned[sid] = { at: Date.now(), exp: 0, from: "start" }; v.partner = sid; }
   }));
   Promise.all(ps).finally(() => { migrating = false; });
 }

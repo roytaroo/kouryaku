@@ -1,11 +1,13 @@
 /* ===== お化け：図鑑・ガチャ・着せ替え・券 ===== */
-const GACHA_COST = 60, DUP_BACK = 20, HOURS_PER_GIFT = 20;
+const GACHA_COST = 60, DUP_BACK = 20;
+/** ガチャに出るのは進化前の子だけ。確率（%）：梅60・竹32・松8 */
+const GACHA_BASE_ODDS = [[3, 8], [2, 32], [1, 60]];
 const TICKETS = [
   { kind: "game", min: 30, name: "ゲーム30分券" }, { kind: "game", min: 60, name: "ゲーム1時間券" },
   { kind: "video", min: 30, name: "動画30分券" }, { kind: "video", min: 60, name: "動画1時間券" }
 ];
 const REFRESH_FREE = 120;
-let yokaiTab = "dex";
+let yokaiTab = "pass";
 /** キャラの絵。まだ絵がない子は「？」の札 */
 const NO_ART = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50" y="66" font-size="54" text-anchor="middle" fill="#9a9db5">？</text></svg>');
 const thumb = id => (YK[id] && YK[id].img) || NO_ART;
@@ -38,10 +40,12 @@ function openYokai(id) {
   const voiceName = { kid: "元気な子ども", elder: "古風な長老", samurai: "侍ことば", cool: "クール", lady: "お嬢さま", yankee: "ヤンキー" }[y.voice] || y.voice;
   let h = `<div class="head"><div><div class="eyebrow">${esc(y.kana)}</div><h2>${has ? esc(y.name) : "？？？"}</h2></div><span class="rar ${RARITY[y.rarity].cls}">${RARITY[y.rarity].name}</span></div>
     <div class="aura ${has ? RARITY[y.rarity].cls : ""}"><img class="big" alt="" src="${thumb(id)}" style="${has ? "" : "filter:brightness(0) opacity(.2)"}"></div>
-    <p style="margin:0">${has ? esc(y.desc) : "まだ出会っていない。勉強時間20時間ごと・文法単元の合格・ガチャで仲間になる。"}</p>
+    <p style="margin:0">${has ? esc(y.desc) : y.stage > 0 ? "進化前の「" + esc((YOKAI.find(z => z.line === y.line && z.stage === y.stage - 1) || {}).name || "") + "」を相棒にして、ポモドーロでLv." + EVOLVE_LV[y.rarity] + "まで育てると進化する。ガチャには出ない。" : "まだ出会っていない。ガチャか、百鬼の道（勉強時間）で仲間になる。"}</p>
+    ${has ? `<div class="lvrow"><b class="dot">Lv.${lvOf(expOf(id))}</b>${nextForm(id) ? `<div class="bar-p"><i style="width:${clamp(100 * expOf(id) / ((evolveLv(id) - 1) * LV_MIN), 0, 100)}%"></i></div><small>進化 Lv.${evolveLv(id)}</small>` : `<small>最終形態</small>`}</div>` : ""}
     ${has ? `<div class="note">しゃべり方：${voiceName}${line.length > 1 ? "　・" + (y.stage + 1) + "段階目 / " + line.length : "　・進化しない"}${o.at ? "　・" + labelDay(dayKey(o.at)) + "に仲間入り" : ""}</div>` : ""}${evo}`;
-  if (has && id !== S.game.partner) h += `<button class="big-btn" type="button" data-partner="${id}">相棒にする</button>`;
-  else if (id === S.game.partner) h += `<div class="note" style="text-align:center">いまの相棒。相棒にしている間の勉強時間で進化する。</div>`;
+  if (has && canEvolve(id)) h += `<button class="big-btn evolve-btn" type="button" data-evolve="${id}">進化させる！</button>`;
+  if (has && id !== S.game.partner) h += `<button class="big-btn${canEvolve(id) ? " ink" : ""}" type="button" data-partner="${id}">相棒にする</button>`;
+  else if (id === S.game.partner) h += `<div class="note" style="text-align:center">いまの相棒。ポモドーロ1セット（25分）でLv.1上がる。</div>`;
   h += `<button class="btn ghost" type="button" data-close="1">閉じる</button>`;
   openSheet(h);
 }
@@ -49,40 +53,19 @@ function openSheet(html) { const s = $("sheet"); $("sheetIn").innerHTML = html; 
 function closeSheet() { $("sheet").hidden = true; $("sheetIn").innerHTML = ""; }
 function setPartner(id) {
   if (!ready() || !owned(id)) return;
-  const exp = partnerExp(), prev = S.game.partner, tot = econ().totalMin;
-  patchDoc("game", g => { if (prev && g.owned[prev]) g.owned[prev] = { ...g.owned[prev], exp }; g.partner = id; g.partnerFrom = tot; });
+  patchDoc("game", g => { g.partner = id; });
   buddyKey = ""; $("bubble").textContent = ""; sfx("ok"); toast(YK[id].name + "が相棒になった。"); closeSheet();
 }
 
-/* ---- 仲間入り：節目（20時間ごと・文法合格）と進化 ---- */
+/* ---- 文法の単元合格ごとに、ガチャ無料券1枚 ---- */
 let unlocking = false;
-function pickNew(pref) {
-  const own = S.game.owned || {};
-  let pool = YOKAI.filter(y => !own[y.id] && y.stage === 0 && pref.includes(y.rarity));
-  if (!pool.length) pool = YOKAI.filter(y => !own[y.id] && y.stage === 0);
-  if (!pool.length) pool = YOKAI.filter(y => !own[y.id]);
-  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-}
 function checkUnlocks() {
   if (unlocking || !backend || !allLoaded() || !YOKAI.length || S.game.roster !== ROSTER_VER) return;
-  const g = S.game, claims = new Set(g.claims || []), want = [];
-  const h = Math.floor(econ().totalMin / 60 / HOURS_PER_GIFT);
-  for (let i = 1; i <= h; i++) if (!claims.has("h" + i * HOURS_PER_GIFT)) want.push({ c: "h" + i * HOURS_PER_GIFT, why: "累計" + i * HOURS_PER_GIFT + "時間" });
-  for (const [id, u] of Object.entries((S.grammar.units || {}))) if (u.passed && !claims.has("g:" + id)) want.push({ c: "g:" + id, why: "文法「" + (GRAMMAR[id.slice(0, 2)] || { units: [] }).units[Number(id.slice(2))] + "」合格" });
-  const y = YK[g.partner], nf = y && nextForm(y.id), evolve = nf && !owned(nf.id) && partnerExp() >= EVOLVE_EXP[y.stage];
-  if (!want.length && !evolve) return;
+  const claims = new Set(S.game.claims || []), want = Object.entries(S.grammar.units || {}).filter(([id, u]) => u.passed && !claims.has("g:" + id)).map(([id]) => "g:" + id);
+  if (!want.length) return;
   unlocking = true;
-  const got = [];
-  const tot = econ().totalMin, exp = partnerExp();
-  patchDoc("game", v => {
-    v.owned = v.owned || {}; v.claims = v.claims || [];
-    for (const w of want) {
-      const z = pickNew(w.c.startsWith("g:") ? [1, 2] : [1, 2, 3, 4]); v.claims.push(w.c);
-      if (z) { v.owned[z.id] = { at: Date.now(), exp: 0, from: w.c }; S.game.owned = v.owned; got.push({ y: z, why: w.why }); }
-    }
-    if (evolve) { v.owned[y.id] = { ...(v.owned[y.id] || {}), exp }; v.owned[nf.id] = { at: Date.now(), exp: 0, from: "evolve" }; v.partner = nf.id; v.partnerFrom = tot; got.unshift({ y: nf, why: y.name + "が進化した！", evo: true }); }
-  }).finally(() => { unlocking = false; });
-  if (got.length) { buddyKey = ""; reveal(got); }
+  patchDoc("game", v => { v.claims = [...(v.claims || []), ...want]; v.freeRolls = (v.freeRolls || 0) + want.length; }).finally(() => { unlocking = false; });
+  toast("文法合格のごほうび：ガチャ無料券 ×" + want.length);
 }
 function reveal(list) {
   sfx("gacha"); confetti();
@@ -98,16 +81,19 @@ let rolling = false;
 function rollGacha() {
   if (!ready() || rolling) return;
   if (!YOKAI.length) { toast("キャラを準備中。そろったら回せる。"); return; }
-  if (econ().koban < GACHA_COST) { toast("小判が足りない。あと" + (GACHA_COST - econ().koban) + "枚。勉強して稼げ。"); sfx("ng"); return; }
-  let r = Math.random() * 100, rar = 1; for (const [t, p] of GACHA_ODDS) { if (r < p) { rar = t; break; } r -= p; }
-  let pool = YOKAI.filter(y => y.rarity === rar);
-  while (!pool.length && rar > 1) { rar--; pool = YOKAI.filter(y => y.rarity === rar); }
-  if (!pool.length) pool = YOKAI;
+  const free = (S.game.freeRolls || 0) > 0;
+  if (!free && econ().koban < GACHA_COST) { toast("小判が足りない。あと" + (GACHA_COST - econ().koban) + "枚。勉強して稼げ。"); sfx("ng"); return; }
+  const base = YOKAI.filter(y => y.stage === 0);
+  let r = Math.random() * 100, rar = 1; for (const [t, p] of GACHA_BASE_ODDS) { if (r < p) { rar = t; break; } r -= p; }
+  let pool = base.filter(y => y.rarity === rar);
+  while (!pool.length && rar > 1) { rar--; pool = base.filter(y => y.rarity === rar); }
+  if (!pool.length) pool = base;
   const y = pool[Math.floor(Math.random() * pool.length)]; rar = y.rarity;
   const dup = owned(y.id);
   rolling = true;
   patchDoc("game", v => {
-    v.spend = [...(v.spend || []), { kind: "gacha", id: y.id, cost: dup ? GACHA_COST - DUP_BACK : GACHA_COST, at: Date.now() }];
+    if (free) { v.freeRolls = Math.max(0, (v.freeRolls || 0) - 1); if (dup) v.spend = [...(v.spend || []), { kind: "gacha", id: y.id, cost: -DUP_BACK, at: Date.now() }]; }
+    else v.spend = [...(v.spend || []), { kind: "gacha", id: y.id, cost: dup ? GACHA_COST - DUP_BACK : GACHA_COST, at: Date.now() }];
     v.gacha = (v.gacha || 0) + 1;
     if (!dup) { v.owned = v.owned || {}; v.owned[y.id] = { at: Date.now(), exp: 0, from: "gacha" }; }
   });
@@ -192,24 +178,29 @@ function renderTix() {
   $("tixFreeBtns").innerHTML = wk && fl > 0 ? `<button class="btn pri" type="button" data-free="game">ゲームに使う</button><button class="btn" type="button" data-free="video">動画に使う</button>` : "";
   renderActiveTicket("tixActive");
   const hist = [...(S.tickets.history || [])].reverse().slice(0, 12);
-  $("tixHist").innerHTML = hist.length ? hist.map(x => `<li><span>${labelDay(dayKey(x.at))} ${new Date(x.at).getHours()}:${pad(new Date(x.at).getMinutes())}　${x.kind === "game" ? "ゲーム" : "動画"} ${x.min}分</span><span class="num dot">${x.free ? "無料枠" : "−" + x.cost}</span></li>`).join("") : '<li><span class="note">まだ使っていない</span></li>';
+  $("tixHist").innerHTML = hist.length ? hist.map(x => `<li><span>${labelDay(dayKey(x.at))} ${new Date(x.at).getHours()}:${pad(new Date(x.at).getMinutes())}　${x.kind === "bonus" ? "百鬼の道の報酬" : (x.kind === "game" ? "ゲーム" : "動画") + " " + x.min + "分"}</span><span class="num dot">${x.free ? "無料枠" : x.cost < 0 ? "＋" + -x.cost : "−" + x.cost}</span></li>`).join("") : '<li><span class="note">まだ使っていない</span></li>';
 }
 
 function renderYokai() {
   document.querySelectorAll("#yokaiSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === yokaiTab)));
-  for (const t of ["dex", "gacha", "outfit", "tix"]) $("yt-" + t).hidden = t !== yokaiTab;
-  $("yKoban").textContent = econ().koban; $("yGacha").textContent = GACHA_COST;
-  $("gachaBtn").disabled = !YOKAI.length || econ().koban < GACHA_COST || rolling;
+  for (const t of ["pass", "dex", "gacha", "outfit", "tix"]) $("yt-" + t).hidden = t !== yokaiTab;
+  if (yokaiTab === "pass") renderPass();
+  $("yKoban").textContent = econ().koban;
+  const fr = S.game.freeRolls || 0;
+  $("gachaBtn").disabled = !YOKAI.length || (!fr && econ().koban < GACHA_COST) || rolling;
+  $("gachaBtn").innerHTML = fr ? "無料券で回す（のこり " + fr + "枚）" : "小判 " + GACHA_COST + " 枚で回す";
   if (!YOKAI.length) $("gachaRes").innerHTML = '<div class="note">キャラを準備中。そろったら回せる。</div>';
   if (yokaiTab === "dex") renderDex();
   if (yokaiTab === "outfit") renderOutfits();
   if (yokaiTab === "tix") renderTix();
 }
 function bindYokai() {
-  $("yokaiSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; yokaiTab = b.dataset.t; renderYokai(); };
+  $("yokaiSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; yokaiTab = b.dataset.t; renderYokai(); if (yokaiTab === "pass") scrollPassToNow(); };
+  bindPass();
   $("dexGrid").onclick = e => { const b = e.target.closest("button[data-y]"); if (b) openYokai(b.dataset.y); };
   $("sheet").onclick = e => {
     if (e.target === $("sheet") || e.target.closest("[data-close]")) return closeSheet();
+    const ev = e.target.closest("[data-evolve]"); if (ev) return evolve(ev.dataset.evolve);
     const b = e.target.closest("[data-partner]"); if (b) setPartner(b.dataset.partner);
   };
   $("gachaBtn").onclick = rollGacha;

@@ -31,12 +31,19 @@
     <div class="buddy">
       <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
       <div style="display:grid;gap:8px;min-width:0">
-        <div class="bname"><b id="bName">灯り小僧</b><span class="rar r1" id="bRar">梅</span></div>
+        <div class="bname"><b id="bName"></b><span class="rar r1" id="bRar"></span><b class="dot lvtag" id="bLv"></b></div>
         <div class="bubble" id="bubble" role="status"></div>
         <div style="display:grid;gap:3px"><div class="note" id="bEvo"></div><div class="bar-p"><i id="bEvoBar" style="background:var(--lantern)"></i></div></div>
+        <button class="big-btn evolve-btn" type="button" id="evolveBtn" hidden>進化させる！</button>
         <div class="row"><button class="btn sm" type="button" id="talkBtn">話しかける</button><button class="btn ghost sm" type="button" data-goto="yokai">図鑑</button></div>
       </div>
     </div>
+  </div>
+
+  <div class="card passmini" id="passMini" role="button" tabindex="0">
+    <div class="head"><div><div class="eyebrow">百鬼の道</div><h2><span class="dot" id="pmTier">0</span> 段</h2></div><button class="btn pri sm" type="button" id="pmClaim" hidden></button></div>
+    <div class="bar-p"><i id="pmBar" style="background:linear-gradient(90deg,var(--lantern),var(--koban))"></i></div>
+    <div class="pmnext" id="pmNext"></div>
   </div>
 
   <div class="card" style="position:relative">
@@ -129,15 +136,24 @@
 
 <!-- ===== お化け ===== -->
 <section class="view" id="v-yokai" hidden>
-  <div class="seg" id="yokaiSeg"><button type="button" data-t="dex">図鑑</button><button type="button" data-t="gacha">ガチャ</button><button type="button" data-t="outfit">着せ替え</button><button type="button" data-t="tix">券</button></div>
-  <div id="yt-dex" class="card">
-    <div class="head"><div><div class="eyebrow">百鬼図鑑</div><h2 id="dexCount"></h2></div><span class="note">20時間ごと・文法合格で仲間が増える</span></div>
+  <div class="seg" id="yokaiSeg"><button type="button" data-t="pass">百鬼の道</button><button type="button" data-t="dex">図鑑</button><button type="button" data-t="gacha">ガチャ</button><button type="button" data-t="outfit">着せ替え</button><button type="button" data-t="tix">券</button></div>
+  <div id="yt-pass" class="view">
+    <div class="card passhead">
+      <div class="head"><div><div class="eyebrow">百鬼の道　勉強10時間で1段すすむ</div><h2><span class="dot" id="passTier">0</span> 段目</h2></div><button class="btn pri" type="button" id="passClaimAll" hidden></button></div>
+      <div class="bar-p" style="height:12px"><i id="passBar" style="background:linear-gradient(90deg,var(--lantern),var(--koban))"></i></div>
+      <div class="note" id="passNext"></div>
+      <div class="note">妖怪・小物・ガチャ無料券・小判・券ポイントがもらえる。進化形は道にもガチャにも出ない。相棒をポモドーロで育てて進化させろ。</div>
+    </div>
+    <ol class="track" id="passTrack"></ol>
+  </div>
+  <div id="yt-dex" class="card" hidden>
+    <div class="head"><div><div class="eyebrow">百鬼図鑑</div><h2 id="dexCount"></h2></div><span class="note">ガチャ・百鬼の道で仲間に。進化は育成で</span></div>
     <div class="bar-p"><i id="dexBar" style="background:var(--koban)"></i></div>
     <div class="dex" id="dexGrid"></div>
   </div>
   <div id="yt-gacha" class="card" hidden>
     <div class="gacha">
-      <div class="eyebrow">百鬼ガチャ　梅55%・竹27%・松12%・伝説5%・幻1%</div>
+      <div class="eyebrow">百鬼ガチャ　梅60%・竹32%・松8%（進化前の子だけ）</div>
       <div class="box" id="gachaBox"><span class="lan">？</span></div>
       <div id="gachaRes"><div class="note">持っているお化けが出たら小判20枚もどる。</div></div>
       <button class="big-btn" type="button" id="gachaBtn">小判 <span id="yGacha">60</span> 枚で回す</button>

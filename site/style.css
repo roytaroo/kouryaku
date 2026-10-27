@@ -258,3 +258,47 @@ details.box summary{cursor:pointer;font-weight:700}
 .flash .word.mid{font-size:clamp(26px,8vw,38px)}
 .aura.r5{background:radial-gradient(circle at 50% 45%,rgba(176,106,255,.45),rgba(255,74,138,.2) 45%,transparent 72%);animation:pulse 2.4s ease-in-out infinite}
 .gacha .box.r5{background:radial-gradient(circle at 50% 40%,#ffe7ff,rgba(176,106,255,.5) 50%,var(--surface2) 80%)}
+
+/* ---- 百鬼の道 ---- */
+.lvtag{font-size:13px;color:var(--lantern)}
+.evolve-btn{background:linear-gradient(90deg,#ff7a3a,#ffb02a,#ff4a8a);color:#fff;animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 18px rgba(255,140,60,.8);transform:scale(1.02)}}
+.lvrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.lvrow b{font-size:18px;color:var(--lantern)} .lvrow small{font-size:11px;color:var(--muted)}
+.passmini{cursor:pointer;gap:8px}
+.pmnext{display:flex;gap:10px;align-items:center}
+.pmnext span{display:grid} .pmnext small{font-size:11px;color:var(--muted)} .pmnext b{font-size:14px}
+.ricon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--surface2);border:1px solid var(--line);overflow:hidden;font-family:var(--display);font-size:18px}
+.ricon.big{width:72px;height:72px;border-radius:14px}
+.ricon img{width:100%;height:100%;object-fit:contain}
+.ricon.koban-i i{width:24px;height:18px;border-radius:40%/50%;background:radial-gradient(circle at 35% 35%,#ffe48a,#d9a520 60%,#9a6e10)}
+.ricon.ticket-i i{width:26px;height:16px;border-radius:3px;background:linear-gradient(135deg,var(--lantern2),var(--lantern))}
+.ricon.roll-i{color:#fff;background:linear-gradient(135deg,var(--seal),#8a1a2a)}
+.ricon.yokai-i.r3{border-color:var(--sky)} .ricon.yokai-i.r2{border-color:var(--good)} .ricon.yokai-i.r1{border-color:#c8507a}
+.track{list-style:none;margin:0;padding:0 0 0 6px;display:grid;gap:10px;position:relative}
+.track::before{content:"";position:absolute;left:22px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--line)}
+.tier{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;position:relative}
+.tier .node{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--dot);font-size:13px;background:var(--surface);border:3px solid var(--line);z-index:1}
+.tier .rcard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.tier .rcard small{display:block;font-size:11px;color:var(--muted);font-family:var(--dot)}
+.tier .rcard b{font-size:14px}
+.tier .rcard .bar-p{margin-top:4px;height:6px}
+.tier.got .node{background:var(--good);border-color:var(--good);color:#fff}
+.tier.got .rcard{opacity:.6}
+.tier.ready .node{background:var(--lantern);border-color:var(--lantern);color:#1b1206;animation:glow 1.4s ease-in-out infinite}
+.tier.ready .rcard{border-color:var(--lantern);box-shadow:0 0 0 2px color-mix(in srgb,var(--lantern) 30%,transparent)}
+.tier.next .node{border-color:var(--lantern)}
+.tier.lock .rcard{filter:saturate(.2);opacity:.7}
+.tier.lock.big .rcard img{filter:brightness(0) opacity(.35)}
+.tier.big .rcard{background:linear-gradient(90deg,color-mix(in srgb,var(--koban) 14%,var(--surface)),var(--surface))}
+.track .here{padding-left:46px;font-family:var(--dot);font-size:12px;color:var(--lantern)}
+.track .here span{background:color-mix(in srgb,var(--lantern) 15%,var(--surface));border-radius:999px;padding:2px 10px}
+.rgot{display:grid;gap:6px;width:100%;text-align:left}
+.rgot div{display:flex;gap:10px;align-items:center}
+.rgot span{display:grid} .rgot small{font-size:11px;color:var(--muted)}
+.evo-anim{position:relative;width:min(70vw,240px);aspect-ratio:1;max-width:100%}
+.evo-anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.evo-anim .from{animation:evoOut 1.6s ease-in forwards}
+.evo-anim .to{opacity:0;animation:evoIn 1.2s 1.3s ease-out forwards}
+@keyframes evoOut{0%{filter:brightness(1)}60%{filter:brightness(3) saturate(0);transform:scale(1.05)}100%{filter:brightness(6) saturate(0);opacity:0;transform:scale(.6)}}
+@keyframes evoIn{0%{opacity:0;filter:brightness(6);transform:scale(1.3)}100%{opacity:1;filter:brightness(1);transform:scale(1)}}

@@ -52,7 +52,7 @@ function sums(blocks) { let study = 0, game = 0; for (const b of blocks) { if (b
 const S = {
   days: {}, timer: { running: false }, settings: { ...DEFAULTS }, quotes: [],
   words: { w: {}, cleared: {} }, kobun: { w: {}, cleared: {} }, seikei: { w: {}, cleared: {}, quiz: {} }, cloze: { correct: 0, total: 0 }, grammar: { units: {} },
-  game: { owned: {}, partner: "tomori", partnerFrom: null, outfits: { owned: [], equipped: {} }, claims: [], spend: [], gacha: 0 },
+  game: { owned: {}, partner: null, freeRolls: 0, outfits: { owned: [], equipped: {} }, claims: [], spend: [], gacha: 0 },
   tickets: { active: null, history: [] }, scores: [], loaded: {}
 };
 const SUBJ = { en: "英語", ja: "国語", se: "政経" };

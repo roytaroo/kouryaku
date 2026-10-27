@@ -36,20 +36,22 @@ function renderBuddy() {
   const id = S.game.partner, y = YK[id], img = $("buddyImg");
   $("buddyCanvas").hidden = true;
   if (!y) {
-    $("bName").textContent = "相棒募集中"; $("bRar").hidden = true; img.hidden = true; $("buddyGear").innerHTML = "";
+    $("bName").textContent = "相棒募集中"; $("bRar").hidden = true; $("bLv").textContent = ""; $("evolveBtn").hidden = true; img.hidden = true; $("buddyGear").innerHTML = "";
     $("bEvo").textContent = YOKAI.length ? "図鑑から相棒を選ぼう" : "新しいキャラを準備中"; $("bEvoBar").style.width = "0%";
     if (!$("bubble").textContent) pickLine(); return;
   }
   const outfit = (S.game.outfits && S.game.outfits.equipped) || {};
   $("bName").textContent = y.name; $("bRar").hidden = false; $("bRar").textContent = RARITY[y.rarity].name; $("bRar").className = "rar " + RARITY[y.rarity].cls;
-  const ev = partnerExp(), nf = nextForm(id);
-  if (nf) { const need = EVOLVE_EXP[y.stage]; $("bEvo").textContent = "進化まで " + hrs(Math.max(0, need - ev)) + "h"; $("bEvoBar").style.width = clamp(100 * ev / need, 0, 100) + "%"; }
-  else { $("bEvo").textContent = "最終形態"; $("bEvoBar").style.width = "100%"; }
+  const ex = expOf(id), lv = lvOf(ex), nf = nextForm(id), ready = canEvolve(id);
+  $("bLv").textContent = "Lv." + lv;
+  if (nf) { const need = (evolveLv(id) - 1) * LV_MIN; $("bEvo").textContent = ready ? "進化できる！" : "進化 Lv." + evolveLv(id) + "まで あとポモドーロ " + Math.ceil(Math.max(0, need - ex) / LV_MIN) + "回"; $("bEvoBar").style.width = clamp(100 * ex / need, 0, 100) + "%"; }
+  else { $("bEvo").textContent = "最終形態　次のLvまで " + Math.ceil(LV_MIN - ex % LV_MIN) + "分"; $("bEvoBar").style.width = (100 * (ex % LV_MIN) / LV_MIN) + "%"; }
+  $("evolveBtn").hidden = !ready; $("evolveBtn").dataset.id = id;
   const key = id + JSON.stringify(outfit);
   if (key !== buddyKey) { buddyKey = key; img.hidden = false; img.src = thumb(id); $("buddyGear").innerHTML = gearHtml(outfit); }
   if (!$("bubble").textContent) pickLine();
 }
-function partnerExp() { const id = S.game.partner, o = (S.game.owned || {})[id] || {}; const from = S.game.partnerFrom ?? econ().totalMin; return (o.exp || 0) + Math.max(0, econ().totalMin - from); }
+
 
 function renderPhase() {
   const k = dayKey(), p = phaseOf(k), total = daysBetween(p.from, p.to) + 1, i = clamp(daysBetween(p.from, k) + 1, 1, total);
@@ -81,7 +83,7 @@ function renderDayNotes() {
   for (const [id, key] of [["moodBtns", "mood"], ["energyBtns", "energy"]]) $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.v) === d[key])));
   $("nightSum").textContent = "今日は " + hrs(minOf(k)) + "時間、ノルマ " + tasksOf(k).filter(t => t.count >= t.goal).length + "/" + tasksOf(k).length + "。";
 }
-function renderHome() { renderCountdown(); renderBuddy(); renderPhase(); renderTasks(); renderDayNotes(); renderActiveTicket("homeTicket"); }
+function renderHome() { renderCountdown(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderDayNotes(); renderActiveTicket("homeTicket"); }
 
 function bindHome() {
   $("taskList").addEventListener("click", e => {
@@ -107,6 +109,7 @@ function bindHome() {
   $("reviewText").addEventListener("input", () => { clearTimeout(rT); rT = setTimeout(() => { if (ready()) patchDay(dayKey(), d => { d.review = $("reviewText").value.trim(); }); }, 700); });
   for (const [id, key] of [["moodBtns", "mood"], ["energyBtns", "energy"]]) $(id).addEventListener("click", e => { const b = e.target.closest("button"); if (!b || !ready()) return; patchDay(dayKey(), d => { d[key] = Number(b.dataset.v); }); sfx("tap"); });
   $("talkBtn").onclick = () => { pickLine(true); sfx("tap"); };
+  $("evolveBtn").onclick = e => evolve(e.currentTarget.dataset.id);
   $("bubble").onclick = () => pickLine(true);
 }
 function confetti() {

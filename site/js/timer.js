@@ -19,7 +19,14 @@ function timerView() {
 /** 勉強した分を記録（科目別にも足す） */
 function commitStudy(k, min, subj, pomo) {
   if (min <= 0 && !pomo) return Promise.resolve();
-  return patchDay(k, d => { d.min = Math.round(((d.min || 0) + min) * 10) / 10; d.subj = d.subj || {}; d.subj[subj] = Math.round(((d.subj[subj] || 0) + min) * 10) / 10; if (pomo) d.pomos = (d.pomos || 0) + 1; });
+  const p = S.game.partner, before = p ? lvOf(expOf(p)) : 0;
+  return patchDay(k, d => { d.min = Math.round(((d.min || 0) + min) * 10) / 10; d.subj = d.subj || {}; d.subj[subj] = Math.round(((d.subj[subj] || 0) + min) * 10) / 10; if (pomo) d.pomos = (d.pomos || 0) + 1; })
+    .then(() => {
+      // ポモドーロの時間は相棒の経験値にもなる
+      if (!p || !YK[p] || min <= 0) return;
+      return patchDoc("game", v => { v.owned = v.owned || {}; const o = v.owned[p] || { at: Date.now(), exp: 0 }; o.exp = Math.round(((o.exp || 0) + min) * 10) / 10; v.owned[p] = o; })
+        .then(() => { const after = lvOf(expOf(p)); if (after > before) { sfx("done"); toast(YK[p].name + " が Lv." + after + " に上がった！" + (canEvolve(p) ? "　進化できる！" : "")); buddyKey = ""; } });
+    });
 }
 let busy = false;
 async function timerStart() {
