@@ -51,7 +51,7 @@ function sums(blocks) { let study = 0, game = 0; for (const b of blocks) { if (b
 /* ---------- 状態 ---------- */
 const S = {
   days: {}, timer: { running: false }, settings: { ...DEFAULTS }, quotes: [],
-  words: { w: {}, cleared: {} }, cloze: { correct: 0, total: 0 }, grammar: { units: {} },
+  words: { w: {}, cleared: {} }, kobun: { w: {}, cleared: {} }, seikei: { w: {}, cleared: {}, quiz: {} }, cloze: { correct: 0, total: 0 }, grammar: { units: {} },
   game: { owned: {}, partner: "tomori", partnerFrom: null, outfits: { owned: [], equipped: {} }, claims: [], spend: [], gacha: 0 },
   tickets: { active: null, history: [] }, scores: [], loaded: {}
 };
@@ -82,20 +82,20 @@ function phaseOf(k) {
 }
 function baseTasks(k) {
   const p = phaseOf(k), wp = Number(S.settings.wordsPerDay) || 50, past = [1, 4, 6].includes(dow(k));
-  const T = [{ id: "words", name: "ターゲット 即答" + wp + "語", unit: "語", goal: wp, auto: true, subj: "en" }];
+  const T = [{ id: "words", name: "ターゲット 即答" + wp + "語", unit: "語", goal: wp, auto: "words", subj: "en" }];
   if (p.id === 1) T.push({ id: "lecture", name: "中学文法の授業", unit: "講", goal: 2, subj: "en" });
   if (p.id === 2) T.push({ id: "lecture", name: "ハイレベル英文法の授業", unit: "講", goal: 2, subj: "en" });
   T.push({ id: "gq", name: p.id === 3 ? "文法 間違い直し" : "文法問題", unit: "問", goal: p.id === 3 ? 30 : 40, subj: "en" });
   T.push({ id: "reading", name: "英語長文", unit: "題", goal: p.id === 4 ? 2 : 1, subj: "en" });
   if ((p.id === 2 && past) || p.id === 3) T.push({ id: "past", name: "過去問・本番形式（時間を計る）", unit: "回", goal: 1, subj: "en" });
-  T.push({ id: "kobun", name: "古文単語", unit: "語", goal: 30, subj: "ja" });
-  T.push({ id: "seikei", name: "政経 一問一答", unit: "問", goal: 50, subj: "se" });
+  T.push({ id: "kobun", name: "古文単語 即答30語", unit: "語", goal: 30, auto: "kobun", subj: "ja" });
+  T.push({ id: "seikei", name: "政経 一問一答 即答50問", unit: "問", goal: 50, auto: "seikei", subj: "se" });
   return T;
 }
-function wordsTodayCount(k) { return ((S.words.cleared || {})[k] || []).length; }
+function wordsTodayCount(k, store = "words") { return (((S[store] || {}).cleared || {})[k] || []).length; }
 function tasksOf(k) {
   const d = S.days[k] || {}, cnt = d.tasks || {};
-  const list = baseTasks(k).map(t => ({ ...t, count: t.auto ? wordsTodayCount(k) : (cnt[t.id] || 0) }));
+  const list = baseTasks(k).map(t => ({ ...t, count: t.auto ? wordsTodayCount(k, t.auto) : (cnt[t.id] || 0) }));
   for (const c of d.custom || []) list.push({ id: c.id, name: c.name, unit: c.unit || "", goal: c.goal || 1, count: cnt[c.id] || 0, custom: true });
   return list;
 }
@@ -113,10 +113,11 @@ function econ() {
   tot += timerRunMin();
   const ticketEarn = Math.floor(tot / 6) + clears * 15 + streakBonus;
   const ticketSpent = (S.tickets.history || []).filter(h => !h.free).reduce((a, h) => a + (h.cost || 0), 0);
-  let fast = 0; for (const n in S.words.w || {}) fast += (S.words.w[n][1] || 0);
+  let fast = 0; for (const st of [S.words, S.kobun, S.seikei]) for (const n in (st && st.w) || {}) fast += (st.w[n][1] || 0);
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
-  const kobanEarn = pomos * 5 + fast + (S.cloze.correct || 0) + clears * 20 + gramPass * 30 + bests * 40;
+  const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
+  const kobanEarn = pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
   return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
 }
@@ -143,12 +144,12 @@ const listeners = new Set();
 const onChange = fn => listeners.add(fn);
 function emit() { for (const fn of listeners) { try { fn(); } catch (e) { console.warn(e); } } }
 const CACHE = "kouryaku-cache-v2";
-function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, timer: S.timer })); } catch (e) {} }
+function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, kobun: S.kobun, seikei: S.seikei, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, timer: S.timer })); } catch (e) {} }
 function cacheLoad() { try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); if (c) for (const k in c) if (c[k] != null) S[k] = k === "settings" ? { ...DEFAULTS, ...c[k] } : c[k]; } catch (e) {} }
 function makeBackend(db) {
   const chains = {};
   const write = (path, fn) => (chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => { console.warn(e); toast("保存できなかった。通信を確認して、もう一度やって。"); setSync("err"); }));
-  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets" };
+  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", kobun: "learn/kobun", seikei: "learn/seikei", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets" };
   const local = !db;
   let store = {};
   if (local) { try { store = JSON.parse(localStorage.getItem("kouryaku-local-v2") || "{}"); } catch (e) {} }
@@ -199,7 +200,7 @@ function setSync(s) { const el = $("sync"); if (!el) return; el.dataset.s = s; e
 function day(k = dayKey()) { return { date: k, min: 0, ...(S.days[k] || {}) }; }
 function patchDay(k, fn) { const d = JSON.parse(JSON.stringify(day(k))); fn(d); if (!d.mode) d.mode = modeOf(k); return backend.saveDay(k, d); }
 function patchDoc(name, fn) { const v = JSON.parse(JSON.stringify(S[name])); fn(v); return backend.save(name, v); }
-const NEED = ["days", "timer", "settings", "words", "cloze", "grammar", "game", "tickets"];
+const NEED = ["days", "timer", "settings", "words", "kobun", "seikei", "cloze", "grammar", "game", "tickets"];
 const allLoaded = () => NEED.every(k => S.loaded[k]);
 function ready() { if (!backend || !allLoaded()) { toast("読み込み中。少し待ってからもう一度。"); return false; } return true; }
 

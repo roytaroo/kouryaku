@@ -250,3 +250,7 @@ details.box summary{cursor:pointer;font-weight:700}
 .buddy .gears{position:absolute;right:-4px;bottom:0;flex-direction:column;align-items:flex-end}
 .gear{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 6px 1px 2px;font-size:10px;font-weight:700}
 .gear img{width:22px;height:22px}
+
+.flash .word.small{font-family:var(--body);font-weight:700;font-size:18px;line-height:1.6;text-align:left}
+.flash .word ruby rt{font-size:.4em}
+.flash .word.mid{font-size:clamp(26px,8vw,38px)}

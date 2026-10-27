@@ -88,14 +88,14 @@
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">即答単語</button><button type="button" data-t="cloze">穴埋め4択</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="other">古文・政経</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
-      <div class="eyebrow">ターゲット1900 Part1〜2　1日50語×30日</div>
+      <div class="eyebrow" id="wEyebrow"></div>
       <h2 id="wTitle"></h2>
       <div class="bar-p"><i id="wBar"></i></div>
       <div class="note" id="wProg"></div>
-      <p style="margin:0;font-size:14px">英単語を見て<b>2秒以内</b>に意味が浮かばなければ失敗。全部を即答できるまで終わらない。覚えるのはAnki、ここは追い討ち。</p>
+      <p style="margin:0;font-size:14px" id="wRule"></p>
       <button class="big-btn" type="button" id="wGo">今日の50語を始める</button>
       <div class="row"><button class="btn" type="button" id="wWeak">苦手だけ</button><select class="field" id="wDay" aria-label="何日目の50語か"></select></div>
       <div class="note" id="wStats"></div>
@@ -117,8 +117,12 @@
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
   </div>
   <div id="lt-other" class="view" hidden>
-    <div class="card"><div class="eyebrow">準備中</div><h2>古文単語・政経一問一答</h2>
-      <p style="margin:0">Ankiのデッキを受け取ったら、英単語と同じ「即答できるまで終わらない」モードをここに入れる。それまでは、ホームのノルマで数を記録しておく。</p></div>
+    <div class="card">
+      <div class="eyebrow">政経 演習（共通テスト形式）</div><h2>選択問題を10問</h2>
+      <div class="row"><select class="field" id="qzUnit" aria-label="単元" style="flex:1 1 12em"></select><button class="big-btn" type="button" id="qzStart" style="width:auto">10問はじめる</button></div>
+      <div class="note" id="qzStats"></div>
+      <div id="quizBox" class="flash" hidden></div>
+    </div>
   </div>
 </section>
 

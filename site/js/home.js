@@ -59,10 +59,10 @@ function renderTasks() {
   const k = dayKey(), list = tasksOf(k), ul = $("taskList");
   const html = list.map(t => {
     const done = t.count >= t.goal, pct = clamp(100 * t.count / t.goal, 0, 100);
-    const ctl = t.auto ? `<button type="button" data-go="learn">単語を始める</button>` :
+    const ctl = t.auto ? `<button type="button" data-go="learn" data-tab="${t.auto === "words" ? "words" : t.auto}">始める</button>` :
       `<button type="button" data-t="${t.id}" data-d="-1">−1</button><button type="button" data-t="${t.id}" data-d="1">＋1</button>` +
       (t.goal >= 10 ? `<button type="button" data-t="${t.id}" data-d="10">＋10</button>` : "") + (t.custom ? `<button type="button" data-del="${t.id}">消す</button>` : "");
-    return `<li class="task${done ? " done" : ""}"><span class="nm">${esc(t.name)}<small>${t.subj ? SUBJ[t.subj] : "自分で足したタスク"}${t.auto ? "・単語ゲームで自動で数える" : ""}</small></span>
+    return `<li class="task${done ? " done" : ""}"><span class="nm">${esc(t.name)}<small>${t.subj ? SUBJ[t.subj] : "自分で足したタスク"}${t.auto ? "・即答モードで自動で数える" : ""}</small></span>
       <span class="ct num">${t.count}<small>/${t.goal}${esc(t.unit)}</small></span><div class="bar-p"><i class="${done ? "ok" : ""}" style="width:${pct}%"></i></div><div class="ctl">${ctl}</div></li>`;
   }).join("");
   if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
@@ -86,7 +86,7 @@ function renderHome() { renderCountdown(); renderBuddy(); renderPhase(); renderT
 function bindHome() {
   $("taskList").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.go) return go(b.dataset.go);
+    if (b.dataset.go) { if (b.dataset.tab) learnTab = b.dataset.tab; return go(b.dataset.go); }
     if (!ready()) return;
     const k = dayKey();
     if (b.dataset.del) return patchDay(k, d => { d.custom = (d.custom || []).filter(c => c.id !== b.dataset.del); });

@@ -2,23 +2,47 @@
 const FAST_MS = 2000;
 const TW = (typeof TARGET_WORDS !== "undefined" ? TARGET_WORDS : []);
 const TWI = new Map(TW.map((w, i) => [w[2], i]));
+const KO = (typeof KOBUN !== "undefined" ? KOBUN : []);
+const SQA = (typeof SEIKEI_QA !== "undefined" ? SEIKEI_QA : []), SQZ = (typeof SEIKEI_QUIZ !== "undefined" ? SEIKEI_QUIZ : []);
 const lines = m => String(m).split(/[；;]/).map(s => s.trim()).filter(Boolean).map((s, i) => "①②③④⑤⑥⑦⑧"[i] + s).join("　");
-const dayIdx = (k = dayKey()) => clamp(daysBetween(PLAN_START, k), 0, Math.max(0, Math.ceil(TW.length / 50) - 1));
-const setOf = i => TW.slice(i * 50, i * 50 + 50);
-let learnTab = "words", wSet = null;
+const circled = i => "①②③④⑤⑥⑦⑧⑨"[i] || "・";
+/** 単語帳：英単語（ターゲット1900）と古文単語（重要古文単語315）を同じ仕組みで回す。
+    items は { id, q(見出し html), sub(補足 html), a(意味 html), ex(例文 html) } */
+const DECKS = {
+  en: {
+    store: "words", per: 50, start: PLAN_START, unit: "語", title: "ターゲット1900 Part1〜2", rule: "英単語を見て",
+    items: TW.map(w => ({ id: w[2], q: esc(w[0]), a: esc(lines(w[1])), ex: w[3] ? esc(w[3].replace(/\{\{c1::(.*?)\}\}/, "$1")) + "<br>" + esc(w[4] || "") : "" }))
+  },
+  ko: {
+    store: "kobun", per: 30, mid: true, start: PLAN_START, unit: "語", title: "重要古文単語315", rule: "古語を見て",
+    // 中身はAnkiの書き出しを変換した、ふりがな（ruby）と赤字（b）だけの html
+    items: KO.map(w => ({ id: w.n, q: w.word, sub: [w.kanji, w.pos].filter(Boolean).join("　"), a: w.mean.map((m, i) => circled(i) + m).join("<br>"), ex: (w.rel || []).length ? "関連語：" + w.rel.map(r => r.word + "（" + r.mean + "）").join("　") : "" }))
+  },
+  se: {
+    store: "seikei", per: 50, start: PLAN_START, unit: "問", title: "政経 一問一答", rule: "問題を読んで", limit: 6000, small: true,
+    items: SQA.map(w => ({ id: w.id, q: esc(w.q), sub: esc(w.unit), a: esc(w.a) }))
+  }
+};
+for (const d of Object.values(DECKS)) d.index = new Map(d.items.map((x, i) => [x.id, i]));
+let learnTab = "words", wSet = { en: null, ko: null, se: null };
+const deckOfTab = () => learnTab === "kobun" ? "ko" : learnTab === "seikei" ? "se" : "en";
+const limitOf = dk => DECKS[dk].limit || FAST_MS;
+const dayIdx = (dk, k = dayKey()) => { const D = DECKS[dk]; return clamp(daysBetween(D.start, k), 0, Math.max(0, Math.ceil(D.items.length / D.per) - 1)); };
+const setOf = (dk, i) => { const D = DECKS[dk]; return D.items.slice(i * D.per, i * D.per + D.per); };
 /* ---- 単語 ---- */
-let sess = null; // {queue:[num], mode, t0, phase:'ask'|'judge'|'miss', cur}
-function clearedToday() { return new Set(((S.words.cleared || {})[dayKey()] || [])); }
-function startWords(mode) {
-  if (!TW.length) { toast("単語データが入っていない。"); return; }
-  const k = dayKey(), done = clearedToday();
+let sess = null; // {deck, queue:[id], mode, t0, phase:'ask'|'judge'|'miss', cur}
+function clearedToday(dk) { return new Set(((S[DECKS[dk].store].cleared || {})[dayKey()] || [])); }
+function startWords(dk, mode) {
+  const D = DECKS[dk], st = S[D.store];
+  if (!D.items.length) { toast("単語データが入っていない。"); return; }
+  const done = clearedToday(dk);
   let nums;
-  if (mode === "weak") { const upto = (dayIdx() + 1) * 50; nums = TW.slice(0, upto).filter(w => { const s = (S.words.w || {})[w[2]]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w[2]).slice(0, 50); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
-  else nums = setOf(wSet ?? dayIdx()).map(w => w[2]).filter(n => !done.has(n));
-  if (!nums.length) { toast("この50語は今日もう全部即答できた。"); return; }
+  if (mode === "weak") { const upto = (dayIdx(dk) + 1) * D.per; nums = D.items.slice(0, upto).filter(w => { const s = (st.w || {})[w.id]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w.id).slice(0, D.per); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
+  else nums = setOf(dk, wSet[dk] ?? dayIdx(dk)).map(w => w.id).filter(n => !done.has(n));
+  if (!nums.length) { toast("この" + D.per + "語は今日もう全部即答できた。"); return; }
   for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
-  sess = { queue: nums, mode, total: nums.length, cleared: 0, tries: 0 };
-  nextWord();
+  sess = { deck: dk, queue: nums, mode, total: nums.length, cleared: 0, tries: 0 };
+  nextWord(); renderLearn();
 }
 let limitT = 0;
 function nextWord() {
@@ -27,7 +51,7 @@ function nextWord() {
   if (!sess.queue.length) { const n = sess.cleared; sess = null; sfx("done"); confetti(); toast(n + "語、全部即答できた！"); renderLearn(); return; }
   sess.cur = sess.queue[0]; sess.phase = "ask"; sess.t0 = performance.now(); sess.tries++;
   renderFlash();
-  limitT = setTimeout(() => { if (sess && sess.phase === "ask") answerWord(false, true); }, FAST_MS + 1200);
+  limitT = setTimeout(() => { if (sess && sess.phase === "ask") answerWord(false, true); }, limitOf(sess.deck) + 1200);
 }
 function answerWord(recalled, timeout) {
   if (!sess || sess.phase !== "ask") return;
@@ -38,7 +62,7 @@ function answerWord(recalled, timeout) {
 }
 function judgeWord(ok) {
   if (!sess || sess.phase !== "judge") return;
-  const fast = ok && sess.ms <= FAST_MS;
+  const fast = ok && sess.ms <= limitOf(sess.deck);
   record(ok, fast);
   if (fast) { sess.queue.shift(); sess.cleared++; sfx("coin"); }
   else { requeue(); sfx(ok ? "tap" : "ng"); }
@@ -50,7 +74,7 @@ function requeue() { const n = sess.queue.shift(); const at = Math.min(sess.queu
 function missNext() { if (sess && sess.phase === "miss") { if (sess.queue[0] === sess.cur) requeue(); nextWord(); } }
 function record(ok, fast) {
   const n = sess.cur, k = dayKey();
-  patchDoc("words", v => {
+  patchDoc(DECKS[sess.deck].store, v => {
     v.w = v.w || {}; v.cleared = v.cleared || {};
     const s = v.w[n] || [0, 0, 0, ""];
     if (fast) { s[0] = Math.min(5, (s[0] || 0) + 1); s[1] = (s[1] || 0) + 1; v.cleared[k] = [...new Set([...(v.cleared[k] || []), n])]; }
@@ -59,22 +83,21 @@ function record(ok, fast) {
   });
 }
 function renderFlash() {
-  const box = $("flash"); if (!sess) { box.hidden = true; return; }
+  const box = $("flash"); if (!sess || deckOfTab() !== sess.deck) { box.hidden = true; return; }
   box.hidden = false;
-  const w = TW[TWI.get(sess.cur)], left = sess.queue.length;
-  const ex = w[3] ? w[3].replace(/\{\{c1::(.*?)\}\}/, "$1") : "";
-  let h = `<div class="qprog"><span>残り ${left}語</span><span>${sess.mode === "weak" ? "苦手の復習" : "今日の50語"}・即答 ${sess.cleared}/${sess.total}</span></div>`;
-  h += `<div class="no">No.${esc(w[2])}</div><div class="word">${esc(w[0])}</div>`;
+  const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
+  let h = `<div class="qprog"><span>残り ${left}語</span><span>${sess.mode === "weak" ? "苦手の復習" : "今日の" + D.per + "語"}・即答 ${sess.cleared}/${sess.total}</span></div>`;
+  const lim = limitOf(sess.deck);
+  h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>`;
+  const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;
   if (sess.phase === "ask") {
-    h += `<div class="limit go"><i style="animation-duration:${FAST_MS}ms"></i></div><div class="note">見た瞬間に意味を思い浮かべて押せ（2秒）</div>
+    h += `<div class="limit go"><i style="animation-duration:${lim}ms"></i></div><div class="note">${D.small ? "読んで答えを思い浮かべて押せ" : "見た瞬間に意味を思い浮かべて押せ"}（${lim / 1000}秒）</div>
       <div class="pair"><button class="big-btn" type="button" data-a="yes">浮かんだ</button><button class="big-btn ng" type="button" data-a="no">わからない</button></div>`;
   } else if (sess.phase === "judge") {
-    h += `<div class="mean">${esc(lines(w[1]))}</div>${ex ? `<div class="ex">${esc(ex)}<br>${esc(w[4] || "")}</div>` : ""}
-      <div class="note">思い浮かべた意味は合ってた？　${(sess.ms / 1000).toFixed(1)}秒${sess.ms <= FAST_MS ? "（即答）" : "（遅い）"}</div>
+    h += ans + `<div class="note">思い浮かべた答えは合ってた？　${(sess.ms / 1000).toFixed(1)}秒${sess.ms <= lim ? "（即答）" : "（遅い）"}</div>
       <div class="pair"><button class="big-btn ink" type="button" data-j="1">○ 合ってた</button><button class="big-btn ng" type="button" data-j="0">× 違った</button></div>`;
   } else {
-    h += `<div class="note" style="color:var(--seal);font-weight:700">${esc(sess.why)}。もう一度出る。</div><div class="mean">${esc(lines(w[1]))}</div>${ex ? `<div class="ex">${esc(ex)}<br>${esc(w[4] || "")}</div>` : ""}
-      <button class="big-btn ink" type="button" data-n="1">次へ</button>`;
+    h += `<div class="note" style="color:var(--seal);font-weight:700">${esc(sess.why)}。もう一度出る。</div>` + ans + `<button class="big-btn ink" type="button" data-n="1">次へ</button>`;
   }
   h += `<button class="btn ghost sm" type="button" data-q="1" style="justify-self:center">やめる（ここまでは記録済み）</button>`;
   box.innerHTML = h;
@@ -83,7 +106,7 @@ function renderFlash() {
 let cz = null; // {qs:[{i, choices:[i], ans}], n, ok, picked}
 function clozeParts(s) { const m = String(s).match(/^(.*?)([A-Za-z]*)\{\{c1::(.*?)\}\}([A-Za-z]*)(.*)$/); return m ? { pre: m[1], hit: m[2] + m[3] + m[4], post: m[5] } : null; }
 function startCloze() {
-  const upto = Math.max(50, (dayIdx() + 1) * 50), pool = TW.slice(0, upto).filter(w => w[3] && clozeParts(w[3]));
+  const upto = Math.max(50, (dayIdx("en") + 1) * 50), pool = TW.slice(0, upto).filter(w => w[3] && clozeParts(w[3]));
   if (pool.length < 4) { toast("例文のある単語が足りない。"); return; }
   const weight = w => { const s = (S.words.w || {})[w[2]]; return 1 + (s ? (s[2] || 0) * 2 - (s[0] || 0) * 0.3 : 1); };
   const qs = [], used = new Set();
@@ -141,27 +164,65 @@ function saveUnit(id, ok, tot) {
   patchDoc("grammar", v => { v.units = v.units || {}; const u = v.units[id] || { tries: 0 }; u.tries = (u.tries || 0) + 1; if (!u.best || ok / tot > u.best[0] / u.best[1]) u.best = [ok, tot]; if (ok / tot >= 0.8) u.passed = true; v.units[id] = u; })
     .then(() => { if (!before && ok / tot >= 0.8) { sfx("done"); confetti(); toast("合格！小判＋30。新しいお化けが仲間になる。"); checkUnlocks(); } else sfx(ok / tot >= 0.8 ? "ok" : "tap"); });
 }
+/* ---- 政経 演習（共通テスト形式の選択問題） ---- */
+let qz = null, qzUnit = "";
+function startQuiz() {
+  let pool = SQZ.filter(q => !qzUnit || q.unit === qzUnit);
+  if (!pool.length) { toast("問題が入っていない。"); return; }
+  const st = (S.seikei.quiz || {});
+  pool = pool.map(q => [q, Math.random() + ((st[q.id] || [0, 0])[0] ? 0.6 : 0)]).sort((a, b) => a[1] - b[1]).map(x => x[0]).slice(0, 10);
+  qz = { qs: pool, n: 0, ok: 0, picked: null }; renderQuiz();
+}
+function renderQuiz() {
+  const box = $("quizBox"), st = S.seikei.quiz || {};
+  const sel = $("qzUnit"); if (!sel.options.length) { sel.add(new Option("全単元から", "")); for (const u of [...new Set(SQZ.map(q => q.unit))]) sel.add(new Option(u, u)); }
+  sel.value = qzUnit;
+  const done = Object.values(st).filter(v => v[0] > 0).length;
+  $("qzStats").textContent = "正解したことがある問題 " + done + " / " + SQZ.length + "（1問正解ごとに小判＋1）";
+  $("qzStart").hidden = !!qz;
+  if (!qz) { box.hidden = true; return; }
+  box.hidden = false;
+  if (qz.n >= qz.qs.length) { box.innerHTML = `<div class="flash"><div class="word dot">${qz.ok} / ${qz.qs.length}</div><button class="big-btn" type="button" data-qz="again">もう10問</button><button class="btn ghost" type="button" data-qz="end">終わる</button></div>`; return; }
+  const q = qz.qs[qz.n];
+  let h = `<div class="qprog"><span>${qz.n + 1} / ${qz.qs.length}　${esc(q.unit)}</span><span>正解 ${qz.ok}</span></div><div class="cloze" style="font-size:15px">${esc(q.q)}</div><div class="ex" style="white-space:pre-wrap;font-size:14px;color:var(--ink)">${esc(q.sel)}</div><div class="choices" style="grid-template-columns:repeat(${q.n > 4 ? 4 : q.n},1fr)">`;
+  for (let i = 1; i <= q.n; i++) { const cls = qz.picked == null ? "" : i === q.ans ? "right" : i === qz.picked ? "wrong" : ""; h += `<button type="button" class="${cls}" data-qc="${i}" style="text-align:center" ${qz.picked != null ? "disabled" : ""}>${"①②③④⑤⑥⑦⑧"[i - 1]}</button>`; }
+  h += `</div>`;
+  if (qz.picked != null) h += `<div class="mean" style="font-size:14px;font-weight:400"><b>正解 ${"①②③④⑤⑥⑦⑧"[q.ans - 1]}</b>　${esc(q.ex)}</div><button class="big-btn ink" type="button" data-qz="next">次へ</button>`;
+  box.innerHTML = h;
+}
+function pickQuiz(i) {
+  if (!qz || qz.picked != null) return;
+  const q = qz.qs[qz.n], ok = i === q.ans; qz.picked = i; if (ok) qz.ok++;
+  sfx(ok ? "coin" : "ng");
+  patchDoc("seikei", v => { v.quiz = v.quiz || {}; const r = v.quiz[q.id] || [0, 0]; v.quiz[q.id] = [r[0] + (ok ? 1 : 0), r[1] + 1]; });
+  renderQuiz();
+}
 function renderLearn() {
   document.querySelectorAll("#learnSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === learnTab)));
-  for (const t of ["words", "cloze", "grammar", "other"]) $("lt-" + t).hidden = t !== learnTab;
-  if (learnTab === "words") {
-    const i = wSet ?? dayIdx(), set = setOf(i), done = clearedToday(), n = set.filter(w => done.has(w[2])).length;
-    $("wTitle").textContent = (i + 1) + "日目の50語　No." + (set[0] ? set[0][2] : "") + "〜" + (set[set.length - 1] ? set[set.length - 1][2] : "");
+  for (const t of ["words", "cloze", "grammar", "other"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
+  if (learnTab === "seikei") renderQuiz();
+  if (learnTab === "words" || learnTab === "kobun" || learnTab === "seikei") {
+    const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
+    const days = Math.ceil(D.items.length / D.per);
+    $("wEyebrow").textContent = D.title + "　1日" + D.per + D.unit + "×" + days + "日";
+    $("wRule").innerHTML = esc(D.rule) + "<b>" + limitOf(dk) / 1000 + "秒以内</b>に答えが浮かばなければ失敗。全部を即答できるまで終わらない。覚えるのはAnki、ここは追い討ち。";
+    $("wGo").textContent = "今日の" + D.per + D.unit + "を始める";
+    $("wTitle").textContent = (i + 1) + "日目の" + D.per + D.unit + "　No." + (set[0] ? set[0].id : "") + "〜" + (set[set.length - 1] ? set[set.length - 1].id : "");
     $("wProg").textContent = "今日即答できた " + n + " / " + set.length; $("wBar").style.width = (100 * n / Math.max(1, set.length)) + "%"; $("wBar").className = n >= set.length ? "ok" : "";
-    const known = Object.values(S.words.w || {}).filter(s => (s[0] || 0) >= 3).length, weak = Object.values(S.words.w || {}).filter(s => (s[2] || 0) > 0 && (s[0] || 0) < 3).length;
-    $("wStats").textContent = "定着（3回以上即答） " + known + "語 ／ 苦手 " + weak + "語 ／ Part1〜2 全" + TW.length + "語";
-    const sel = $("wDay"); if (!sel.options.length) for (let d = 0; d < Math.ceil(TW.length / 50); d++) sel.add(new Option((d + 1) + "日目（" + labelDay(addDays(PLAN_START, d)) + "）", d));
+    const known = Object.values(st.w || {}).filter(s => (s[0] || 0) >= 3).length, weak = Object.values(st.w || {}).filter(s => (s[2] || 0) > 0 && (s[0] || 0) < 3).length;
+    $("wStats").textContent = "定着（3回以上即答） " + known + D.unit + " ／ 苦手 " + weak + D.unit + " ／ 全" + D.items.length + D.unit;
+    const sel = $("wDay"); if (sel.dataset.deck !== dk) { sel.innerHTML = ""; sel.dataset.deck = dk; for (let d = 0; d < days; d++) sel.add(new Option((d + 1) + "日目（" + labelDay(addDays(D.start, d)) + "）", d)); }
     sel.value = String(i);
-    $("wStartBox").hidden = !!sess; renderFlash();
+    $("wStartBox").hidden = !!sess && sess.deck === dk; renderFlash();
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
   if (learnTab === "grammar") renderGrammar();
 }
 function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };
-  $("wGo").onclick = () => { if (ready()) startWords("day"); };
-  $("wWeak").onclick = () => { if (ready()) startWords("weak"); };
-  $("wDay").onchange = e => { wSet = Number(e.target.value); renderLearn(); };
+  $("wGo").onclick = () => { if (ready()) startWords(deckOfTab(), "day"); };
+  $("wWeak").onclick = () => { if (ready()) startWords(deckOfTab(), "weak"); };
+  $("wDay").onchange = e => { wSet[deckOfTab()] = Number(e.target.value); renderLearn(); };
   $("flash").onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.a) answerWord(b.dataset.a === "yes");
@@ -170,7 +231,7 @@ function bindLearn() {
     else if (b.dataset.q) { clearTimeout(limitT); sess = null; renderLearn(); }
   };
   document.addEventListener("keydown", e => {
-    if (currentView !== "learn" || !sess || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (currentView !== "learn" || !sess || deckOfTab() !== sess.deck || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
     if (sess.phase === "ask" && (e.key === " " || e.key === "Enter")) { e.preventDefault(); answerWord(true); }
     else if (sess.phase === "ask" && e.key === "Escape") answerWord(false);
     else if (sess.phase === "judge" && (e.key === "1" || e.key === "o" || e.key === "Enter")) judgeWord(true);
@@ -178,6 +239,9 @@ function bindLearn() {
     else if (sess.phase === "miss" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); missNext(); }
   });
   $("czStart").onclick = () => { if (ready()) startCloze(); };
+  $("qzStart").onclick = () => { if (ready()) startQuiz(); };
+  $("qzUnit").onchange = e => { qzUnit = e.target.value; };
+  $("quizBox").onclick = e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.qc) pickQuiz(Number(b.dataset.qc)); else if (b.dataset.qz === "next") { qz.n++; qz.picked = null; renderQuiz(); } else if (b.dataset.qz === "again") startQuiz(); else if (b.dataset.qz === "end") { qz = null; renderQuiz(); } };
   $("clozeBox").onclick = e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.c) pickCloze(Number(b.dataset.c)); else if (b.dataset.cz === "next") { cz.n++; cz.picked = null; renderCloze(); } else if (b.dataset.cz === "again") startCloze(); else if (b.dataset.cz === "end") { cz = null; renderLearn(); } };
   for (const g of Object.keys(GRAMMAR)) {
     $("units-" + g).addEventListener("click", e => { const b = e.target.closest("button[data-u]"); if (!b) return; openUnit = openUnit === b.dataset.u ? "" : b.dataset.u; renderGrammar(); const f = document.getElementById("uo-" + openUnit); if (f) f.focus(); });

@@ -53,6 +53,14 @@ def main():
     words = [] if "--no-words" in sys.argv else load_words()
     chars = load_chars()
     js = "const CHARS = " + json.dumps(chars, ensure_ascii=False) + ";\n"
+    ko = PRIVATE / "decks" / "kobun.json"
+    kobun = json.loads(ko.read_text(encoding="utf-8")) if ko.exists() and "--no-words" not in sys.argv else []
+    sq = PRIVATE / "decks" / "seikei_qa.json"; sz = PRIVATE / "decks" / "seikei_quiz.json"
+    seikei_qa = json.loads(sq.read_text(encoding="utf-8")) if sq.exists() and "--no-words" not in sys.argv else []
+    seikei_quiz = json.loads(sz.read_text(encoding="utf-8")) if sz.exists() and "--no-words" not in sys.argv else []
+    js += "const SEIKEI_QA = " + json.dumps(seikei_qa, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    js += "const SEIKEI_QUIZ = " + json.dumps(seikei_quiz, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    js += "const KOBUN = " + json.dumps(kobun, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)
     css = (SITE / "style.css").read_text(encoding="utf-8")
@@ -60,7 +68,7 @@ def main():
     html = html.replace("/*@CSS@*/", css).replace("/*@JS@*/", js.replace("</", "<\\/"))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(html, encoding="utf-8")
-    print(f"{OUT}  {len(html.encode()) / 1024:.0f} KB  words={len(words)}  chars={len(chars)}  (絵あり {sum(1 for c in chars if c.get('img'))})")
+    print(f"{OUT}  {len(html.encode()) / 1024:.0f} KB  words={len(words)}  kobun={len(kobun)}  seikei={len(seikei_qa)}+{len(seikei_quiz)}  chars={len(chars)}  (絵あり {sum(1 for c in chars if c.get('img'))})")
 
 
 if __name__ == "__main__":
