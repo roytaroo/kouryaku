@@ -27,6 +27,36 @@
 
   <div id="homeTicket" class="active-ticket" hidden></div>
 
+  <div class="card next" id="nextCard">
+    <div class="head"><div class="eyebrow">今やること</div><span class="note dot" id="nextCount"></span></div>
+    <h2 id="nextName"></h2>
+    <p class="nexthow" id="nextHow"></p>
+    <button class="big-btn" type="button" id="nextBtn">始める</button>
+    <ol class="guide" id="nextGuide" hidden>
+      <li><b>上のボタンを押す</b>だけでいい。何をやるかはアプリが順番に出す。</li>
+      <li>勉強している間は<b>タイマー</b>が時間を計る。時間がたまると相棒が育つ。</li>
+      <li>授業や問題集が終わったら、下の<b>今日のノルマ</b>で「＋1」を押す。単語はアプリの中で自動で数える。</li>
+    </ol>
+  </div>
+
+  <div class="card" style="position:relative">
+    <div class="head"><div><div class="eyebrow">今日のノルマ（全部）</div><h2 id="homeTime">0.0h / 10h</h2></div>
+      <div class="row"><span class="chip" id="homeStreak" style="padding:3px 10px">連続 0日</span><button class="chip" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ" style="padding:3px 10px">通常日</button></div></div>
+    <div class="bar-p"><i id="homeTimeBar"></i></div>
+    <div class="phase"><b id="phName"></b><span class="note" id="phTip"></span><span class="note dot" id="phDays"></span></div>
+    <span class="stamp" id="clearStamp" hidden>全クリ</span>
+    <ul class="tasks" id="taskList"></ul>
+    <div class="note" id="taskSum"></div>
+    <details><summary class="note" style="cursor:pointer;font-weight:700">＋ 自分でタスクを足す</summary>
+      <form id="addTask" class="row" style="margin-top:8px">
+        <input class="field" id="atName" placeholder="例：音読" style="flex:1 1 9em" maxlength="40">
+        <input class="field num" id="atGoal" type="number" min="1" value="1" inputmode="numeric" style="width:5em" aria-label="目標の数">
+        <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
+        <button class="btn pri" type="submit">足す</button>
+      </form></details>
+  </div>
+
+  <div class="eyebrow" style="margin:6px 4px -4px">相棒とごほうび</div>
   <div class="card">
     <div class="buddy">
       <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
@@ -44,23 +74,6 @@
     <div class="head"><div><div class="eyebrow">百鬼の道</div><h2><span class="dot" id="pmTier">0</span> 段</h2></div><button class="btn pri sm" type="button" id="pmClaim" hidden></button></div>
     <div class="bar-p"><i id="pmBar" style="background:linear-gradient(90deg,var(--lantern),var(--koban))"></i></div>
     <div class="pmnext" id="pmNext"></div>
-  </div>
-
-  <div class="card" style="position:relative">
-    <div class="head"><div><div class="eyebrow">今日のノルマ</div><h2 id="homeTime">0.0h / 10h</h2></div>
-      <div class="row"><span class="chip" id="homeStreak" style="padding:3px 10px">連続 0日</span><button class="chip" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ" style="padding:3px 10px">通常日</button></div></div>
-    <div class="bar-p"><i id="homeTimeBar"></i></div>
-    <div class="phase"><b id="phName"></b><span class="note" id="phTip"></span><span class="note dot" id="phDays"></span></div>
-    <span class="stamp" id="clearStamp" hidden>全クリ</span>
-    <ul class="tasks" id="taskList"></ul>
-    <div class="note" id="taskSum"></div>
-    <details><summary class="note" style="cursor:pointer;font-weight:700">＋ 自分でタスクを足す</summary>
-      <form id="addTask" class="row" style="margin-top:8px">
-        <input class="field" id="atName" placeholder="例：音読" style="flex:1 1 9em" maxlength="40">
-        <input class="field num" id="atGoal" type="number" min="1" value="1" inputmode="numeric" style="width:5em" aria-label="目標の数">
-        <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
-        <button class="btn pri" type="submit">足す</button>
-      </form></details>
   </div>
 
   <div class="card">

@@ -403,3 +403,10 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .flash .word.small{font-weight:700}
 .chip .koban{background:var(--koban);border-radius:50%}
 .chip .ticket{background:var(--lantern)}
+
+/* 今やること */
+.next{border-color:color-mix(in srgb,var(--lantern) 40%,var(--line))}
+.next h2{font-size:20px;line-height:1.4}
+.nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
+.guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
+.guide b{color:var(--ink)}

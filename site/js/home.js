@@ -83,7 +83,29 @@ function renderDayNotes() {
   for (const [id, key] of [["moodBtns", "mood"], ["energyBtns", "energy"]]) $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.v) === d[key])));
   $("nightSum").textContent = "今日は " + hrs(minOf(k)) + "時間、ノルマ " + tasksOf(k).filter(t => t.count >= t.goal).length + "/" + tasksOf(k).length + "。";
 }
-function renderHome() { renderCountdown(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderDayNotes(); renderActiveTicket("homeTicket"); }
+/* 今やること：ノルマのうち、まだ終わっていない最初の1つと、そのやり方 */
+const HOW = {
+  words: "英単語の意味を思い出して答える。アプリの中でできて、数も自動で数える。",
+  lecture: "スタディサプリで授業を見る。下のボタンでタイマーが動くから、見終わったらノルマで「＋1」。",
+  gq: "文法の問題を解く。問題集でも、勉強タブの「文法」の確認問題でもいい。終わった数をノルマで足す。",
+  reading: "英語長文を1題、時間を計って解く。下のボタンでタイマーが動く。",
+  past: "過去問か本番形式の問題を、本番と同じ時間で解く。",
+  kobun: "古文単語の意味を思い出して答える。アプリの中でできる。",
+  seikei: "政経の一問一答。アプリの中でできる。"
+};
+function nextTask() { return tasksOf(dayKey()).find(t => t.count < t.goal) || null; }
+function renderNext() {
+  const k = dayKey(), list = tasksOf(k), t = nextTask(), done = list.filter(x => x.count >= x.goal).length;
+  $("nextCount").textContent = done + " / " + list.length + " 終わった";
+  $("nextGuide").hidden = econ().totalMin > 0;
+  const running = S.timer && S.timer.running;
+  if (!t) { $("nextName").textContent = "今日のノルマは全部終わった"; $("nextHow").textContent = "あとはタイマーで勉強時間を積むだけ。目標は " + trimH(targetFor(modeOf(k))) + "時間。"; $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = "en"; return; }
+  $("nextName").textContent = t.name + "（あと " + (t.goal - t.count) + t.unit + "）";
+  $("nextHow").textContent = HOW[t.id] || "下のボタンでタイマーが動く。終わったらノルマで「＋1」。";
+  if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; }
+  else { $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en"; }
+}
+function renderHome() { renderCountdown(); renderNext(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderDayNotes(); renderActiveTicket("homeTicket"); }
 
 function bindHome() {
   $("taskList").addEventListener("click", e => {
@@ -108,6 +130,12 @@ function bindHome() {
   let rT = 0;
   $("reviewText").addEventListener("input", () => { clearTimeout(rT); rT = setTimeout(() => { if (ready()) patchDay(dayKey(), d => { d.review = $("reviewText").value.trim(); }); }, 700); });
   for (const [id, key] of [["moodBtns", "mood"], ["energyBtns", "energy"]]) $(id).addEventListener("click", e => { const b = e.target.closest("button"); if (!b || !ready()) return; patchDay(dayKey(), d => { d[key] = Number(b.dataset.v); }); sfx("tap"); });
+  $("nextBtn").onclick = e => {
+    const b = e.currentTarget, kind = b.dataset.k || "";
+    if (kind.startsWith("learn:")) { learnTab = kind.slice(6); return go("learn"); }
+    go("timer");
+    if (!(S.timer && S.timer.running)) { tSubj = b.dataset.s || "en"; timerStart(); }
+  };
   $("talkBtn").onclick = () => { pickLine(true); sfx("tap"); };
   $("evolveBtn").onclick = e => evolve(e.currentTarget.dataset.id);
   $("bubble").onclick = () => pickLine(true);
