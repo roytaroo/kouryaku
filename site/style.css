@@ -1,15 +1,15 @@
 /* レイアウト：スマホのアプリ型。上に小判・券の財布、真ん中に画面、下に5つのタブ。
    色：夜の藍（インク）と提灯の琥珀を軸に、朱（スパルタ）と若竹（達成）を意味の色として使う */
-/* ゲームのUI：黒い地にネオンの光。数字はくっきり、大事なものほど光る（暗い一色の見た目にしぼる） */
+/* 落ち着いた勉強アプリ：白とグレーの地に、青ひとつ。光や飾りはなし、数字と余白で見せる */
 :root{
-  --bg:#06070d; --surface:#0f1220; --surface2:#161a2c; --ink:#eef1ff; --muted:#8a91b4; --line:#252b47;
-  --night:#38e8ff; --night2:#7b5cff; --lantern:#ffc23d; --lantern2:#ffe17a; --seal:#ff4766; --good:#3dffa2; --koban:#ffc93d; --sky:#3da2ff;
-  --cy:#38e8ff; --mg:#ff3fa4; --glow:0 0 18px color-mix(in srgb,var(--cy) 45%,transparent);
-  --display:"Dela Gothic One","Hiragino Kaku Gothic StdN","Yu Gothic",sans-serif;
+  --bg:#f5f6f8; --surface:#ffffff; --surface2:#f1f3f6; --ink:#1a1d24; --muted:#687080; --line:#e3e6eb; --night:#1a1d24; --night2:#3a64d8; --lantern:#3a64d8; --lantern2:#5d82e6; --seal:#d04848; --good:#1f9467; --koban:#b48326; --sky:#3a64d8; --soft:#eef2fc; --ontint:#ffffff;
+  --display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
-  --dot:"Orbitron","Zen Kaku Gothic New",sans-serif;
-  --r:14px; --tabh:66px; color-scheme:dark;
+  --dot:"Inter","Zen Kaku Gothic New",system-ui,sans-serif;
+  --r:14px; --tabh:62px;
 }
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1115; --surface:#171a20; --surface2:#1e2229; --ink:#e9ebef; --muted:#9aa1ae; --line:#2a2f38; --night:#e9ebef; --night2:#7c9cf5; --lantern:#7c9cf5; --lantern2:#9db5f8; --seal:#f07a7a; --good:#4cc796; --koban:#e2b45a; --sky:#7c9cf5; --soft:#1c2333; --ontint:#0f1115; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1115; --surface:#171a20; --surface2:#1e2229; --ink:#e9ebef; --muted:#9aa1ae; --line:#2a2f38; --night:#e9ebef; --night2:#7c9cf5; --lantern:#7c9cf5; --lantern2:#9db5f8; --seal:#f07a7a; --good:#4cc796; --koban:#e2b45a; --sky:#7c9cf5; --soft:#1c2333; --ontint:#0f1115; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -300,132 +300,106 @@ details.box summary{cursor:pointer;font-weight:700}
 @keyframes evoIn{0%{opacity:0;filter:brightness(6);transform:scale(1.3)}100%{opacity:1;filter:brightness(1);transform:scale(1)}}
 
 /* ===================================================================
-   ゲームUIの仕上げ：光る枠のパネル、HUDのカウントダウン、ネオンのバトルパス
+   仕上げ：見出しは太字のゴシック、数字はそろった幅、影はごく薄く
    =================================================================== */
-body{background:radial-gradient(90% 50% at 85% -5%,rgba(123,92,255,.22),transparent 60%),radial-gradient(70% 40% at 0% 15%,rgba(56,232,255,.12),transparent 60%),
-  linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px) 0 0/100% 4px,var(--bg);background-attachment:fixed}
-::selection{background:color-mix(in srgb,var(--cy) 40%,transparent)}
-.num,.dot{letter-spacing:.04em}
+body{font-size:15px}
+.card h2,.brand,.cd .D,.phase b,.bname b,.flash .word,.tix button b,.quote-break,.stamp,.gacha .box .lan,.ricon,.stats dd,.task .ct,.ring .t .clock{font-weight:700}
+.num,.dot,.cd .D,.cd .hms,.task .ct,.ring .t .clock,.stats dd{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.eyebrow{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.note{color:var(--muted)}
 
 /* 上の帯 */
-.bar{background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid color-mix(in srgb,var(--cy) 25%,var(--line))}
-.brand{font-size:21px;letter-spacing:.1em;color:#fff;text-shadow:0 0 12px color-mix(in srgb,var(--cy) 70%,transparent)}
-.brand small{font-family:var(--dot);font-size:10px;color:var(--cy);letter-spacing:.2em;border:1px solid color-mix(in srgb,var(--cy) 50%,transparent);padding:2px 5px;border-radius:4px;text-shadow:none}
-.chip{background:linear-gradient(180deg,var(--surface2),var(--surface));border-color:var(--line);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.chip .lv{background:linear-gradient(135deg,var(--night2),var(--mg));color:#fff;font-family:var(--dot);font-weight:700}
+.bar{background:color-mix(in srgb,var(--bg) 90%,transparent);border-bottom:1px solid var(--line)}
+.brand{font-size:18px;color:var(--ink);letter-spacing:.02em}
+.brand small{font-size:11px;font-weight:500}
+.chip{background:var(--surface);font-family:var(--dot);font-weight:600;font-size:13px}
+.chip .lv{background:var(--soft);color:var(--lantern);font-weight:700}
 
-/* パネル：上の辺だけ光る枠 */
-.card,details.box{position:relative;background:linear-gradient(180deg,color-mix(in srgb,var(--surface2) 85%,transparent),var(--surface));border:1px solid var(--line);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 30px -20px #000}
-.card::before,details.box::before{content:"";position:absolute;left:14px;right:14px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--cy),transparent);opacity:.7;pointer-events:none}
-.card h2{font-size:20px}
-.eyebrow{font-family:var(--dot);font-size:10px;letter-spacing:.22em;color:var(--cy);font-weight:700;text-transform:uppercase}
+/* カード */
+.card,details.box{border-color:var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card h2{font-size:18px;letter-spacing:0}
 
 /* ボタン */
-.btn{background:var(--surface2);border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.btn:hover{border-color:var(--cy)}
-.btn.pri,.big-btn{background:linear-gradient(180deg,var(--lantern2),var(--lantern) 60%,#e89a12);border:0;color:#1a1100;font-weight:900;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -3px 0 rgba(0,0,0,.2),0 0 22px -4px color-mix(in srgb,var(--lantern) 70%,transparent)}
-.big-btn{letter-spacing:.12em;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);border-radius:4px;transition:transform .08s,filter .15s}
-.big-btn:hover{filter:brightness(1.08)} .big-btn:active{transform:scale(.98)}
-.big-btn.ink,.btn.ink{background:linear-gradient(180deg,#1c2b4a,#121a30);color:var(--cy);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cy) 55%,transparent),0 0 16px -6px var(--cy)}
-.pair .big-btn.ng,#tStop{background:var(--surface2)!important;color:var(--ink)!important;box-shadow:inset 0 0 0 1px var(--line)!important}
-.task .ctl button,.chips button,.mood button{background:var(--surface2);border-color:var(--line)}
+.btn{background:var(--surface);border-color:var(--line);font-weight:600}
+.btn:hover{border-color:color-mix(in srgb,var(--lantern) 50%,var(--line))}
+.btn.pri,.big-btn{background:var(--lantern);border-color:var(--lantern);color:var(--ontint)}
+.big-btn{border-radius:12px;font-weight:700;letter-spacing:.02em}
+.big-btn:hover,.btn.pri:hover{filter:brightness(1.05)}
+.big-btn.ink,.btn.ink{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.seg button[aria-pressed="true"]{color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.1)}
+.chips button[aria-pressed="true"],.mood button[aria-pressed="true"]{background:var(--soft);color:var(--lantern);border-color:color-mix(in srgb,var(--lantern) 55%,transparent)}
+.bar-p{background:var(--surface2)}
+.bar-p i,.bar-p i[style]{background:var(--lantern)!important}
+.bar-p i.ok{background:var(--good)!important}
+input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color:var(--lantern);box-shadow:0 0 0 3px color-mix(in srgb,var(--lantern) 18%,transparent)}
 
-/* タブ切りかえ・チップ */
-.seg{background:var(--surface);border-color:var(--line);border-radius:10px}
-.seg button{border-radius:7px}
-.seg button[aria-pressed="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--cy) 22%,var(--surface2)),var(--surface2));color:#fff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cy) 60%,transparent),0 0 14px -4px var(--cy)}
-.chips button[aria-pressed="true"],.mood button[aria-pressed="true"]{background:color-mix(in srgb,var(--cy) 18%,var(--surface2));color:#fff;border-color:var(--cy);box-shadow:0 0 12px -4px var(--cy)}
-
-/* ゲージ：区切りつきで光る */
-.bar-p{background:#0a0c16;box-shadow:inset 0 0 0 1px var(--line);border-radius:3px}
-.bar-p i{background:linear-gradient(90deg,var(--night2),var(--cy));border-radius:2px;box-shadow:0 0 10px color-mix(in srgb,var(--cy) 60%,transparent);position:relative}
-.bar-p i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9px,rgba(0,0,0,.35) 9px 11px)}
-.bar-p i.ok{background:linear-gradient(90deg,#1fb877,var(--good))}
-input.field,select.field,textarea.field{background:#0a0c16;border-color:var(--line)}
-input.field:focus,textarea.field:focus,select.field:focus{border-color:var(--cy);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--cy) 18%,transparent)}
-
-/* ---- カウントダウン：HUD ---- */
-.hero{background:radial-gradient(80% 90% at 100% 0%,rgba(255,63,164,.28),transparent 60%),radial-gradient(60% 80% at 0% 100%,rgba(56,232,255,.2),transparent 60%),
-  linear-gradient(rgba(56,232,255,.07) 1px,transparent 1px) 0 0/22px 22px,linear-gradient(90deg,rgba(56,232,255,.07) 1px,transparent 1px) 0 0/22px 22px,#0b0d1c;
-  border:1px solid color-mix(in srgb,var(--cy) 35%,transparent);border-radius:6px;padding:18px;
-  clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,26px 100%,0 calc(100% - 26px));box-shadow:none}
-.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:2px;width:auto;border-radius:0;right:26px;left:26px;top:auto;background:linear-gradient(90deg,var(--cy),var(--mg));box-shadow:0 0 14px var(--mg)}
-.hero .eyebrow{color:var(--cy)} .hero .eyebrow b{font-family:var(--body);text-transform:none;letter-spacing:.04em;font-size:14px}
-.cd .D{font-family:var(--dot);font-weight:900;font-size:clamp(72px,22vw,120px);color:#fff;text-shadow:0 0 6px #fff,0 0 22px var(--cy),0 0 46px color-mix(in srgb,var(--cy) 60%,transparent)}
-.cd .u{font-family:var(--dot);color:var(--cy);letter-spacing:.2em}
-.cd .hms{font-family:var(--dot);font-weight:700;color:var(--mg);text-shadow:0 0 14px color-mix(in srgb,var(--mg) 70%,transparent)}
-.hero .sub{color:#b9bfdc}
-.hero .exams span{font-family:var(--body);border:1px solid color-mix(in srgb,var(--cy) 35%,transparent);background:rgba(56,232,255,.06);border-radius:3px;color:#dfe6ff}
+/* カウントダウン：白いカードに大きな数字 */
+.hero{background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04);padding:18px}
+.hero::after{display:none}
+.hero .eyebrow{color:var(--muted)} .hero .eyebrow b{color:var(--ink);font-size:14px;letter-spacing:0}
+.cd .D{font-family:var(--dot);font-size:clamp(64px,18vw,96px);color:var(--ink);text-shadow:none;letter-spacing:-.04em}
+.cd .u{color:var(--muted)}
+.cd .hms{font-family:var(--dot);font-weight:600;font-size:clamp(20px,5.5vw,26px);color:var(--lantern)}
+.hero .sub{color:var(--muted)}
+.hero .exams span{border-color:var(--line);color:var(--ink);background:var(--surface2);font-weight:500}
 .hero .exams span b{font-family:var(--dot);font-weight:700;color:var(--lantern)}
 
-/* ---- 相棒 ---- */
-.buddy-fig{display:grid;place-items:center;isolation:isolate}
-.buddy-fig::before{content:"";position:absolute;left:8%;right:8%;bottom:2px;height:22px;border-radius:50%;border:2px solid color-mix(in srgb,var(--cy) 70%,transparent);box-shadow:0 0 16px var(--cy),inset 0 0 12px var(--cy);animation:pad 2.6s ease-in-out infinite;z-index:-1}
-.buddy-fig::after{content:"";position:absolute;inset:6% 0 10%;background:radial-gradient(closest-side,color-mix(in srgb,var(--night2) 45%,transparent),transparent);z-index:-2}
-@keyframes pad{50%{transform:scale(.9);opacity:.6}}
-.bubble{background:#0a0c16;border:1px solid color-mix(in srgb,var(--cy) 45%,transparent);box-shadow:0 0 18px -8px var(--cy)}
-.bubble::before{background:#0a0c16;border-color:color-mix(in srgb,var(--cy) 45%,transparent)}
-.lvtag{font-family:var(--dot);font-weight:700;color:var(--lantern);text-shadow:0 0 10px color-mix(in srgb,var(--lantern) 70%,transparent)}
+/* 相棒：控えめに */
+.buddy img.bob{filter:none;animation-duration:4.5s}
+.bubble{background:var(--surface2);border-color:transparent;font-weight:500}
+.bubble::before{background:var(--surface2);border-color:transparent}
+.bubble[data-mood]::after{font-family:var(--body);font-size:11px;border-radius:999px;padding:1px 7px;transform:none;top:-9px}
+.lvtag{color:var(--lantern);font-family:var(--dot)}
+.evolve-btn{background:var(--good);color:#fff;animation:none}
 
-/* ---- ノルマ：科目の色の線と CLEAR ---- */
-.task{background:#0c0f1c;border:1px solid var(--line);border-left:3px solid var(--muted)}
-.task[data-s="en"]{border-left-color:var(--sky)} .task[data-s="ja"]{border-left-color:var(--mg)} .task[data-s="se"]{border-left-color:var(--good)}
-.task .ct{font-weight:700;color:#fff}
-.task.done{border-color:color-mix(in srgb,var(--good) 55%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--good) 14%,#0c0f1c),#0c0f1c);box-shadow:0 0 18px -10px var(--good)}
-.task.done .ct{color:var(--good);text-shadow:0 0 10px var(--good)}
-.phase{border-left-color:var(--cy);background:linear-gradient(90deg,rgba(56,232,255,.08),transparent);padding-block:8px;border-radius:0 8px 8px 0}
-.stamp{font-family:var(--dot);font-weight:900;color:var(--good);border-color:var(--good);text-shadow:0 0 10px var(--good);box-shadow:0 0 14px -2px var(--good),inset 0 0 10px -2px var(--good);letter-spacing:.1em}
+/* ノルマ：科目の小さな印 */
+.task{background:var(--surface2);border:1px solid transparent}
+.task .nm small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--muted);vertical-align:1px}
+.task[data-s="en"] .nm small::before{background:var(--lantern)} .task[data-s="ja"] .nm small::before{background:var(--seal)} .task[data-s="se"] .nm small::before{background:var(--good)}
+.task .ct{font-family:var(--dot)}
+.task.done{background:color-mix(in srgb,var(--good) 8%,var(--surface));border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.task.done .ct{color:var(--good)}
+.phase{border-left-color:var(--lantern)}
+.phase b{font-size:15px}
+.stamp{font-family:var(--body);font-size:14px;border-width:2px;color:var(--good);border-color:var(--good);transform:rotate(-6deg)}
 
-/* ---- タイマー ---- */
-.ring::before{content:"";position:absolute;inset:-4%;border-radius:50%;background:repeating-conic-gradient(color-mix(in srgb,var(--cy) 45%,transparent) 0 1deg,transparent 1deg 6deg);
-  -webkit-mask:radial-gradient(closest-side,transparent 94%,#000 95%);mask:radial-gradient(closest-side,transparent 94%,#000 95%)}
-#ringArc{stroke:var(--cy);filter:drop-shadow(0 0 4px var(--cy))}
-.ring[data-phase="break"] #ringArc{stroke:var(--good);filter:drop-shadow(0 0 4px var(--good))}
-.ring .t .clock{font-weight:700;color:#fff;text-shadow:0 0 16px color-mix(in srgb,var(--cy) 70%,transparent)}
+/* タイマー */
+#ringArc{stroke:var(--lantern);stroke-width:3.5}
+.ring svg circle:first-child{stroke-width:3.5}
+.ring .t .clock{font-family:var(--dot);font-weight:600;letter-spacing:-.03em}
+.ring[data-phase="break"] #ringArc{stroke:var(--good)}
 
-/* ---- バトルパス ---- */
-.track::before{left:22px;width:4px;background:var(--line)}
-.track::after{content:"";position:absolute;left:22px;top:10px;width:4px;height:var(--lit,0px);border-radius:2px;background:linear-gradient(180deg,var(--cy),var(--mg));box-shadow:0 0 12px var(--cy);transition:height .8s}
-.tier .node{width:36px;height:40px;border:0;border-radius:0;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--line);font-weight:700;font-size:12px;z-index:1;position:relative;color:var(--muted)}
-.tier .node::before{content:"";position:absolute;inset:2px;clip-path:inherit;background:#0c0f1c;z-index:-1}
-.tier .rcard{background:#0c0f1c;border-color:var(--line)}
-.tier.got .node{background:var(--good);color:var(--good)}
-.tier.got .node::before{background:color-mix(in srgb,var(--good) 22%,#0c0f1c)}
-.tier.ready .node{background:var(--lantern2);color:#1a1100;animation:glow 1.4s ease-in-out infinite;filter:drop-shadow(0 0 8px var(--lantern))}
-.tier.ready .node::before{background:var(--lantern)}
-.tier.ready .rcard{border-color:var(--lantern);box-shadow:0 0 20px -8px var(--lantern),inset 0 0 0 1px color-mix(in srgb,var(--lantern) 40%,transparent)}
-.tier.next .node{background:var(--cy);color:var(--cy)}
-.tier.big .rcard{background:linear-gradient(100deg,rgba(123,92,255,.22),rgba(255,63,164,.08) 55%,#0c0f1c);border-color:color-mix(in srgb,var(--night2) 60%,var(--line))}
-.tier.lock.big .ricon{position:relative}
-.tier.lock.big .ricon::after{content:"?";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--dot);font-weight:900;font-size:28px;color:color-mix(in srgb,var(--cy) 70%,transparent);text-shadow:0 0 10px var(--cy)}
-.track .here span{font-family:var(--dot);font-weight:700;letter-spacing:.14em;background:linear-gradient(90deg,var(--cy),var(--mg));color:#06070d;border-radius:3px}
-.ricon{background:#0a0c16;border-color:var(--line)}
+/* 百鬼の道：すっきりした進み具合の一覧 */
+.tier .node{border-width:2px;font-family:var(--dot);font-weight:600;font-size:12px}
+.tier.got .node{background:var(--good);border-color:var(--good)}
+.tier.ready .node{background:var(--lantern);border-color:var(--lantern);color:var(--ontint);animation:none}
+.tier.ready .rcard{box-shadow:none}
+.tier.next .node{border-color:var(--lantern);color:var(--lantern)}
+.tier.big .rcard{background:var(--surface)}
+.tier.lock .rcard{filter:none;opacity:.75}
+.track .here{font-family:var(--body);font-weight:700}
+.track .here span{background:var(--soft);color:var(--lantern)}
+.ricon.roll-i{background:var(--soft);color:var(--lantern);font-family:var(--body)}
+.ricon.koban-i i{background:var(--koban)}
+.ricon.ticket-i i{background:var(--lantern)}
 
-/* ---- 図鑑・ガチャ ---- */
-.dex button{background:#0c0f1c;border-color:var(--line)}
-.dex button[data-r="1"]:not(.lock){border-color:color-mix(in srgb,#c8507a 55%,var(--line))}
-.dex button[data-r="2"]:not(.lock){border-color:color-mix(in srgb,var(--good) 50%,var(--line))}
-.gacha .box{border-radius:8px;background:radial-gradient(circle at 50% 45%,rgba(123,92,255,.45),transparent 65%),linear-gradient(rgba(56,232,255,.08) 1px,transparent 1px) 0 0/16px 16px,linear-gradient(90deg,rgba(56,232,255,.08) 1px,transparent 1px) 0 0/16px 16px,#0a0c16;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cy) 45%,transparent),0 0 30px -10px var(--night2)}
-.gacha .box .lan{font-family:var(--dot);font-weight:900;color:#fff;text-shadow:0 0 10px #fff,0 0 30px var(--mg)}
+/* 図鑑・ガチャ：光りものは抑える */
+.dex button[data-r]:not(.lock){background:var(--surface2)}
+.dex button[data-r="4"]:not(.lock)::after,.dex button[data-r="5"]:not(.lock)::after{display:none}
+.aura.r4,.aura.r5{animation:none}
+.gacha .box{background:var(--surface2)}
+.gacha .box .lan{color:var(--muted)}
 
-/* ---- 下のタブ ---- */
-.tabs{background:color-mix(in srgb,#05060b 92%,transparent);border-top:1px solid color-mix(in srgb,var(--cy) 25%,var(--line))}
-.tabs button{position:relative}
-.tabs button[aria-current="page"]{color:#fff}
-.tabs button[aria-current="page"] svg{color:var(--cy);filter:drop-shadow(0 0 6px var(--cy))}
-.tabs button[aria-current="page"]::before{content:"";position:absolute;top:-1px;left:30%;right:30%;height:2px;background:var(--cy);box-shadow:0 0 10px 1px var(--cy)}
-.toast{background:#0c0f1c;color:#fff;border:1px solid var(--cy);box-shadow:0 0 20px -6px var(--cy)}
+/* 下のタブ */
+.tabs{background:color-mix(in srgb,var(--surface) 95%,transparent);border-top-color:var(--line)}
+.tabs button[aria-current="page"],.tabs button[aria-current="page"] svg{color:var(--lantern)}
+.toast{background:var(--ink);color:var(--bg)}
 
-/* ---- そのほか ---- */
-.sheet{background:rgba(2,3,8,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.sheet .in{background:linear-gradient(180deg,var(--surface2),var(--surface));border-top:1px solid var(--cy);box-shadow:0 -10px 40px -10px color-mix(in srgb,var(--cy) 35%,transparent)}
-.stats div{background:#0c0f1c;border:1px solid var(--line)}
-.stats dd{font-weight:700;color:#fff}
-.flash .mean{background:#0c0f1c;border:1px solid var(--line)}
-.choices button{background:#0c0f1c}
-.unit{background:#0c0f1c;border:1px solid var(--line)}
-.active-ticket{background:linear-gradient(135deg,#1a1640,#0c0f1c);border:1px solid var(--night2)}
-.active-ticket .clock{font-family:var(--dot);font-weight:700}
+/* そのほか */
+.stats dd{font-family:var(--dot)}
+.active-ticket{background:var(--ink);color:var(--bg)}
+.active-ticket .clock{font-family:var(--dot);color:var(--bg)}
+.flash .word{font-family:var(--body)}
+.flash .word.small{font-weight:700}
+.chip .koban{background:var(--koban);border-radius:50%}
+.chip .ticket{background:var(--lantern)}
