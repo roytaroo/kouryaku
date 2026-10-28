@@ -2,7 +2,7 @@
 let selDay = null;
 function avgRecent(n = 7) { const k = dayKey(); let a = 0; for (let i = 1; i <= n; i++) a += minOf(addDays(k, -i)); return a / n; }
 function renderStats() {
-  const e = econ(), L = levelOf(e.totalMin), goal = Number(S.settings.goalHours) || 1612, k = dayKey();
+  const e = econ(), L = levelOf(e.totalMin), goal = Number(S.settings.goalHours) || 1100, k = dayKey();
   const left = Math.max(0, goal * 60 - e.totalMin), dl = Math.max(1, daysBetween(k, S.settings.deadline) + 1), av = avgRecent(7);
   const reach = av > 0 ? addDays(k, Math.ceil(left / av)) : null;
   $("stats").innerHTML = [
@@ -29,7 +29,7 @@ function renderBars() {
 }
 /** 累計の予測：実績・今のペースの延長・目標ライン */
 function renderForecast() {
-  const st = S.settings.startDate, dl = S.settings.deadline, goal = (Number(S.settings.goalHours) || 1612) * 60, k = dayKey();
+  const st = S.settings.startDate, dl = S.settings.deadline, goal = (Number(S.settings.goalHours) || 1100) * 60, k = dayKey();
   const N = Math.max(1, daysBetween(st, dl)), W = 600, H = 190, pl = 34, pb = 22, pt = 12;
   const x = d => pl + (W - pl - 6) * clamp(daysBetween(st, d) / N, 0, 1), y = v => pt + (H - pb - pt) * (1 - v / goal);
   let acc = 0, pts = [];
@@ -130,7 +130,7 @@ function fillSettings() {
 }
 function saveSettings(e) {
   e.preventDefault(); if (!ready()) return;
-  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1612, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked };
+  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked };
   backend.save("settings", v).then(() => { toast("設定を保存した。"); sfx("ok"); });
 }
 async function backup() {
