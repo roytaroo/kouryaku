@@ -105,6 +105,8 @@ function renderPass() {
     if (cur) html += `<li class="here"><span>いまここ</span></li>`;
   }
   const el = $("passTrack"); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
+  // 道の灯り：いまの段まで光らせる
+  requestAnimationFrame(() => { const at = el.querySelector(".here") || el.querySelector(".tier.got:last-of-type"); el.style.setProperty("--lit", (at ? at.offsetTop + 12 : 0) + "px"); });
 }
 function scrollPassToNow() { const el = document.querySelector("#passTrack .here") || document.querySelector("#passTrack .ready"); if (el) el.scrollIntoView({ block: "center" }); }
 /** ホームの小さな道しるべ */

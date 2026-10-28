@@ -2,12 +2,12 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Yuji+Syuku&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
 <style>/*@CSS@*/</style>
 
 <header class="bar"><div class="bar-in">
   <span class="sync" id="sync" title="接続中"></span>
-  <div class="brand">攻略<small>受験編</small></div>
+  <div class="brand"><span class="hanko">攻略</span><small>受験編</small></div>
   <div class="wallet">
     <span class="chip" title="小判（ガチャ・着せ替え）"><i class="koban"></i><span id="wKoban" class="num">0</span></span>
     <span class="chip" title="券ポイント（1ポイント＝ゲーム・動画1分）"><i class="ticket"></i><span id="wTicket" class="num">0</span></span>
@@ -19,6 +19,13 @@
 <!-- ===== ホーム ===== -->
 <section class="view" id="v-home">
   <div class="hero">
+    <div class="sky" aria-hidden="true">
+      <i class="moon"></i>
+      <span class="lanterns"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <svg class="hills" viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 90V58c40-14 70-22 112-10s70 10 104-6 78-24 120-8 52 18 64 20v36z"/></svg>
+      <svg class="torii" viewBox="0 0 120 100"><path d="M4 14q56-10 112 0l-3 9q-53-8-106 0zM14 30h92v7H14zM24 23h9v77h-9zM87 23h9v77h-9zM55 30h10v7H55z"/></svg>
+      <b class="wisp w1"></b><b class="wisp w2"></b><b class="wisp w3"></b>
+    </div>
     <div class="eyebrow">次の本番まで　<b id="cdName">…</b></div>
     <div class="cd"><span class="D num" id="cdD">--</span><span class="u">日</span><span class="hms" id="cdHms">--:--:--</span></div>
     <div class="sub" id="cdSub"></div>
