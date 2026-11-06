@@ -105,7 +105,7 @@ function renderNext() {
   if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; }
   else { $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en"; }
 }
-function renderHome() { renderCountdown(); renderNext(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderDayNotes(); renderActiveTicket("homeTicket"); }
+function renderHome() { renderCountdown(); renderNext(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderFit(); renderDayNotes(); renderActiveTicket("homeTicket"); }
 
 function bindHome() {
   $("taskList").addEventListener("click", e => {

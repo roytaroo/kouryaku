@@ -139,7 +139,7 @@ async function backup() {
   if (!dl) { toast("この画面ではファイル保存が使えない。"); return; }
   try { await dl.save({ filename: "kouryaku-backup-" + dayKey() + ".json", data }); toast("バックアップを保存した。"); } catch (e) { toast("保存しなかった。"); }
 }
-function renderRecord() { renderStats(); renderBars(); renderForecast(); renderHeat(); renderScores(); renderMood(); renderBadges(); renderQuotes(); fillSettings(); }
+function renderRecord() { renderStats(); renderBars(); renderForecast(); renderHeat(); renderScores(); renderMood(); renderFitRecord(); renderBadges(); renderQuotes(); fillSettings(); }
 function bindRecord() {
   $("heat").onclick = e => { const b = e.target.closest("button[data-d]"); if (!b) return; selDay = selDay === b.dataset.d ? null : b.dataset.d; renderHeat(); };
   $("deSave").onclick = () => { if (!ready() || !selDay) return; const m = clamp(Number($("deMin").value) || 0, 0, 1440); patchDay(selDay, d => { const diff = m - (d.min || 0); d.min = m; if (diff) { d.subj = d.subj || {}; d.subj.en = Math.max(0, (d.subj.en || 0) + diff); } d.mode = $("deMode").value; }); toast(labelDay(selDay) + "を直した。"); };

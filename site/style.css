@@ -410,3 +410,10 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
 .guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
 .guide b{color:var(--ink)}
+
+/* 筋トレ */
+.task[data-s="fit"] .nm small::before{display:none}
+.fitgrid{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.fitgrid i{aspect-ratio:1;border-radius:4px;background:var(--surface2);border:1px solid var(--line)}
+.fitgrid i.half{background:color-mix(in srgb,var(--good) 30%,var(--surface2))}
+.fitgrid i.on{background:var(--good);border-color:var(--good)}

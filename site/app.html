@@ -56,6 +56,12 @@
       </form></details>
   </div>
 
+  <div class="card" id="fitCard">
+    <div class="head"><div><div class="eyebrow">体づくり</div><h2 id="fitHead">今日の筋トレ</h2></div><span class="chip" id="fitWeek" style="padding:3px 10px"></span></div>
+    <ul class="tasks" id="fitList"></ul>
+    <div class="note" id="fitNote"></div>
+  </div>
+
   <div class="eyebrow" style="margin:6px 4px -4px">相棒とごほうび</div>
   <div class="card">
     <div class="buddy">
@@ -211,6 +217,7 @@
       <input class="field num" id="scMax" type="number" min="1" inputmode="numeric" placeholder="満点" value="100" style="width:5em" aria-label="満点">
       <button class="btn pri" type="submit">記録</button></form>
     <div id="scoreChart"></div><ul class="list" id="scoreList"></ul></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近28日</div><h2>筋トレ</h2></div><span class="note">濃い＝全部できた日</span></div><div id="fitRec" style="display:grid;gap:12px"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">直近14日</div><h2>気分と体力</h2></div><span class="note"><span style="color:var(--lantern)">●</span> 気分　<span style="color:var(--sky)">●</span> 体力</span></div><div id="moodChart"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">実績</div><h2>バッジ</h2></div><span class="note dot" id="badgeSum"></span></div><div class="badges" id="badges"></div></div>
   <details class="box"><summary>休憩に出す言葉</summary>

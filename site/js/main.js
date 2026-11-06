@@ -64,7 +64,7 @@ function bindMain() {
   window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   $("homeMode").onclick = () => { if (!ready()) return; const k = dayKey(), m = modeOf(k) === "refresh" ? "normal" : "refresh"; patchDay(k, d => { d.mode = m; }); toast(m === "refresh" ? "今日はリフレッシュ日。ゲームは2時間まで。" : "今日は通常日。"); };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
-  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord();
+  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit();
 }
 
 async function boot() {
