@@ -117,8 +117,7 @@ function econ() {
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
-  const fitDaysN = Object.keys(S.days).filter(k => S.days[k] && S.days[k].fit && S.days[k].fit.ok).length;
-  const kobanEarn = fitDaysN * FIT_KOBAN + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
+  const kobanEarn = fitKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
   return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
 }

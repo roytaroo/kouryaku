@@ -58,8 +58,20 @@
 
   <div class="card" id="fitCard">
     <div class="head"><div><div class="eyebrow">体づくり</div><h2 id="fitHead">今日の筋トレ</h2></div><span class="chip" id="fitWeek" style="padding:3px 10px"></span></div>
+    <div class="phase" id="fitPhase"></div>
     <ul class="tasks" id="fitList"></ul>
+    <button class="btn" type="button" id="fitForce" hidden>それでも今日やる</button>
     <div class="note" id="fitNote"></div>
+    <div class="cardio">
+      <div class="head"><b>有酸素（歩く・走る・泳ぐ）</b><span id="cardioSum" class="num"></span></div>
+      <div id="cardioList"></div>
+      <div class="note">最初は走ると歩くを交互に。長い距離はまだ走らない。</div>
+    </div>
+    <div class="cardio">
+      <div class="head"><b>今日の間食は100kcal以内？</b></div>
+      <div class="mood" id="snackBtns"><button type="button" data-v="1">できた</button><button type="button" data-v="0">こえた</button></div>
+      <div class="note">食事は減らしすぎない。筋肉をつけるには、3食しっかり食べる。</div>
+    </div>
   </div>
 
   <div class="eyebrow" style="margin:6px 4px -4px">相棒とごほうび</div>
@@ -217,7 +229,8 @@
       <input class="field num" id="scMax" type="number" min="1" inputmode="numeric" placeholder="満点" value="100" style="width:5em" aria-label="満点">
       <button class="btn pri" type="submit">記録</button></form>
     <div id="scoreChart"></div><ul class="list" id="scoreList"></ul></div>
-  <div class="card"><div class="head"><div><div class="eyebrow">直近28日</div><h2>筋トレ</h2></div><span class="note">濃い＝全部できた日</span></div><div id="fitRec" style="display:grid;gap:12px"></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近28日</div><h2>体づくり</h2></div><span class="note">緑＝筋トレ　下線＝有酸素</span></div><div id="fitRec" style="display:grid;gap:12px"></div>
+    <div class="row"><label class="note">今日の体重 <input class="field num" id="wtIn" type="number" step="0.1" min="30" max="200" inputmode="decimal" style="width:6em"> kg</label><button class="btn pri sm" type="button" id="wtSave">記録</button><span class="note">週1回、朝に測れば十分</span></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">直近14日</div><h2>気分と体力</h2></div><span class="note"><span style="color:var(--lantern)">●</span> 気分　<span style="color:var(--sky)">●</span> 体力</span></div><div id="moodChart"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">実績</div><h2>バッジ</h2></div><span class="note dot" id="badgeSum"></span></div><div class="badges" id="badges"></div></div>
   <details class="box"><summary>休憩に出す言葉</summary>
