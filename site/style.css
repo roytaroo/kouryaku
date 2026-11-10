@@ -427,3 +427,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .crow b{font-family:var(--dot);margin-left:8px;color:var(--muted)}
 .crow .ctl{display:flex;gap:6px}
 .crow .ctl button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:44px}
+#postureSum{font-family:var(--dot);font-weight:700;color:var(--muted)} #postureSum.ok{color:var(--good)}
+#postureList .task{grid-template-columns:minmax(0,1fr) auto}
+.setb.chk{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+.setb.chk.on{background:var(--good);border-color:var(--good);color:#fff}

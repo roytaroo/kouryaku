@@ -7,6 +7,12 @@ const FIT = [
   { id: "plank", name: "プランク", how: "ひじとつま先で、頭からかかとまでまっすぐ。お尻を上げない。", sets: 3, base: 20, step: 5, max: 60, unit: "秒" },
   { id: "deadbug", name: "デッドバグ", how: "仰向けで手足を上げ、反対の手と足をゆっくり伸ばす。腰を床から浮かせない。", sets: 2, base: 10, step: 2, max: 16, unit: "回（左右）" }
 ];
+const POSTURE = [
+  { id: "chin", name: "あご引き", how: "背すじを伸ばし、あごを水平に後ろへ引く。二重あごを作る感じで5秒×10回。" },
+  { id: "wall", name: "壁で腕の上げ下げ", how: "壁に背中・お尻・頭をつけ、ひじと手の甲も壁につけたまま腕を上下に10回。" },
+  { id: "chest", name: "胸のストレッチ", how: "ドアの枠に腕をかけて、胸を前に出す。左右30秒ずつ。" }
+];
+const POSTURE_KOBAN = 3;
 const CARDIO = [{ id: "walk", name: "ウォーキング" }, { id: "run", name: "走る・歩く交互" }, { id: "swim", name: "水泳" }];
 const FIT_START = "2026-11-06";
 const FIT_WEEK = 3, CARDIO_WEEK = 3, CARDIO_MIN = 20, SNACK_KCAL = 100;
@@ -16,6 +22,7 @@ function fitOf(k) { return (S.days[k] && S.days[k].fit) || {}; }
 /** 筋トレをやりきった日か（その時点の目標で判定して ok を記録に残す） */
 function fitOk(k) { return !!fitOf(k).ok; }
 function cardioMin(k) { const c = fitOf(k).cardio || {}; return CARDIO.reduce((a, x) => a + (c[x.id] || 0), 0); }
+function postureOk(k) { const q = fitOf(k).posture || {}; return POSTURE.every(x => q[x.id]); }
 function cardioOk(k) { return cardioMin(k) >= CARDIO_MIN; }
 function fitStage(k) { let n = 0; for (const d in S.days) if (d < k && fitOk(d)) n++; return { stage: Math.floor(n / 4), done: n, toNext: 4 - (n % 4) }; }
 function fitReps(k) { const s = fitStage(k).stage, r = {}; for (const x of FIT) r[x.id] = Math.min(x.max, x.base + x.step * s); return r; }
@@ -26,7 +33,7 @@ function fitMonth(k) {
   if (m <= 3) return { m, name: m + "か月目　筋力と体力を伸ばす", tip: "回数が少しずつ上がる。有酸素は走る時間を増やしていく。" };
   return { m, name: m + "か月目　見た目を変える", tip: "筋肉を増やしながら体脂肪を落とす。食事を減らしすぎない。" };
 }
-function fitKoban() { let n = 0; for (const k in S.days) { if (fitOk(k)) n += FIT_KOBAN; if (cardioOk(k)) n += CARDIO_KOBAN; } return n; }
+function fitKoban() { let n = 0; for (const k in S.days) { if (fitOk(k)) n += FIT_KOBAN; if (cardioOk(k)) n += CARDIO_KOBAN; if (postureOk(k)) n += POSTURE_KOBAN; } return n; }
 let fitShow = false;
 const fitHas = k => { const f = fitOf(k); return !!(f.sets && Object.values(f.sets).some(Boolean)); };
 
@@ -52,6 +59,11 @@ function renderFit() {
     : rest ? "筋肉は休んでいる間に育つ。今日は有酸素だけでいい。（やるなら下のボタン）"
     : "あと" + st.toNext + "回やりきると、1セットの回数が上がる。";
   $("fitForce").hidden = !hide;
+  const q = f.posture || {}, pn = POSTURE.filter(x => q[x.id]).length;
+  $("postureSum").textContent = pn + " / " + POSTURE.length + (pn === POSTURE.length ? "　できた" : "");
+  $("postureSum").className = "num" + (pn === POSTURE.length ? " ok" : "");
+  const ph = POSTURE.map(x => `<li class="task${q[x.id] ? " done" : ""}" data-s="fit"><span class="nm">${x.name}<small>${x.how}</small></span><button type="button" class="setb chk${q[x.id] ? " on" : ""}" data-p="${x.id}" aria-label="${x.name}をやった">${q[x.id] ? "済" : "やった"}</button></li>`).join("");
+  const pl = $("postureList"); if (pl.dataset.v !== ph) { pl.innerHTML = ph; pl.dataset.v = ph; }
   const c = f.cardio || {}, cm = cardioMin(k);
   $("cardioSum").textContent = cm + " / " + CARDIO_MIN + "分" + (cm >= CARDIO_MIN ? "　できた" : "");
   $("cardioSum").className = "num" + (cm >= CARDIO_MIN ? " ok" : "");
@@ -62,13 +74,13 @@ function renderFit() {
 function renderFitRecord() {
   const k = dayKey(), cells = [];
   for (let i = 27; i >= 0; i--) { const d = addDays(k, -i); cells.push(`<i class="${fitOk(d) ? "on" : ""}${cardioOk(d) ? " cd" : ""}" title="${labelDay(d)}"></i>`); }
-  let sess = 0, cmin = 0, snackOk = 0, snackN = 0; const ws = [];
-  for (const d of Object.keys(S.days).sort()) { const f = fitOf(d); if (fitOk(d)) sess++; cmin += cardioMin(d); if (f.snack != null) { snackN++; if (f.snack) snackOk++; } if (f.weight) ws.push([d, f.weight]); }
+  let sess = 0, pday = 0, cmin = 0, snackOk = 0, snackN = 0; const ws = [];
+  for (const d of Object.keys(S.days).sort()) { const f = fitOf(d); if (fitOk(d)) sess++; if (postureOk(d)) pday++; cmin += cardioMin(d); if (f.snack != null) { snackN++; if (f.snack) snackOk++; } if (f.weight) ws.push([d, f.weight]); }
   const last = ws[ws.length - 1], first = ws[0];
   const diff = last && first && last !== first ? (last[1] - first[1]).toFixed(1) : null;
   $("fitRec").innerHTML = `<div class="fitgrid">${cells.join("")}</div>
     <dl class="stats" style="margin:0">
-    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div>
+    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>姿勢リセット</dt><dd>${pday}<small>日</small></dd></div>
     <div><dt>間食${SNACK_KCAL}kcal以内</dt><dd>${snackOk}<small>/${snackN}日</small></dd></div>
     <div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div></dl>`;
   if (document.activeElement !== $("wtIn")) $("wtIn").value = fitOf(k).weight || "";
@@ -92,6 +104,13 @@ function bindFit() {
     const b = e.target.closest("button[data-c]"); if (!b || !ready()) return;
     const k = dayKey(), wasS = fitOk(k), wasC = cardioOk(k);
     patchDay(k, d => { d.fit = d.fit || {}; d.fit.cardio = d.fit.cardio || {}; d.fit.cardio[b.dataset.c] = Math.max(0, (d.fit.cardio[b.dataset.c] || 0) + Number(b.dataset.d)); }).then(() => award(k, wasS, wasC));
+  });
+  $("postureList").addEventListener("click", e => {
+    const b = e.target.closest("button[data-p]"); if (!b || !ready()) return;
+    const k = dayKey(), was = postureOk(k);
+    patchDay(k, d => { d.fit = d.fit || {}; d.fit.posture = d.fit.posture || {}; d.fit.posture[b.dataset.p] = !d.fit.posture[b.dataset.p]; }).then(() => {
+      if (!was && postureOk(k)) { sfx("coin"); toast("姿勢リセット完了！小判＋" + POSTURE_KOBAN); } else sfx("tap");
+    });
   });
   $("snackBtns").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b || !ready()) return;
