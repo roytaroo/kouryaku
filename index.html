@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="攻略">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>攻略・受験編</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>/* レイアウト：スマホのアプリ型。上に小判・券の財布、真ん中に画面、下に5つのタブ。
+   色：夜の藍（インク）と提灯の琥珀を軸に、朱（スパルタ）と若竹（達成）を意味の色として使う */
+/* 落ち着いた勉強アプリ：白とグレーの地に、青ひとつ。光や飾りはなし、数字と余白で見せる */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --surface2:#f1f3f6; --ink:#1a1d24; --muted:#687080; --line:#e3e6eb; --night:#1a1d24; --night2:#3a64d8; --lantern:#3a64d8; --lantern2:#5d82e6; --seal:#d04848; --good:#1f9467; --koban:#b48326; --sky:#3a64d8; --soft:#eef2fc; --ontint:#ffffff;
+  --display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+  --dot:"Inter","Zen Kaku Gothic New",system-ui,sans-serif;
+  --r:14px; --tabh:62px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1115; --surface:#171a20; --surface2:#1e2229; --ink:#e9ebef; --muted:#9aa1ae; --line:#2a2f38; --night:#e9ebef; --night2:#7c9cf5; --lantern:#7c9cf5; --lantern2:#9db5f8; --seal:#f07a7a; --good:#4cc796; --koban:#e2b45a; --sky:#7c9cf5; --soft:#1c2333; --ontint:#0f1115; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1115; --surface:#171a20; --surface2:#1e2229; --ink:#e9ebef; --muted:#9aa1ae; --line:#2a2f38; --night:#e9ebef; --night2:#7c9cf5; --lantern:#7c9cf5; --lantern2:#9db5f8; --seal:#f07a7a; --good:#4cc796; --koban:#e2b45a; --sky:#7c9cf5; --soft:#1c2333; --ontint:#0f1115; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--lantern);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:400}
+.num{font-variant-numeric:tabular-nums}
+.dot{font-family:var(--dot)}
+.eyebrow{font-size:11px;letter-spacing:.14em;color:var(--muted);font-weight:700}
+
+/* ---- 上の財布バー ---- */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{font-family:var(--display);font-size:20px;color:var(--night);letter-spacing:.06em;line-height:1}
+.brand small{font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:0;margin-left:6px;font-weight:700}
+.sync{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync[data-s="db"]{background:var(--good)} .sync[data-s="local"]{background:var(--lantern)} .sync[data-s="err"]{background:var(--seal)}
+.wallet{margin-left:auto;display:flex;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px 3px 4px;font-family:var(--dot);font-size:14px;line-height:1.2;white-space:nowrap}
+.chip i{width:18px;height:18px;border-radius:50%;display:inline-block;flex:none}
+.chip .koban{background:radial-gradient(circle at 35% 35%,#ffe48a,#d9a520 60%,#9a6e10);border-radius:40%/50%}
+.chip .ticket{background:linear-gradient(135deg,var(--lantern2),var(--lantern));border-radius:3px;width:20px;height:14px}
+.chip .lv{background:var(--night);color:var(--surface);font-style:normal;font-size:10px;display:grid;place-items:center;width:auto;padding:0 5px;border-radius:999px;height:18px}
+
+/* ---- 本体 ---- */
+main{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px calc(var(--tabh) + 28px + env(safe-area-inset-bottom,0px))}
+.view{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-family:var(--display);font-size:19px;line-height:1.3}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;line-height:1.3}
+.btn:hover{border-color:var(--night2)}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--lantern);border-color:var(--lantern);color:#1b1206}
+.btn.ink{background:var(--night);border-color:var(--night);color:var(--surface)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.big-btn{border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:16px;background:var(--lantern);color:#1b1206;width:100%}
+.big-btn.ink{background:var(--night);color:var(--surface)}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;overflow-x:auto}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px 10px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.bar-p{height:8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 9%,var(--surface));overflow:hidden}
+.bar-p i{display:block;height:100%;border-radius:inherit;background:var(--night2);transition:width .4s}
+.bar-p i.ok{background:var(--good)}
+input.field,select.field,textarea.field{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface2);min-width:0}
+
+/* ---- ホーム：カウントダウン ---- */
+.hero{background:linear-gradient(160deg,#1a1e48,#2b3178);border-radius:var(--r);padding:16px 16px 14px;display:grid;gap:8px;position:relative;overflow:hidden}
+
+.hero{color:#f4f2ff}
+.hero .eyebrow{color:#c9c7f0}
+.hero .eyebrow b{color:#fff;font-size:13px;letter-spacing:.04em}
+.cd{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;line-height:1}
+.cd .D{font-family:var(--display);font-size:clamp(64px,19vw,104px);color:#ffcf7a;text-shadow:0 0 22px rgba(255,170,74,.35)}
+.cd .u{font-weight:700;font-size:13px;color:#d9d7f5}
+.cd .hms{font-family:var(--dot);font-size:clamp(22px,6vw,30px);color:#fff}
+.hero .sub{font-size:12px;color:#c9c7f0}
+.hero .exams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.hero .exams span{font-size:11px;font-weight:700;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:2px 9px;color:#e8e6ff;white-space:nowrap}
+.hero .exams span b{font-family:var(--dot);font-weight:400;color:#ffcf7a;margin-right:4px}
+.hero::after{content:"";position:absolute;right:-30px;top:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,190,100,.28),transparent 65%);pointer-events:none}
+
+/* ---- 相棒 ---- */
+.buddy{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 12px;align-items:center;position:relative}
+.buddy canvas,.buddy img{width:150px;height:170px;display:block}
+.bubble{position:relative;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-weight:700;font-size:14px;line-height:1.55;min-height:3em}
+.bubble::before{content:"";position:absolute;left:-7px;top:22px;width:12px;height:12px;background:var(--surface2);border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.bubble[data-mood="spartan"]{border-color:color-mix(in srgb,var(--seal) 50%,var(--line))}
+.bubble[data-mood="spartan"]::after{content:"喝";position:absolute;right:-8px;top:-10px;font-family:var(--display);font-size:13px;background:var(--seal);color:#fff;border-radius:6px;padding:0 6px;transform:rotate(8deg)}
+.bubble[data-mood="kind"]::after{content:"良";position:absolute;right:-8px;top:-10px;font-family:var(--display);font-size:13px;background:var(--good);color:#fff;border-radius:6px;padding:0 6px;transform:rotate(8deg)}
+.bname{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.bname b{font-family:var(--display);font-weight:400;font-size:16px}
+.rar{font-size:11px;font-weight:700;border-radius:6px;padding:0 6px;border:1px solid currentColor}
+.rar.r1{color:#c8507a} .rar.r2{color:var(--good)} .rar.r3{color:var(--sky)} .rar.r4{color:var(--koban)} .rar.r5{color:#fff;background:linear-gradient(90deg,#9a4aff,#ff4a8a,#ffb02a);border-color:transparent}
+@media (max-width:420px){.buddy{grid-template-columns:120px minmax(0,1fr)}.buddy canvas,.buddy img{width:120px;height:140px}}
+
+/* ---- フェーズとノルマ ---- */
+.phase{display:grid;gap:6px;border-left:4px solid var(--lantern);padding:2px 0 2px 12px}
+.phase b{font-family:var(--display);font-weight:400;font-size:16px}
+.tasks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid transparent}
+.task.done{border-color:color-mix(in srgb,var(--good) 45%,transparent);background:color-mix(in srgb,var(--good) 9%,var(--surface2))}
+.task .nm{font-weight:700;font-size:14px;min-width:0}
+.task .nm small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.task .ct{font-family:var(--dot);font-size:18px;white-space:nowrap}
+.task .ct small{font-size:12px;color:var(--muted)}
+.task .bar-p{grid-column:1/-1;height:6px}
+.task .ctl{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.task .ctl button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:44px}
+.stamp{position:absolute;right:14px;top:10px;font-family:var(--display);color:var(--seal);border:3px solid var(--seal);border-radius:10px;padding:2px 10px;transform:rotate(-10deg);font-size:18px;opacity:.9}
+
+/* ---- タイマー ---- */
+.ring{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:4px auto 0;max-width:100%}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .t{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:2px}
+.ring .t .clock{font-family:var(--dot);font-size:clamp(44px,13vw,58px);line-height:1}
+.ring .t .ph{font-weight:700;font-size:13px;color:var(--muted)}
+.ring[data-phase="break"] .ph{color:var(--good)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px}
+.chips button[aria-pressed="true"]{background:var(--night);color:var(--surface);border-color:var(--night)}
+.quote-break{font-family:var(--display);font-size:18px;line-height:1.5;text-align:center;text-wrap:balance}
+.subjbars{display:grid;gap:6px}
+.subjbars div{display:grid;grid-template-columns:3em minmax(0,1fr) 4.5em;gap:8px;align-items:center;font-size:13px}
+
+/* ---- 単語 ---- */
+.flash{display:grid;gap:12px;text-align:center}
+.flash .word{font-family:var(--display);font-size:clamp(34px,10vw,52px);line-height:1.15;word-break:break-word}
+.flash .no{font-family:var(--dot);color:var(--muted);font-size:13px}
+.flash .mean{font-size:17px;font-weight:700;text-align:left;background:var(--surface2);border-radius:12px;padding:12px 14px;line-height:1.7}
+.flash .ex{font-size:13px;color:var(--muted);text-align:left}
+.limit{height:6px;border-radius:999px;background:var(--surface2);overflow:hidden}
+.limit i{display:block;height:100%;background:var(--lantern);width:100%}
+.limit.go i{animation:shrink linear forwards}
+@keyframes shrink{from{width:100%}to{width:0}}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair .big-btn.ng{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
+.qprog{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--dot)}
+.cloze{font-size:17px;line-height:1.7;text-align:left}
+.cloze .blank{display:inline-block;min-width:4.5em;border-bottom:2px solid var(--lantern);text-align:center;color:var(--lantern);font-weight:700}
+.choices{display:grid;gap:8px}
+.choices button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;font-size:17px;font-weight:700;text-align:left}
+.choices button.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.choices button.wrong{border-color:var(--seal);background:color-mix(in srgb,var(--seal) 12%,var(--surface))}
+.units{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.unit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:9px 12px;border-radius:12px;background:var(--surface2)}
+.unit.pass{background:color-mix(in srgb,var(--good) 12%,var(--surface2))}
+.unit .pc{font-family:var(--dot);font-size:15px}
+.unit form{grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.unit form input{width:4.5em}
+
+/* ---- お化け ---- */
+.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.dex button{border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:4px 4px 6px;display:grid;justify-items:center;gap:0;font-size:11px;font-weight:700;position:relative;min-width:0}
+.dex button img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.dex button.lock img{filter:brightness(0) opacity(.18)}
+.dex button.lock span{color:var(--muted)}
+.dex button[data-r="3"]{border-color:color-mix(in srgb,var(--sky) 45%,var(--line))}
+.dex button[data-r="4"]{border-color:color-mix(in srgb,var(--koban) 60%,var(--line))}
+.dex button[data-r="5"]{border-color:#b06aff}
+.dex button .cur{position:absolute;top:4px;left:4px;background:var(--lantern);color:#1b1206;font-size:10px;border-radius:6px;padding:0 5px}
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(10,10,20,.5);display:grid;align-items:end;justify-items:center;padding:0 max(0px,env(safe-area-inset-right,0px)) 0 max(0px,env(safe-area-inset-left,0px))}
+.sheet .in{background:var(--surface);width:100%;max-width:760px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;display:grid;gap:12px}
+.sheet img.big{width:min(70vw,260px);margin:0 auto;display:block}
+.evo{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+.evo img{width:64px;height:64px;border-radius:10px;background:var(--surface2)}
+.evo .arrow{color:var(--muted);font-weight:700}
+.gacha{display:grid;gap:12px;justify-items:center;text-align:center}
+.gacha .box{width:min(70vw,240px);aspect-ratio:1;border-radius:24px;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--lantern) 40%,var(--surface2)),var(--surface2) 70%);display:grid;place-items:center;position:relative;overflow:hidden;max-width:100%}
+.gacha .box img{width:100%;height:100%;object-fit:contain}
+.gacha .box.shake{animation:shake .6s ease-in-out 2}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+.gacha .box .lan{font-family:var(--display);font-size:64px;color:var(--lantern)}
+.outfits{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.outfit{border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:6px;background:var(--surface2)}
+.outfit b{font-size:14px}
+.tix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tix button{border:1px dashed var(--lantern);background:color-mix(in srgb,var(--lantern) 10%,var(--surface));border-radius:12px;padding:12px;text-align:left;display:grid;gap:2px}
+.tix button b{font-family:var(--display);font-weight:400;font-size:16px}
+.tix button span{font-family:var(--dot);font-size:13px;color:var(--muted)}
+.active-ticket{background:var(--night);color:#f4f2ff;border-radius:var(--r);padding:14px 16px;display:grid;gap:6px}
+.active-ticket .clock{font-family:var(--dot);font-size:34px;color:#ffcf7a;line-height:1}
+
+/* ---- 記録 ---- */
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stats div{background:var(--surface2);border-radius:12px;padding:10px 12px;display:grid}
+.stats dt{font-size:11px;color:var(--muted);font-weight:700}
+.stats dd{margin:0;font-family:var(--dot);font-size:22px;line-height:1.3}
+.stats dd small{font-size:12px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.heat-wrap{overflow-x:auto}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);grid-auto-columns:13px;gap:3px;padding:2px}
+.heat button{width:13px;height:13px;padding:0;border-radius:3px;border:0;background:color-mix(in srgb,var(--ink) 7%,var(--surface))}
+.heat button[disabled]{cursor:default;background:transparent;border:1px solid var(--line)}
+.heat .l1{background:color-mix(in srgb,var(--night2) 25%,var(--surface))} .heat .l2{background:color-mix(in srgb,var(--night2) 45%,var(--surface))}
+.heat .l3{background:color-mix(in srgb,var(--night2) 70%,var(--surface))} .heat .l4{background:var(--night2)} .heat .l5{background:var(--lantern)}
+.heat .today{outline:2px solid var(--ink);outline-offset:1px} .heat .sel{outline:2px solid var(--lantern);outline-offset:1px} .heat .pad{visibility:hidden}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.badge{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:grid;gap:2px;background:var(--surface2)}
+.badge b{font-size:13px} .badge span{font-size:11px;color:var(--muted)}
+.badge.got{border-color:var(--koban);background:color-mix(in srgb,var(--koban) 12%,var(--surface2))}
+.badge:not(.got){opacity:.6}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.list li{display:flex;gap:8px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-block:6px;font-size:13px}
+.list li span{min-width:0}
+.mood{display:flex;gap:6px}
+.mood button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 0;font-weight:700}
+.mood button[aria-pressed="true"]{background:var(--night);color:var(--surface);border-color:var(--night)}
+details.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
+details.box summary{cursor:pointer;font-weight:700}
+.form{display:grid;gap:12px;margin-top:12px}
+.form label{display:grid;gap:4px;font-size:13px;font-weight:700}
+.form label span{font-weight:400;color:var(--muted);font-size:12px}
+.form textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;resize:vertical}
+
+/* ---- 下のタブ ---- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
+.tabs button{border:0;background:transparent;display:grid;place-items:center;gap:0;padding:8px 0 6px;color:var(--muted);font-size:11px;font-weight:700}
+.tabs button svg{width:24px;height:24px}
+.tabs button[aria-current="page"]{color:var(--ink)}
+.tabs button[aria-current="page"] svg{color:var(--lantern)}
+.tabs .badge-dot{position:relative}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:8px 16px;border-radius:999px;font-size:13px;max-width:calc(100% - 32px);z-index:50;text-align:center}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.2}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#tStart{grid-column:1/-1}
+
+/* レアほど豪華に：珍は青い光、幻は金の光と輝き */
+.dex button[data-r="3"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--sky) 22%,var(--surface2)),var(--surface2) 72%)}
+.dex button[data-r="4"]:not(.lock){background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--koban) 34%,var(--surface2)),var(--surface2) 75%);border-width:2px;overflow:hidden}
+.dex button[data-r="5"]:not(.lock){background:radial-gradient(circle at 50% 42%,rgba(176,106,255,.4),rgba(255,74,138,.18) 50%,var(--surface2) 78%);border-width:2px;overflow:hidden}
+.dex button[data-r="4"]:not(.lock)::after,.dex button[data-r="5"]:not(.lock)::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,236,170,.5) 50%,transparent 65%);transform:translateX(-120%);animation:shine 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes shine{60%,100%{transform:translateX(120%)}}
+.aura{border-radius:24px;padding:6px}
+.aura.r3{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--sky) 30%,transparent),transparent 70%)}
+.aura.r4{background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--koban) 45%,transparent),transparent 70%);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{filter:drop-shadow(0 0 14px color-mix(in srgb,var(--koban) 70%,transparent))}}
+.gacha .box.r4{background:radial-gradient(circle at 50% 40%,#ffe7a0,color-mix(in srgb,var(--koban) 40%,var(--surface2)) 55%,var(--surface2) 80%)}
+.gacha .box.r3{background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--sky) 45%,var(--surface2)),var(--surface2) 72%)}
+
+/* イラストのお化け：ふわふわ浮かぶ。着けている小物は札で添える */
+.buddy-fig{position:relative}
+.buddy img.bob{object-fit:contain;animation:bob 3.2s ease-in-out infinite;filter:drop-shadow(0 6px 6px rgba(0,0,0,.18))}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-1.5deg)}}
+.gears{display:flex;gap:4px;flex-wrap:wrap}
+.buddy .gears{position:absolute;right:-4px;bottom:0;flex-direction:column;align-items:flex-end}
+.gear{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 6px 1px 2px;font-size:10px;font-weight:700}
+.gear img{width:22px;height:22px}
+
+.flash .word.small{font-family:var(--body);font-weight:700;font-size:18px;line-height:1.6;text-align:left}
+.flash .word ruby rt{font-size:.4em}
+.flash .word.mid{font-size:clamp(26px,8vw,38px)}
+.aura.r5{background:radial-gradient(circle at 50% 45%,rgba(176,106,255,.45),rgba(255,74,138,.2) 45%,transparent 72%);animation:pulse 2.4s ease-in-out infinite}
+.gacha .box.r5{background:radial-gradient(circle at 50% 40%,#ffe7ff,rgba(176,106,255,.5) 50%,var(--surface2) 80%)}
+
+/* ---- 百鬼の道 ---- */
+.lvtag{font-size:13px;color:var(--lantern)}
+.evolve-btn{background:linear-gradient(90deg,#ff7a3a,#ffb02a,#ff4a8a);color:#fff;animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 18px rgba(255,140,60,.8);transform:scale(1.02)}}
+.lvrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.lvrow b{font-size:18px;color:var(--lantern)} .lvrow small{font-size:11px;color:var(--muted)}
+.passmini{cursor:pointer;gap:8px}
+.pmnext{display:flex;gap:10px;align-items:center}
+.pmnext span{display:grid} .pmnext small{font-size:11px;color:var(--muted)} .pmnext b{font-size:14px}
+.ricon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--surface2);border:1px solid var(--line);overflow:hidden;font-family:var(--display);font-size:18px}
+.ricon.big{width:72px;height:72px;border-radius:14px}
+.ricon img{width:100%;height:100%;object-fit:contain}
+.ricon.koban-i i{width:24px;height:18px;border-radius:40%/50%;background:radial-gradient(circle at 35% 35%,#ffe48a,#d9a520 60%,#9a6e10)}
+.ricon.ticket-i i{width:26px;height:16px;border-radius:3px;background:linear-gradient(135deg,var(--lantern2),var(--lantern))}
+.ricon.roll-i{color:#fff;background:linear-gradient(135deg,var(--seal),#8a1a2a)}
+.ricon.yokai-i.r3{border-color:var(--sky)} .ricon.yokai-i.r2{border-color:var(--good)} .ricon.yokai-i.r1{border-color:#c8507a}
+.track{list-style:none;margin:0;padding:0 0 0 6px;display:grid;gap:10px;position:relative}
+.track::before{content:"";position:absolute;left:22px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--line)}
+.tier{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;position:relative}
+.tier .node{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--dot);font-size:13px;background:var(--surface);border:3px solid var(--line);z-index:1}
+.tier .rcard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.tier .rcard small{display:block;font-size:11px;color:var(--muted);font-family:var(--dot)}
+.tier .rcard b{font-size:14px}
+.tier .rcard .bar-p{margin-top:4px;height:6px}
+.tier.got .node{background:var(--good);border-color:var(--good);color:#fff}
+.tier.got .rcard{opacity:.6}
+.tier.ready .node{background:var(--lantern);border-color:var(--lantern);color:#1b1206;animation:glow 1.4s ease-in-out infinite}
+.tier.ready .rcard{border-color:var(--lantern);box-shadow:0 0 0 2px color-mix(in srgb,var(--lantern) 30%,transparent)}
+.tier.next .node{border-color:var(--lantern)}
+.tier.lock .rcard{filter:saturate(.2);opacity:.7}
+.tier.lock.big .rcard img{filter:brightness(0) opacity(.35)}
+.tier.big .rcard{background:linear-gradient(90deg,color-mix(in srgb,var(--koban) 14%,var(--surface)),var(--surface))}
+.track .here{padding-left:46px;font-family:var(--dot);font-size:12px;color:var(--lantern)}
+.track .here span{background:color-mix(in srgb,var(--lantern) 15%,var(--surface));border-radius:999px;padding:2px 10px}
+.rgot{display:grid;gap:6px;width:100%;text-align:left}
+.rgot div{display:flex;gap:10px;align-items:center}
+.rgot span{display:grid} .rgot small{font-size:11px;color:var(--muted)}
+.evo-anim{position:relative;width:min(70vw,240px);aspect-ratio:1;max-width:100%}
+.evo-anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.evo-anim .from{animation:evoOut 1.6s ease-in forwards}
+.evo-anim .to{opacity:0;animation:evoIn 1.2s 1.3s ease-out forwards}
+@keyframes evoOut{0%{filter:brightness(1)}60%{filter:brightness(3) saturate(0);transform:scale(1.05)}100%{filter:brightness(6) saturate(0);opacity:0;transform:scale(.6)}}
+@keyframes evoIn{0%{opacity:0;filter:brightness(6);transform:scale(1.3)}100%{opacity:1;filter:brightness(1);transform:scale(1)}}
+
+/* ===================================================================
+   仕上げ：見出しは太字のゴシック、数字はそろった幅、影はごく薄く
+   =================================================================== */
+body{font-size:15px}
+.card h2,.brand,.cd .D,.phase b,.bname b,.flash .word,.tix button b,.quote-break,.stamp,.gacha .box .lan,.ricon,.stats dd,.task .ct,.ring .t .clock{font-weight:700}
+.num,.dot,.cd .D,.cd .hms,.task .ct,.ring .t .clock,.stats dd{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.eyebrow{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.note{color:var(--muted)}
+
+/* 上の帯 */
+.bar{background:color-mix(in srgb,var(--bg) 90%,transparent);border-bottom:1px solid var(--line)}
+.brand{font-size:18px;color:var(--ink);letter-spacing:.02em}
+.brand small{font-size:11px;font-weight:500}
+.chip{background:var(--surface);font-family:var(--dot);font-weight:600;font-size:13px}
+.chip .lv{background:var(--soft);color:var(--lantern);font-weight:700}
+
+/* カード */
+.card,details.box{border-color:var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card h2{font-size:18px;letter-spacing:0}
+
+/* ボタン */
+.btn{background:var(--surface);border-color:var(--line);font-weight:600}
+.btn:hover{border-color:color-mix(in srgb,var(--lantern) 50%,var(--line))}
+.btn.pri,.big-btn{background:var(--lantern);border-color:var(--lantern);color:var(--ontint)}
+.big-btn{border-radius:12px;font-weight:700;letter-spacing:.02em}
+.big-btn:hover,.btn.pri:hover{filter:brightness(1.05)}
+.big-btn.ink,.btn.ink{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.seg button[aria-pressed="true"]{color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.1)}
+.chips button[aria-pressed="true"],.mood button[aria-pressed="true"]{background:var(--soft);color:var(--lantern);border-color:color-mix(in srgb,var(--lantern) 55%,transparent)}
+.bar-p{background:var(--surface2)}
+.bar-p i,.bar-p i[style]{background:var(--lantern)!important}
+.bar-p i.ok{background:var(--good)!important}
+input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color:var(--lantern);box-shadow:0 0 0 3px color-mix(in srgb,var(--lantern) 18%,transparent)}
+
+/* カウントダウン：白いカードに大きな数字 */
+.hero{background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04);padding:18px}
+.hero::after{display:none}
+.hero .eyebrow{color:var(--muted)} .hero .eyebrow b{color:var(--ink);font-size:14px;letter-spacing:0}
+.cd .D{font-family:var(--dot);font-size:clamp(64px,18vw,96px);color:var(--ink);text-shadow:none;letter-spacing:-.04em}
+.cd .u{color:var(--muted)}
+.cd .hms{font-family:var(--dot);font-weight:600;font-size:clamp(20px,5.5vw,26px);color:var(--lantern)}
+.hero .sub{color:var(--muted)}
+.hero .exams span{border-color:var(--line);color:var(--ink);background:var(--surface2);font-weight:500}
+.hero .exams span b{font-family:var(--dot);font-weight:700;color:var(--lantern)}
+
+/* 相棒：控えめに */
+.buddy img.bob{filter:none;animation-duration:4.5s}
+.bubble{background:var(--surface2);border-color:transparent;font-weight:500}
+.bubble::before{background:var(--surface2);border-color:transparent}
+.bubble[data-mood]::after{font-family:var(--body);font-size:11px;border-radius:999px;padding:1px 7px;transform:none;top:-9px}
+.lvtag{color:var(--lantern);font-family:var(--dot)}
+.evolve-btn{background:var(--good);color:#fff;animation:none}
+
+/* ノルマ：科目の小さな印 */
+.task{background:var(--surface2);border:1px solid transparent}
+.task .nm small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--muted);vertical-align:1px}
+.task[data-s="en"] .nm small::before{background:var(--lantern)} .task[data-s="ja"] .nm small::before{background:var(--seal)} .task[data-s="se"] .nm small::before{background:var(--good)}
+.task .ct{font-family:var(--dot)}
+.task.done{background:color-mix(in srgb,var(--good) 8%,var(--surface));border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.task.done .ct{color:var(--good)}
+.phase{border-left-color:var(--lantern)}
+.phase b{font-size:15px}
+.stamp{font-family:var(--body);font-size:14px;border-width:2px;color:var(--good);border-color:var(--good);transform:rotate(-6deg)}
+
+/* タイマー */
+#ringArc{stroke:var(--lantern);stroke-width:3.5}
+.ring svg circle:first-child{stroke-width:3.5}
+.ring .t .clock{font-family:var(--dot);font-weight:600;letter-spacing:-.03em}
+.ring[data-phase="break"] #ringArc{stroke:var(--good)}
+
+/* 百鬼の道：すっきりした進み具合の一覧 */
+.tier .node{border-width:2px;font-family:var(--dot);font-weight:600;font-size:12px}
+.tier.got .node{background:var(--good);border-color:var(--good)}
+.tier.ready .node{background:var(--lantern);border-color:var(--lantern);color:var(--ontint);animation:none}
+.tier.ready .rcard{box-shadow:none}
+.tier.next .node{border-color:var(--lantern);color:var(--lantern)}
+.tier.big .rcard{background:var(--surface)}
+.tier.lock .rcard{filter:none;opacity:.75}
+.track .here{font-family:var(--body);font-weight:700}
+.track .here span{background:var(--soft);color:var(--lantern)}
+.ricon.roll-i{background:var(--soft);color:var(--lantern);font-family:var(--body)}
+.ricon.koban-i i{background:var(--koban)}
+.ricon.ticket-i i{background:var(--lantern)}
+
+/* 図鑑・ガチャ：光りものは抑える */
+.dex button[data-r]:not(.lock){background:var(--surface2)}
+.dex button[data-r="4"]:not(.lock)::after,.dex button[data-r="5"]:not(.lock)::after{display:none}
+.aura.r4,.aura.r5{animation:none}
+.gacha .box{background:var(--surface2)}
+.gacha .box .lan{color:var(--muted)}
+
+/* 下のタブ */
+.tabs{background:color-mix(in srgb,var(--surface) 95%,transparent);border-top-color:var(--line)}
+.tabs button[aria-current="page"],.tabs button[aria-current="page"] svg{color:var(--lantern)}
+.toast{background:var(--ink);color:var(--bg)}
+
+/* そのほか */
+.stats dd{font-family:var(--dot)}
+.active-ticket{background:var(--ink);color:var(--bg)}
+.active-ticket .clock{font-family:var(--dot);color:var(--bg)}
+.flash .word{font-family:var(--body)}
+.flash .word.small{font-weight:700}
+.chip .koban{background:var(--koban);border-radius:50%}
+.chip .ticket{background:var(--lantern)}
+
+/* 今やること */
+.next{border-color:color-mix(in srgb,var(--lantern) 40%,var(--line))}
+.next h2{font-size:20px;line-height:1.4}
+.nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
+.guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
+.guide b{color:var(--ink)}
+
+/* 筋トレ */
+.task[data-s="fit"] .nm small::before{display:none}
+.fitgrid{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.fitgrid i{aspect-ratio:1;border-radius:4px;background:var(--surface2);border:1px solid var(--line)}
+.fitgrid i.on{background:var(--good);border-color:var(--good)}
+.fitgrid i.cd{box-shadow:inset 0 -4px 0 var(--lantern)}
+.task .ctl.sets{align-items:center}
+.task .ctl .setb{min-width:40px;border-radius:999px}
+.task .ctl .setb.on{background:var(--good);border-color:var(--good);color:#fff}
+.cardio{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.cardio .head b{font-size:14px}
+#cardioSum{font-family:var(--dot);font-weight:700;color:var(--muted)} #cardioSum.ok{color:var(--good)}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border-radius:12px;padding:8px 12px;font-size:14px;font-weight:700}
+.crow b{font-family:var(--dot);margin-left:8px;color:var(--muted)}
+.crow .ctl{display:flex;gap:6px}
+.crow .ctl button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:44px}
+#postureSum{font-family:var(--dot);font-weight:700;color:var(--muted)} #postureSum.ok{color:var(--good)}
+#postureList .task{grid-template-columns:minmax(0,1fr) auto}
+.setb.chk{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+.setb.chk.on{background:var(--good);border-color:var(--good);color:#fff}
+
+/* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+.gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
+.gate-logo{width:72px;height:72px;border-radius:18px;background:var(--lantern);color:#fff;display:grid;place-items:center;font-size:40px;font-weight:700}
+.gate form{display:grid;gap:10px;width:100%}
+.gate .field{width:100%;padding:12px;font-size:16px}
+</style>
+
+</head><body>
+<header class="bar"><div class="bar-in">
+  <span class="sync" id="sync" title="接続中"></span>
+  <div class="brand">攻略<small>受験編</small></div>
+  <div class="wallet">
+    <span class="chip" title="小判（ガチャ・着せ替え）"><i class="koban"></i><span id="wKoban" class="num">0</span></span>
+    <span class="chip" title="券ポイント（1ポイント＝ゲーム・動画1分）"><i class="ticket"></i><span id="wTicket" class="num">0</span></span>
+    <span class="chip"><i class="lv" id="wLv">Lv.1</i></span>
+  </div>
+</div></header>
+
+<main>
+<!-- ===== ホーム ===== -->
+<section class="view" id="v-home">
+  <div class="hero">
+    <div class="eyebrow">次の本番まで　<b id="cdName">…</b></div>
+    <div class="cd"><span class="D num" id="cdD">--</span><span class="u">日</span><span class="hms" id="cdHms">--:--:--</span></div>
+    <div class="sub" id="cdSub"></div>
+    <div class="exams" id="cdOthers"></div>
+  </div>
+
+  <div id="homeTicket" class="active-ticket" hidden></div>
+
+  <div class="card next" id="nextCard">
+    <div class="head"><div class="eyebrow">今やること</div><span class="note dot" id="nextCount"></span></div>
+    <h2 id="nextName"></h2>
+    <p class="nexthow" id="nextHow"></p>
+    <button class="big-btn" type="button" id="nextBtn">始める</button>
+    <ol class="guide" id="nextGuide" hidden>
+      <li><b>上のボタンを押す</b>だけでいい。何をやるかはアプリが順番に出す。</li>
+      <li>勉強している間は<b>タイマー</b>が時間を計る。時間がたまると相棒が育つ。</li>
+      <li>授業や問題集が終わったら、下の<b>今日のノルマ</b>で「＋1」を押す。単語はアプリの中で自動で数える。</li>
+    </ol>
+  </div>
+
+  <div class="card" style="position:relative">
+    <div class="head"><div><div class="eyebrow">今日のノルマ（全部）</div><h2 id="homeTime">0.0h / 10h</h2></div>
+      <div class="row"><span class="chip" id="homeStreak" style="padding:3px 10px">連続 0日</span><button class="chip" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ" style="padding:3px 10px">通常日</button></div></div>
+    <div class="bar-p"><i id="homeTimeBar"></i></div>
+    <div class="phase"><b id="phName"></b><span class="note" id="phTip"></span><span class="note dot" id="phDays"></span></div>
+    <span class="stamp" id="clearStamp" hidden>全クリ</span>
+    <ul class="tasks" id="taskList"></ul>
+    <div class="note" id="taskSum"></div>
+    <details><summary class="note" style="cursor:pointer;font-weight:700">＋ 自分でタスクを足す</summary>
+      <form id="addTask" class="row" style="margin-top:8px">
+        <input class="field" id="atName" placeholder="例：音読" style="flex:1 1 9em" maxlength="40">
+        <input class="field num" id="atGoal" type="number" min="1" value="1" inputmode="numeric" style="width:5em" aria-label="目標の数">
+        <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
+        <button class="btn pri" type="submit">足す</button>
+      </form></details>
+  </div>
+
+  <div class="card" id="fitCard">
+    <div class="head"><div><div class="eyebrow">体づくり</div><h2 id="fitHead">今日の筋トレ</h2></div><span class="chip" id="fitWeek" style="padding:3px 10px"></span></div>
+    <div class="phase" id="fitPhase"></div>
+    <ul class="tasks" id="fitList"></ul>
+    <button class="btn" type="button" id="fitForce" hidden>それでも今日やる</button>
+    <div class="note" id="fitNote"></div>
+    <div class="cardio">
+      <div class="head"><b>姿勢リセット（毎日2分）</b><span id="postureSum" class="num"></span></div>
+      <ul class="tasks" id="postureList"></ul>
+      <div class="note">猫背・ストレートネック対策。勉強の休憩ごとにやるとなおいい。</div>
+    </div>
+    <div class="cardio">
+      <div class="head"><b>有酸素（歩く・走る・泳ぐ）</b><span id="cardioSum" class="num"></span></div>
+      <div id="cardioList"></div>
+      <div class="note">最初は走ると歩くを交互に。長い距離はまだ走らない。</div>
+    </div>
+    <div class="cardio">
+      <div class="head"><b>今日の間食は100kcal以内？</b></div>
+      <div class="mood" id="snackBtns"><button type="button" data-v="1">できた</button><button type="button" data-v="0">こえた</button></div>
+      <div class="note">食事は減らしすぎない。筋肉をつけるには、3食しっかり食べる。</div>
+    </div>
+  </div>
+
+  <div class="eyebrow" style="margin:6px 4px -4px">相棒とごほうび</div>
+  <div class="card">
+    <div class="buddy">
+      <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
+      <div style="display:grid;gap:8px;min-width:0">
+        <div class="bname"><b id="bName"></b><span class="rar r1" id="bRar"></span><b class="dot lvtag" id="bLv"></b></div>
+        <div class="bubble" id="bubble" role="status"></div>
+        <div style="display:grid;gap:3px"><div class="note" id="bEvo"></div><div class="bar-p"><i id="bEvoBar" style="background:var(--lantern)"></i></div></div>
+        <button class="big-btn evolve-btn" type="button" id="evolveBtn" hidden>進化させる！</button>
+        <div class="row"><button class="btn sm" type="button" id="talkBtn">話しかける</button><button class="btn ghost sm" type="button" data-goto="yokai">図鑑</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card passmini" id="passMini" role="button" tabindex="0">
+    <div class="head"><div><div class="eyebrow">百鬼の道</div><h2><span class="dot" id="pmTier">0</span> 段</h2></div><button class="btn pri sm" type="button" id="pmClaim" hidden></button></div>
+    <div class="bar-p"><i id="pmBar" style="background:linear-gradient(90deg,var(--lantern),var(--koban))"></i></div>
+    <div class="pmnext" id="pmNext"></div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">朝のひとこと・今日の目標</div>
+    <input class="field" id="goalText" placeholder="今日いちばんやりきること（例：関係詞の単元を合格）" maxlength="80">
+  </div>
+
+  <div class="card" id="nightCard" hidden>
+    <div class="head"><div><div class="eyebrow">夜の振り返り</div><h2>今日はどうだった？</h2></div></div>
+    <div class="note" id="nightSum"></div>
+    <div class="note">気分</div><div class="mood" id="moodBtns"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <div class="note">体力</div><div class="mood" id="energyBtns"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <textarea class="field" id="reviewText" rows="3" placeholder="できたこと・できなかったこと・明日やること" maxlength="400"></textarea>
+  </div>
+</section>
+
+<!-- ===== タイマー ===== -->
+<section class="view" id="v-timer" hidden>
+  <div class="card">
+    <div class="head"><div><div class="eyebrow">ポモドーロ</div><h2>集中タイマー</h2></div><span class="note" id="timerToday"></span></div>
+    <div class="chips" id="presetChips"><button type="button" data-p="25-5">25分＋5分</button><button type="button" data-p="50-10">50分＋10分</button><button type="button" data-p="90-15">90分＋15分</button></div>
+    <div class="chips" id="subjChips"><button type="button" data-s="en">英語</button><button type="button" data-s="ja">国語</button><button type="button" data-s="se">政経</button></div>
+    <div class="ring" id="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--surface2)" stroke-width="6"/><circle id="ringArc" cx="50" cy="50" r="46" fill="none" stroke="var(--lantern)" stroke-width="6" stroke-linecap="round"/></svg>
+      <div class="t"><span class="clock num" id="tClock">25:00</span><span class="ph" id="tPhase">準備OK</span></div></div>
+    <div class="pair"><button class="big-btn" type="button" id="tStart">はじめる</button><button class="big-btn ink" type="button" id="tPause" hidden>一時停止</button><button class="big-btn ng" type="button" id="tStop" hidden style="background:var(--surface2);color:var(--ink);border:1px solid var(--line)">終わる（記録する）</button></div>
+    <div id="breakBox" hidden style="display:grid;gap:6px;padding:14px;border-radius:12px;background:color-mix(in srgb,var(--good) 10%,var(--surface2))">
+      <div class="eyebrow" style="text-align:center">休憩のことば</div><div class="quote-break" id="breakQuote"></div><div class="note" id="breakBy" style="text-align:center"></div></div>
+    <div class="note" id="pomoCount"></div>
+  </div>
+  <div class="card"><div class="eyebrow">今日の科目別</div><div class="subjbars" id="subjBars"></div></div>
+</section>
+
+<!-- ===== 勉強 ===== -->
+<section class="view" id="v-learn" hidden>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
+  <div id="lt-words" class="view">
+    <div class="card" id="wStartBox">
+      <div class="eyebrow" id="wEyebrow"></div>
+      <h2 id="wTitle"></h2>
+      <div class="bar-p"><i id="wBar"></i></div>
+      <div class="note" id="wProg"></div>
+      <p style="margin:0;font-size:14px" id="wRule"></p>
+      <button class="big-btn" type="button" id="wGo">今日の50語を始める</button>
+      <div class="row"><button class="btn" type="button" id="wWeak">苦手だけ</button><select class="field" id="wDay" aria-label="何日目の50語か"></select></div>
+      <div class="note" id="wStats"></div>
+    </div>
+    <div class="card flash" id="flash" hidden></div>
+  </div>
+  <div id="lt-cloze" class="view" hidden>
+    <div class="card">
+      <div class="eyebrow">入試の空所補充</div><h2>例文の穴に入る単語を選ぶ</h2>
+      <p class="note" style="margin:0">ここまでに進んだ範囲から10問。間違えた単語ほど出やすい。</p>
+      <button class="big-btn" type="button" id="czStart">10問はじめる</button>
+      <div class="note" id="czStats"></div>
+      <div id="clozeBox" class="flash" hidden></div>
+    </div>
+  </div>
+  <div id="lt-grammar" class="view" hidden>
+    <div class="card flash" id="gqBox" hidden></div>
+    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
+      <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
+    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
+  </div>
+  <div id="lt-other" class="view" hidden>
+    <div class="card">
+      <div class="eyebrow">政経 演習（共通テスト形式）</div><h2>選択問題を10問</h2>
+      <div class="row"><select class="field" id="qzUnit" aria-label="単元" style="flex:1 1 12em"></select><button class="big-btn" type="button" id="qzStart" style="width:auto">10問はじめる</button></div>
+      <div class="note" id="qzStats"></div>
+      <div id="quizBox" class="flash" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== お化け ===== -->
+<section class="view" id="v-yokai" hidden>
+  <div class="seg" id="yokaiSeg"><button type="button" data-t="pass">百鬼の道</button><button type="button" data-t="dex">図鑑</button><button type="button" data-t="gacha">ガチャ</button><button type="button" data-t="outfit">着せ替え</button><button type="button" data-t="tix">券</button></div>
+  <div id="yt-pass" class="view">
+    <div class="card passhead">
+      <div class="head"><div><div class="eyebrow">百鬼の道　勉強10時間で1段すすむ</div><h2><span class="dot" id="passTier">0</span> 段目</h2></div><button class="btn pri" type="button" id="passClaimAll" hidden></button></div>
+      <div class="bar-p" style="height:12px"><i id="passBar" style="background:linear-gradient(90deg,var(--lantern),var(--koban))"></i></div>
+      <div class="note" id="passNext"></div>
+      <div class="note">妖怪・小物・ガチャ無料券・小判・券ポイントがもらえる。進化形は道にもガチャにも出ない。相棒をポモドーロで育てて進化させろ。</div>
+    </div>
+    <ol class="track" id="passTrack"></ol>
+  </div>
+  <div id="yt-dex" class="card" hidden>
+    <div class="head"><div><div class="eyebrow">百鬼図鑑</div><h2 id="dexCount"></h2></div><span class="note">ガチャ・百鬼の道で仲間に。進化は育成で</span></div>
+    <div class="bar-p"><i id="dexBar" style="background:var(--koban)"></i></div>
+    <div class="dex" id="dexGrid"></div>
+  </div>
+  <div id="yt-gacha" class="card" hidden>
+    <div class="gacha">
+      <div class="eyebrow">百鬼ガチャ　梅60%・竹32%・松8%（進化前の子だけ）</div>
+      <div class="box" id="gachaBox"><span class="lan">？</span></div>
+      <div id="gachaRes"><div class="note">持っているお化けが出たら小判20枚もどる。</div></div>
+      <button class="big-btn" type="button" id="gachaBtn">小判 <span id="yGacha">60</span> 枚で回す</button>
+      <div class="note">いまの小判：<b class="dot" id="yKoban">0</b></div>
+    </div>
+  </div>
+  <div id="yt-outfit" class="card" hidden>
+    <div class="head"><div><div class="eyebrow">着せ替え</div><h2 id="outfitName"></h2></div></div>
+    <img id="outfitPrev" alt="" style="width:min(60vw,220px);margin:0 auto;display:block"><div class="gears" id="outfitGear" style="justify-content:center"></div>
+    <div class="outfits" id="outfitGrid"></div>
+  </div>
+  <div id="yt-tix" class="view" hidden>
+    <div id="tixActive" class="active-ticket" hidden></div>
+    <div class="card">
+      <div class="head"><div><div class="eyebrow">券ポイント（1時間勉強＝10）</div><h2><span class="dot" id="tixPts">0</span> ポイント</h2></div><span class="note">全クリア＋15・連続でボーナス</span></div>
+      <div class="tix" id="tixGrid"></div>
+      <div id="tixFree" class="row" hidden><span class="note" id="tixFreeTxt" style="flex-basis:100%"></span><span class="row" id="tixFreeBtns"></span></div>
+    </div>
+    <div class="card"><div class="eyebrow">使った券</div><ul class="list" id="tixHist"></ul></div>
+  </div>
+</section>
+
+<!-- ===== 記録 ===== -->
+<section class="view" id="v-record" hidden>
+  <div class="card"><div class="eyebrow">数字</div><dl class="stats" id="stats" style="margin:0"></dl></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近30日</div><h2>毎日の勉強時間</h2></div><span class="note">赤い線が目標</span></div><div id="bars"></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">予測</div><h2>目標時間に届くか</h2></div></div><div id="forecast"></div>
+    <div class="note"><span style="color:var(--night2)">━</span> 実績　<span style="color:var(--lantern)">┅</span> 今のペース　<span style="color:var(--seal)">╌</span> 必要なペース</div><div class="note" id="fcNote"></div></div>
+  <div class="card"><div class="eyebrow">毎日の記録（押すと直せる）</div>
+    <div class="heat-wrap"><div class="heat" id="heat"></div></div>
+    <div id="dayEdit" hidden style="display:grid;gap:8px">
+      <b id="deTitle"></b><div class="note" id="deReview"></div>
+      <div class="row"><label class="note">勉強した分 <input class="field num" id="deMin" type="number" min="0" max="1440" inputmode="numeric" style="width:6em"></label>
+        <select class="field" id="deMode" aria-label="日の種類"><option value="normal">通常日</option><option value="refresh">リフレッシュ日</option></select>
+        <button class="btn pri sm" type="button" id="deSave">直す</button></div></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">成績</div><h2>過去問・模試</h2></div></div>
+    <form id="scoreForm" class="row">
+      <input class="field" id="scDate" type="date" aria-label="日付">
+      <select class="field" id="scKind" aria-label="種類"><option value="past">過去問</option><option value="mock">模試</option><option value="drill">本番形式の演習</option></select>
+      <input class="field" id="scName" placeholder="例：東洋 2025 英語" style="flex:1 1 10em" maxlength="40">
+      <input class="field num" id="scScore" type="number" min="0" inputmode="numeric" placeholder="点" style="width:5em" aria-label="点数">
+      <input class="field num" id="scMax" type="number" min="1" inputmode="numeric" placeholder="満点" value="100" style="width:5em" aria-label="満点">
+      <button class="btn pri" type="submit">記録</button></form>
+    <div id="scoreChart"></div><ul class="list" id="scoreList"></ul></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近28日</div><h2>体づくり</h2></div><span class="note">緑＝筋トレ　下線＝有酸素</span></div><div id="fitRec" style="display:grid;gap:12px"></div>
+    <div class="row"><label class="note">今日の体重 <input class="field num" id="wtIn" type="number" step="0.1" min="30" max="200" inputmode="decimal" style="width:6em"> kg</label><button class="btn pri sm" type="button" id="wtSave">記録</button><span class="note">週1回、朝に測れば十分</span></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">直近14日</div><h2>気分と体力</h2></div><span class="note"><span style="color:var(--lantern)">●</span> 気分　<span style="color:var(--sky)">●</span> 体力</span></div><div id="moodChart"></div></div>
+  <div class="card"><div class="head"><div><div class="eyebrow">実績</div><h2>バッジ</h2></div><span class="note dot" id="badgeSum"></span></div><div class="badges" id="badges"></div></div>
+  <details class="box"><summary>休憩に出す言葉</summary>
+    <form id="quoteForm" class="form"><input class="field" id="qText" placeholder="言葉" maxlength="120"><input class="field" id="qBy" placeholder="だれの言葉（なくてもいい）" maxlength="40"><button class="btn pri" type="submit">足す</button></form>
+    <ul class="list" id="quoteList" style="margin-top:10px"></ul></details>
+  <details class="box"><summary>設定</summary>
+    <form id="setForm" class="form">
+      <label>試験日<span>1行に1つ「2026-11-29 東洋 年内入試」。時刻を入れるなら「2027-01-16 09:30 共通テスト」</span><textarea class="field" id="setExams" rows="5"></textarea></label>
+      <label>通常日の時間割<span>「07:00-09:00 英単語」の形。休憩・食事・ゲームは勉強時間に入らない</span><textarea class="field" id="setNormal" rows="8"></textarea></label>
+      <label>リフレッシュ日の時間割<span>「ゲーム」と書いた行がゲームの時間</span><textarea class="field" id="setRefresh" rows="8"></textarea></label>
+      <div class="note" id="setSum"></div>
+      <div class="row">
+        <label>リフレッシュの曜日<select class="field" id="setDow"><option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option><option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option><option value="6">土曜</option></select></label>
+        <label>1日の単語数<input class="field num" id="setWords" type="number" min="10" max="200" style="width:6em"></label>
+        <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
+      <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <button class="btn pri" type="submit">保存</button>
+    </form></details>
+  <div class="card"><div class="eyebrow">保存について</div>
+    <p style="margin:0;font-size:13px">押したらすぐクラウドに保存される。スマホとPCで同じ記録。お金（小判・券）は記録から毎回計算するので、巻き戻ったり消えたりしない。左上の点が緑なら保存できている。</p>
+    <button class="btn" type="button" id="backupBtn">記録をファイルに書き出す</button></div>
+</section>
+</main>
+
+<nav class="tabs" id="tabs" aria-label="画面"><div class="tabs-in">
+  <button type="button" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>ホーム</button>
+  <button type="button" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>タイマー</button>
+  <button type="button" data-v="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h6a2 2 0 012 2v13a2 2 0 00-2-2H4zM20 5h-6a2 2 0 00-2 2v13a2 2 0 012-2h6z"/></svg>勉強</button>
+  <button type="button" data-v="yokai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 21V10a6 6 0 0112 0v11l-2-2-2 2-2-2-2 2-2-2z"/><circle cx="10" cy="10" r="1" fill="currentColor"/><circle cx="14" cy="10" r="1" fill="currentColor"/></svg>お化け</button>
+  <button type="button" data-v="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>記録</button>
+</div></nav>
+
+<div class="sheet" id="sheet" hidden><div class="in" id="sheetIn" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<div class="gate" id="gate">
+  <div class="gate-in">
+    <div class="gate-logo">攻</div>
+    <div class="brand">攻略<small>受験編</small></div>
+    <p class="note" id="gateMsg">読み込み中…</p>
+    <form id="gateForm" hidden>
+      <input class="field" id="gEmail" type="email" autocomplete="username" placeholder="メールアドレス" required>
+      <input class="field" id="gPass" type="password" autocomplete="current-password" placeholder="パスワード" required>
+      <button class="big-btn" type="submit">ログイン</button>
+    </form>
+  </div>
+</div>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794561111"};</script>
+<script src="supabase.js"></script>
+<script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
+   記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
+   本体は今まで通り window.claude.use("db") で保存先を受け取るので、ここでその形をまねる。 */
+(function () {
+  const CFG = window.KR_CONFIG;
+  const KEY_LS = "kr-data-key";
+  const $g = id => document.getElementById(id);
+  const gate = $g("gate"), gMsg = $g("gateMsg"), gForm = $g("gateForm");
+  const say = t => { gMsg.textContent = t; };
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+  const sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+
+  /* ---- 保存先：今までの db と同じ形（collection / doc / onSnapshot / set / delete） ---- */
+  function makeDb(uid, rows) {
+    const cache = new Map(); // "col/id" -> data
+    for (const r of rows) cache.set(r.col + "/" + r.id, r.data);
+    const colSubs = new Map(), docSubs = new Map();
+    const split = path => { const i = path.indexOf("/"); return [path.slice(0, i), path.slice(i + 1)]; };
+    const snapCol = col => ({ docs: [...cache].filter(([k]) => split(k)[0] === col).map(([k, v]) => ({ id: split(k)[1], data: () => v })) });
+    const snapDoc = path => ({ exists: cache.has(path), data: () => cache.get(path) });
+    const notify = path => {
+      const col = split(path)[0];
+      for (const cb of colSubs.get(col) || []) try { cb(snapCol(col)); } catch (e) { console.warn(e); }
+      for (const cb of docSubs.get(path) || []) try { cb(snapDoc(path)); } catch (e) { console.warn(e); }
+    };
+    const sub = (map, key, cb, snap) => { if (!map.has(key)) map.set(key, []); map.get(key).push(cb); setTimeout(() => cb(snap()), 0); };
+    const chk = ({ error }) => { if (error) throw error; };
+    async function refresh() {
+      const all = await loadRows(uid);
+      const seen = new Set();
+      for (const r of all) { const k = r.col + "/" + r.id; seen.add(k); if (JSON.stringify(cache.get(k)) !== JSON.stringify(r.data)) { cache.set(k, r.data); notify(k); } }
+      for (const k of [...cache.keys()]) if (!seen.has(k)) { cache.delete(k); notify(k); }
+    }
+    // ほかの端末で変わったら反映する
+    sb.channel("kr-" + uid).on("postgres_changes", { event: "*", schema: "public", table: "kouryaku_docs", filter: "user_id=eq." + uid }, p => {
+      const r = p.eventType === "DELETE" ? p.old : p.new; if (!r || !r.col) return;
+      const k = r.col + "/" + r.id;
+      if (p.eventType === "DELETE") cache.delete(k); else { if (JSON.stringify(cache.get(k)) === JSON.stringify(r.data)) return; cache.set(k, r.data); }
+      notify(k);
+    }).subscribe();
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh().catch(() => {}); });
+    return {
+      collection: col => ({ onSnapshot: (cb) => sub(colSubs, col, cb, () => snapCol(col)) }),
+      doc: path => ({
+        onSnapshot: (cb) => sub(docSubs, path, cb, () => snapDoc(path)),
+        set: async v => { const [col, id] = split(path); cache.set(path, v); notify(path); chk(await sb.from("kouryaku_docs").upsert({ user_id: uid, col, id, data: v, updated_at: new Date().toISOString() })); },
+        delete: async () => { const [col, id] = split(path); cache.delete(path); notify(path); chk(await sb.from("kouryaku_docs").delete().eq("user_id", uid).eq("col", col).eq("id", id)); }
+      })
+    };
+  }
+  async function loadRows(uid) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("kouryaku_docs").select("col,id,data").eq("user_id", uid).range(from, from + 999);
+      if (error) throw error;
+      out.push(...data); if (data.length < 1000) return out;
+    }
+  }
+
+  /* ---- ファイル保存（記録の書き出し） ---- */
+  const downloads = { save: async ({ filename, data }) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = filename; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); } };
+
+  /* ---- 単語データ：鍵で開いて、gzip を戻す ---- */
+  const b64 = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+  async function getKey() {
+    let k = null; try { k = localStorage.getItem(KEY_LS); } catch (e) {}
+    if (!k) {
+      const { data, error } = await sb.from("kouryaku_secret").select("k").eq("id", 1).maybeSingle();
+      if (error || !data) throw new Error("鍵が見つからない（Supabase の準備を確認して）");
+      k = data.k; try { localStorage.setItem(KEY_LS, k); } catch (e) {}
+    }
+    return crypto.subtle.importKey("raw", b64(k), "AES-GCM", false, ["decrypt"]);
+  }
+  async function openData(key) {
+    const buf = new Uint8Array(await (await fetch("data.enc", { cache: "no-cache" })).arrayBuffer());
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
+    const txt = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    return JSON.parse(txt);
+  }
+
+  /* ---- 今までの記録を最初の1回だけ移す ---- */
+  async function migrate(uid, rows, m) {
+    if (!m || rows.some(r => r.col === "settings")) return rows;
+    say("今までの記録を移している…");
+    const all = Object.entries(m).map(([path, data]) => { const i = path.indexOf("/"); return { user_id: uid, col: path.slice(0, i), id: path.slice(i + 1), data }; });
+    for (let i = 0; i < all.length; i += 200) { const { error } = await sb.from("kouryaku_docs").upsert(all.slice(i, i + 200)); if (error) throw error; }
+    return loadRows(uid);
+  }
+
+  async function start(session) {
+    gForm.hidden = true; say("読み込み中…");
+    const uid = session.user.id;
+    let D;
+    try { D = await openData(await getKey()); }
+    catch (e) { try { localStorage.removeItem(KEY_LS); } catch (x) {} console.warn(e); say("単語データを開けなかった。" + (e.message || "")); return; }
+    let rows = await loadRows(uid);
+    rows = await migrate(uid, rows, D.MIGRATE);
+    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS"]) window[n] = D[n];
+    const db = makeDb(uid, rows);
+    window.claude = { use: async kind => kind === "db" ? db : kind === "downloads" ? downloads : null };
+    const s = document.createElement("script"); s.src = "app.js?v=" + CFG.ver;
+    s.onload = () => { gate.hidden = true; };
+    s.onerror = () => say("アプリを読み込めなかった。電波を確認して開き直して。");
+    document.body.append(s);
+  }
+
+  gForm.addEventListener("submit", async e => {
+    e.preventDefault(); say("ログイン中…");
+    const { data, error } = await sb.auth.signInWithPassword({ email: $g("gEmail").value.trim(), password: $g("gPass").value });
+    if (error) { say("ログインできなかった。メールとパスワードを確認して。"); return; }
+    start(data.session).catch(err => say("エラー：" + (err.message || err)));
+  });
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) start(data.session).catch(err => say("エラー：" + (err.message || err)));
+    else { say("最初の1回だけログインして。"); gForm.hidden = false; }
+  });
+})();
+</script>
+
+</html>
