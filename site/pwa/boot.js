@@ -68,7 +68,8 @@
     let k = null; try { k = localStorage.getItem(KEY_LS); } catch (e) {}
     if (!k) {
       const { data, error } = await sb.from("kouryaku_secret").select("k").eq("id", 1).maybeSingle();
-      if (error || !data) throw new Error("鍵が見つからない（Supabase の準備を確認して）");
+      if (error) throw new Error("鍵を読めない：" + (error.code || "") + " " + (error.message || ""));
+      if (!data) throw new Error("鍵が見つからない（ログイン中：" + ((await sb.auth.getUser()).data.user || {}).email + "）");
       k = data.k; try { localStorage.setItem(KEY_LS, k); } catch (e) {}
     }
     return crypto.subtle.importKey("raw", b64(k), "AES-GCM", false, ["decrypt"]);

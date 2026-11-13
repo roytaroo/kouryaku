@@ -14,6 +14,7 @@ drop policy if exists "own docs" on public.kouryaku_docs;
 create policy "own docs" on public.kouryaku_docs for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 alter table public.kouryaku_docs replica identity full;
+grant select, insert, update, delete on public.kouryaku_docs to authenticated;
 do $$ begin
   alter publication supabase_realtime add table public.kouryaku_docs;
 exception when duplicate_object then null; end $$;
@@ -22,5 +23,6 @@ create table if not exists public.kouryaku_secret (id int primary key, k text no
 alter table public.kouryaku_secret enable row level security;
 drop policy if exists "read secret" on public.kouryaku_secret;
 create policy "read secret" on public.kouryaku_secret for select to authenticated using (true);
+grant select on public.kouryaku_secret to authenticated;
 insert into public.kouryaku_secret (id, k) values (1, '@KEY@')
   on conflict (id) do update set k = excluded.k;
