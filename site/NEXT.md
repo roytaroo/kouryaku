@@ -39,6 +39,18 @@
   - 1か月目は習慣づくり、2〜3か月目は回数を伸ばす、4〜6か月目は見た目を変える（FIT_START＝11/6から数える）。
   - 小判は筋トレ完了＋10、有酸素20分＋5。勉強のノルマ（全クリア）には入れていない。
   - 記録は各日の `fit`：sets・ok・cardio・snack・weight。
+## 全画面アプリ版（11/13〜、作りかけ）
+だいきが「全画面アプリにしたい」と言ったので、claude.ai の外に PWA を作っている。
+- 置き場所：GitHub Pages（このリポジトリの `gh-pages` ブランチ、https://roytaroo.github.io/kouryaku/ ）。リポジトリは公開。
+- 記録：だいきの Supabase（`kouryaku_docs` テーブル。1行＝今までの db の1文書。RLS で本人だけ）。リアルタイムでスマホとPCを同期。
+- 単語・古文・政経・キャラの絵：`data.enc` に AES-GCM で暗号化して置く。鍵は Supabase の `kouryaku_secret`（ログインした人だけ読める）。
+  鍵の元は `minecraft/private/pwa_key.txt`（git管理外。なくしたら作り直して、SQL の鍵も入れ直す）。
+- ファイル：`site/build_pwa.py`（組み立て）、`site/pwa/`（boot.js：ログイン・鍵・保存先、sw.js、gate、setup.sql、config.json）。
+  本体のプログラム（site/js）は claude.ai 版と同じものを使う。boot.js が window.claude.use("db") のふりをする。
+- 組み立て：`python3 site/build_pwa.py` → `minecraft/private/pwa_out/` を gh-pages に置く。
+  最初の1回だけ `--migrate <ArtifactData で書き出したフォルダ>` で今までの記録を入れる（Supabase に settings が無いときだけ移す）。
+- だいき側の準備：Supabase で setup.sql を実行、Authentication でユーザーを作る（新規登録は OFF）、Project URL と anon key を config.json へ、GitHub の Settings → Pages で gh-pages を公開。
+
 ## ファイル
 - `site/app.html`（骨組み）、`site/style.css`、`site/js/*.js`（読み込む順番は `build.py` の JS に書いてある）
 - `site/build.py`：1枚のHTMLに組み立てる。出力は `minecraft/private/site_out/index.html`（git管理外）

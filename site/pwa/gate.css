@@ -1,0 +1,7 @@
+
+/* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+.gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
+.gate-logo{width:72px;height:72px;border-radius:18px;background:var(--lantern);color:#fff;display:grid;place-items:center;font-size:40px;font-weight:700}
+.gate form{display:grid;gap:10px;width:100%}
+.gate .field{width:100%;padding:12px;font-size:16px}
