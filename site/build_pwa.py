@@ -23,7 +23,7 @@ import build  # noqa: E402
 
 SITE, PRIVATE = build.SITE, build.PRIVATE
 OUT = PRIVATE / "pwa_out"
-SB_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+SB_JS = "supabase.js"  # site/pwa/vendor から同じサイトに置く（@supabase/supabase-js 2.49.4, MIT）
 
 
 def key_bytes():
@@ -117,6 +117,7 @@ def main():
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     (OUT / "sw.js").write_text((SITE / "pwa" / "sw.js").read_text(encoding="utf-8").replace("@VER@", ver), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
+    (OUT / "supabase.js").write_bytes((SITE / "pwa" / "vendor" / "supabase-2.49.4.js").read_bytes())
     icons()
     size = sum(p.stat().st_size for p in OUT.iterdir() if p.is_file())
     print(f"{OUT}  {size / 1024:.0f} KB  data.enc={(OUT / 'data.enc').stat().st_size / 1024:.0f} KB  migrate={len(bundle.get('MIGRATE', {}))}")
