@@ -52,12 +52,16 @@ def icons():
     for path in ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",):
         if os.path.exists(path):
             font = path
+    src = SITE / "pwa" / "icon.png"  # だいきが選んだアイコン
     for size in (192, 512, 180):
-        im = Image.new("RGB", (size, size), "#3a64d8")
-        d = ImageDraw.Draw(im)
-        if font:
-            f = ImageFont.truetype(font, int(size * 0.56))
-            d.text((size / 2, size / 2), "攻", font=f, fill="white", anchor="mm")
+        if src.exists():
+            im = Image.open(src).convert("RGB").resize((size, size), Image.LANCZOS)
+        else:
+            im = Image.new("RGB", (size, size), "#3a64d8")
+            d = ImageDraw.Draw(im)
+            if font:
+                f = ImageFont.truetype(font, int(size * 0.56))
+                d.text((size / 2, size / 2), "攻", font=f, fill="white", anchor="mm")
         name = "apple-touch-icon.png" if size == 180 else f"icon-{size}.png"
         im.save(OUT / name)
 
