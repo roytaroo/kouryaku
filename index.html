@@ -450,7 +450,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
 .gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
-.gate-logo{width:72px;height:72px;border-radius:18px;background:var(--lantern);color:#fff;display:grid;place-items:center;font-size:40px;font-weight:700}
+.gate-logo{width:72px;height:72px;border-radius:18px;display:block}
 .gate form{display:grid;gap:10px;width:100%}
 .gate .field{width:100%;padding:12px;font-size:16px}
 </style>
@@ -726,7 +726,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <div class="gate" id="gate">
   <div class="gate-in">
-    <div class="gate-logo">攻</div>
+    <img class="gate-logo" src="icon-192.png" alt="">
     <div class="brand">攻略<small>受験編</small></div>
     <p class="note" id="gateMsg">読み込み中…</p>
     <form id="gateForm" hidden>
@@ -736,7 +736,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794562084"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794621490"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
