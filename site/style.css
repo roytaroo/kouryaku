@@ -460,3 +460,11 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .rpg-res.ng{background:color-mix(in srgb,var(--seal) 10%,var(--surface))}.rpg-res.ng b{color:var(--seal)}
 .rpg-end{display:grid;gap:8px;text-align:center;padding:12px}
 .rpg-end b{font-size:20px}.rpg-end p{margin:0}
+.rpg-scene{display:block;width:100%;aspect-ratio:2/1;border-radius:14px;background:#0d1030}
+.rg-lan{animation:rgFlick 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes rgFlick{0%,100%{opacity:1}45%{opacity:.82}55%{opacity:.95}}
+.rg-fog{animation:rgDrift 14s ease-in-out infinite alternate}
+@keyframes rgDrift{to{transform:translateX(-90px)}}
+.rg-foe{animation:rgFloat 3.2s ease-in-out infinite}
+@keyframes rgFloat{50%{transform:translateY(-6px)}}
+.rg-eyes{animation:rgFlick 3s ease-in-out infinite}

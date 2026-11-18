@@ -40,6 +40,8 @@ function renderRPG() {
   const st = rpgResolve(rpgState()), ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], n = rpgNodes(st)[st.i];
   $("rpgTitle").textContent = rpgJa ? ch.ja : ch.title;
   $("rpgSub").textContent = "クリア " + st.cleared.length + "章・倒した敵 " + Object.keys(st.won).length;
+  let bg = "road"; for (let k = 0; k <= st.i; k++) { const x = rpgNodes(st)[k]; if (x && x.bg) bg = x.bg; }
+  const art = n && !n.end ? rpgArt(bg, n.battle ? n.battle.foe : n.foe) : rpgArt(bg);
   let h = "";
   if (!n) h = `<p class="note">物語が見つからない。「最初から」を押して。</p>`;
   else if (n.end) {
@@ -54,6 +56,7 @@ function renderRPG() {
       <p class="rpg-text" data-r="tr">${esc(rpgT(n.en, n.ja))}</p>${rpgWords(n.w)}</div>
       <div class="rpg-nav">${rpgToggle()}<button type="button" class="big-btn rpg-next" data-r="next">次へ ▶</button></div>`;
   }
+  h = art + h;
   if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
 }
 function rpgBattleHtml(st, n) {
