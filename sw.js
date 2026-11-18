@@ -1,6 +1,6 @@
 /* 電波がないときも開けるよう、同じサイトのファイルを保存しておく（まずネット、だめなら保存した分） */
-const CACHE = "kr-1794997314";
-const FILES = ["./", "index.html", "app.js?v=1794997314", "data.enc", "manifest.webmanifest", "icon-192.png", "icon-512.png", "supabase.js"];
+const CACHE = "kr-1794999005";
+const FILES = ["./", "index.html", "app.js?v=1794999005", "data.enc", "manifest.webmanifest", "icon-192.png", "icon-512.png", "supabase.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

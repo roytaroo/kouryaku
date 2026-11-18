@@ -1930,6 +1930,9 @@ function bindFit() {
        vocab：その章で出てきたターゲット単語から、意味を答える問題を何問足すか
    { label } { go } { if: flag, go } { end: true }
 
+   レン：赤髪・緑の目・アップバング（だいきの好み）。髪は妹が消えたあとに染めた（昔の写真では黒髪）。
+   ミオは「赤が似合う」と言っていた → 再会の場面で回収する。
+
    全体の流れ（予定）
    序章 番号のない列車（駅）／1 忘れていく村（村・地下室）／2 ささやきの森の遺跡（遺跡）
    3 水晶の洞窟（洞窟）：鉱夫ガロと、彼が忘れた娘／4 王都の地下水路（地下水路）
@@ -1955,6 +1958,8 @@ const RPG_CHAPTERS = [
   { bg: "station", who: null, en: "The sun was going down, and the platform was almost empty.", ja: "日が沈みかけていて、ホームにはほとんど人がいなかった。" },
   { who: null, en: "Ren sat on a bench, holding an old photograph. In it, he was smiling next to a girl whose face had completely disappeared.", ja: "レンは古い写真を手に、ベンチに座っていた。写真の中の彼は笑っていて、その隣には顔がすっかり消えてしまった少女がいた。" },
   { who: "ren", en: "\"Mio...\"", ja: "「ミオ……」" },
+  { who: null, en: "In the photo, his hair was still black. A few months after she disappeared, he had dyed it bright red.", ja: "写真の中の彼の髪は、まだ黒かった。妹がいなくなって数か月後、彼は髪を鮮やかな赤に染めたのだ。" },
+  { who: "ren", en: "\"You always said red would suit me, like the hero in your favorite game. Well, I finally did it... So come back and laugh at me.\"", ja: "「おまえ、ずっと言ってたよな。好きなゲームの主人公みたいに、赤が似合うって。……やっと染めたぞ。だから帰ってきて、笑えよ。」" },
   { who: null, en: "A year ago, his younger sister had vanished. What was worse, everyone else had forgotten that she had ever existed.", ja: "1年前、妹が姿を消した。さらに悪いことに、ほかのだれもが、彼女がこの世にいたことさえ忘れてしまった。" },
   { who: null, en: "Her room was now used for storage. Her name was no longer on the class list. Even his parents looked confused whenever he mentioned her.", ja: "彼女の部屋は今では物置になっている。クラス名簿にも名前はない。両親でさえ、彼が妹の話をするたびに戸惑った顔をした。" },
   { who: "ren", en: "\"Am I the only person in the world who still remembers you?\"", ja: "「おまえを覚えているのは、世界で俺だけなのか？」" },
