@@ -1,89 +1,165 @@
-/* ===== 英語RPG「提灯の道」の物語（オリジナル） =====
-   1つの節は次のどれか：
-   { who, en, ja, w }           せりふ・地の文（who が null なら地の文。w は大事な単語 [英, 日]）
-   { choice: {en, ja}, opts: [{ en, ja, go, flag }] }   選択肢
-   { battle: { name, ja, hp, art }, qs: [{ en, ja, opts: [[英, 日]...], a, why }] }   戦い
-   { label }  { go }  { if: flag, go }  { end: 章の名前 } */
+/* ===== 英語RPG『Echoes of Aster（アスターの残響）』（オリジナル） =====
+   全12章＋序章の長編。英文はターゲット1900（Part1〜2）の単語を中心に書く。
+   画面では、文の中のターゲット単語を自動で見つけて下線を引き、「訳」で意味を出す（rpg.js）。
+
+   節の書き方
+   { bg, who, en, ja }                      せりふ・地の文（who が null なら地の文。bg で背景を切りかえ）
+   { choice: {en, ja}, opts: [{ en, ja, go, flag }] }
+   { battle: { name, ja, bg }, vocab: 2, qs: [{ en, ja, opts: [[英, 日]...], a, tip }] }
+       vocab：その章で出てきたターゲット単語から、意味を答える問題を何問足すか
+   { label } { go } { if: flag, go } { end: true }
+
+   全体の流れ（予定）
+   序章 番号のない列車（駅）／1 忘れていく村（村・地下室）／2 ささやきの森の遺跡（遺跡）
+   3 水晶の洞窟（洞窟）：鉱夫ガロと、彼が忘れた娘／4 王都の地下水路（地下水路）
+   5 白い城（城）：忘却こそ救いだと説く王の布告／6 灯の回廊（城の広間・夜の広間）
+   7 大図書館（図書館）：「忘却」が始まった本当の理由／8 港の倉庫と浜辺（港・浜辺）
+   9 沈んだ書庫（海の底）／10 嵐の空（嵐）／11 炎の門（地下の門）
+   12 忘却の女王（玉座の間）／終章 ふたたび夕暮れの駅で */
+
 const RPG_CAST = {
-  daiki: { name: "Daiki", ja: "だいき" },
-  kogitsune: { name: "Kogitsune", ja: "子狐火", img: "kogitsune" },
-  hitotsume: { name: "Hitotsume", ja: "一つ目小僧", img: "hitotsume" },
-  moth: { name: "Ink Moth", ja: "墨蛾", mark: "墨" },
+  ren: { name: "Ren", ja: "レン" },
+  lina: { name: "Lina", ja: "リナ" },
+  conductor: { name: "Conductor", ja: "車掌" },
+  elder: { name: "Elder Bram", ja: "ブラム長老" },
+  knight: { name: "The Hollow Knight", ja: "空ろの騎士" },
+  child: { name: "Little Boy", ja: "小さな男の子" },
+  baker: { name: "Baker", ja: "パン屋" },
   voice: { name: "???", ja: "？？？" }
 };
 
-const RPG_CHAPTERS = [{
-  id: "ch1", title: "Chapter 1: The Fox and the Lantern", ja: "第1章　狐と提灯",
-  nodes: [
-    { bg: "room", who: null, en: "It was two in the morning, the night before the exam. Daiki's pencil rolled off the desk, and the room went dark.", ja: "午前2時、試験の前の夜。だいきの鉛筆が机から転がり落ち、部屋が暗くなった。" },
-    { bg: "road", who: null, en: "When he opened his eyes, he was standing on a narrow road lit by hundreds of paper lanterns.", ja: "目を開けると、彼は何百もの紙の提灯に照らされた細い道に立っていた。", w: [["narrow", "せまい"], ["lit", "light（照らす）の過去分詞"]] },
-    { who: "voice", en: "\"Finally! A human who can still read!\"", ja: "「やっと来た！まだ字が読める人間だ！」" },
-    { who: null, en: "A small white fox with a red flame on its tail jumped onto one of the lanterns.", ja: "尻尾に赤い炎をともした小さな白い狐が、提灯のひとつに飛び乗った。" },
-    { who: "kogitsune", en: "\"I'm Kogitsune. Sorry to bother you, but our world is in serious trouble.\"", ja: "「ぼくは子狐火。じゃましてごめん、でもぼくらの世界は大変なことになってるんだ。」", w: [["bother", "じゃまをする、困らせる"], ["serious", "深刻な"]] },
-    { who: "kogitsune", en: "\"Something called the Silence is eating our words. Once a word disappears, nobody can remember what it meant.\"", ja: "「『沈黙』っていうものが、ぼくらの言葉を食べているんだ。言葉がひとつ消えると、だれもその意味を思い出せなくなる。」", w: [["once", "いったん〜すると"], ["disappear", "消える"]] },
-    { who: "daiki", en: "\"Why are you telling me? I'm just a student who can't even finish his English homework.\"", ja: "「なんで俺に言うんだよ。英語の宿題も終わらない、ただの受験生だぞ。」" },
-    { who: "kogitsune", en: "\"Exactly. These days, students are the only ones who still collect words every single day.\"", ja: "「だからだよ。今では、毎日欠かさず言葉を集めているのは受験生くらいしかいないんだ。」", w: [["exactly", "まさにそのとおり"], ["collect", "集める"]] },
-    { choice: { en: "How do you answer?", ja: "どう答える？" }, opts: [
-      { en: "\"Fine. I'll help, but only if you show me the way home.\"", ja: "「わかった。手伝うよ。ただし、帰り道を教えてくれるならな。」", go: "deal" },
-      { en: "\"Sounds dangerous. Can I think about it?\"", ja: "「危なそうだな。少し考えさせてくれる？」", go: "hesitate" }
-    ] },
-    { label: "deal" },
-    { who: "kogitsune", en: "\"Deal! When this is over, I'll guide you to the Gate of Dawn.\"", ja: "「決まり！これが終わったら、夜明けの門まで案内するよ。」", w: [["guide", "案内する"], ["dawn", "夜明け"]] },
-    { go: "blank" },
-    { label: "hesitate" },
-    { who: "kogitsune", en: "\"There's no time to hesitate. Look behind you!\"", ja: "「迷っている暇はないよ。うしろを見て！」", w: [["hesitate", "ためらう"]] },
-    { label: "blank" },
-    { who: null, en: "Behind them, the lanterns began to go out one by one.", ja: "二人のうしろで、提灯がひとつずつ消え始めた。", w: [["go out", "（火・明かりが）消える"]] },
-    { foe: "blank", who: null, en: "Out of the darkness crawled a shadow shaped like a crumpled page.", ja: "暗闇の中から、くしゃくしゃになったページのような形の影がはい出てきた。", w: [["crawl", "はう"]] },
-    { who: "kogitsune", en: "\"A Blank! It feeds on the words people have forgotten. Answer correctly, and the words will turn back into light!\"", ja: "「ブランクだ！人が忘れた言葉を食べる化け物だよ。正しく答えれば、言葉が光に戻る！」", w: [["feed on", "〜を食べて生きる"], ["turn into", "〜に変わる"]] },
-    { battle: { name: "Blank", ja: "ブランク（白紙の影）", hp: 3, mark: "白", foe: "blank" }, qs: [
-      { en: "Which word means \"to go out of sight suddenly\"?", ja: "「急に見えなくなる」という意味の単語はどれ？", opts: [["vanish", "消える"], ["appear", "現れる"], ["recover", "回復する"], ["require", "必要とする"]], a: 0, why: "vanish＝（急に）消える。disappear とほぼ同じ意味。" },
-      { en: "Why did Kogitsune ask Daiki for help?", ja: "子狐火はなぜだいきに助けを求めた？", opts: [["Because Daiki is good at fighting.", "だいきは戦いが得意だから。"], ["Because students still collect words every day.", "受験生は今も毎日言葉を集めているから。"], ["Because Daiki is also a fox.", "だいきも狐だから。"], ["Because the lanterns told him to.", "提灯にそうしろと言われたから。"]], a: 1, why: "\"students are the only ones who still collect words every single day\" と言っていた。" },
-      { en: "Kogitsune said, \"Sorry to bother you.\" The word \"bother\" is closest in meaning to ___.", ja: "「Sorry to bother you」の bother にいちばん近い意味は？", opts: [["trouble", "困らせる"], ["help", "助ける"], ["praise", "ほめる"], ["ignore", "無視する"]], a: 0, why: "bother＝じゃまをする、困らせる。trouble にも「迷惑をかける」の意味がある。" }
-    ] },
-    { who: null, en: "The Blank let out a scream and burst into a shower of tiny letters.", ja: "ブランクは叫び声をあげ、小さな文字の雨になってはじけた。", w: [["burst into", "〜になってはじける"]] },
-    { who: "kogitsune", en: "\"You did it! See? Here, your words are your weapon.\"", ja: "「やった！ね？ここでは、きみの言葉がきみの武器なんだ。」", w: [["weapon", "武器"]] },
-    { who: null, en: "Among the falling letters, Daiki noticed a small straw hat lying on the road.", ja: "降ってくる文字の中に、道に落ちている小さなわら笠があるのに、だいきは気づいた。", w: [["notice", "気づく"], ["lie（lying）", "横たわる、置いてある"]] },
-    { who: "kogitsune", en: "\"That belongs to Hitotsume, the one-eyed boy. He was supposed to be guarding the bridge.\"", ja: "「それは一つ目小僧の笠だ。橋を守っているはずだったのに。」", w: [["belong to", "〜のものである"], ["be supposed to", "〜するはずだ"]] },
-    { who: "kogitsune", en: "\"If the Silence has taken his name, he may not even remember who he is.\"", ja: "「もし沈黙に名前を取られていたら、自分がだれなのかさえ覚えていないかもしれない。」" },
-    { choice: { en: "What do you do?", ja: "どうする？" }, opts: [
-      { en: "\"Let's head to the bridge right away.\"", ja: "「すぐに橋へ向かおう。」", go: "bridge" },
-      { en: "\"Wait. Let's look around for clues first.\"", ja: "「待って。先に手がかりを探そう。」", go: "clue" }
-    ] },
-    { label: "clue" },
-    { who: null, en: "Under the hat, Daiki found a folded note. It said: \"If you ever forget me, call my name three times.\"", ja: "笠の下に、だいきは折りたたまれたメモを見つけた。こう書いてあった。「もしぼくを忘れたら、名前を3回呼んで。」", w: [["fold", "折りたたむ"]], flag: "note" },
-    { who: "kogitsune", en: "\"Good thinking. That might come in handy later.\"", ja: "「いい考えだね。あとで役に立つかもしれない。」", w: [["come in handy", "役に立つ"]] },
-    { label: "bridge" },
-    { bg: "bridge", who: null, en: "The bridge was covered in fog so thick that Daiki could hardly see his own hands.", ja: "橋はとても濃い霧におおわれていて、だいきは自分の手さえほとんど見えなかった。", w: [["so 〜 that ...", "とても〜なので…"], ["hardly", "ほとんど〜ない"]] },
-    { who: null, en: "In the middle stood a child with one huge eye, staring at nothing.", ja: "真ん中には、大きな目がひとつある子どもが立っていて、何もないところをじっと見つめていた。", w: [["stare at", "〜をじっと見る"]] },
-    { who: "hitotsume", en: "\"Who... am I? I was protecting something important. I just can't recall what it was.\"", ja: "「ぼくは…だれ？何か大事なものを守っていたんだ。それが何だったか、どうしても思い出せない。」", w: [["recall", "思い出す"]] },
-    { who: "kogitsune", en: "\"It's worse than I expected. The Silence must be close.\"", ja: "「思っていたよりひどい。沈黙が近くにいるにちがいない。」", w: [["expect", "予想する"], ["must", "〜にちがいない"]] },
-    { who: null, en: "Suddenly, the fog gathered into the shape of a giant moth whose wings were made of torn dictionaries.", ja: "突然、霧が集まり、破れた辞書でできた羽をもつ巨大な蛾の形になった。", w: [["gather", "集まる"], ["torn", "tear（破る）の過去分詞"]] },
-    { foe: "moth", who: "moth", en: "\"Words are heavy. Meaning is a burden. Give them all to me, and you will never have to study again.\"", ja: "「言葉は重い。意味は重荷だ。全部わたしによこしなさい。そうすれば、もう二度と勉強しなくていい。」", w: [["burden", "重荷"]] },
-    { who: "daiki", en: "\"...Never study again? Honestly, that sounds kind of nice.\"", ja: "「…二度と勉強しなくていい？正直、ちょっといいかも。」" },
-    { who: "kogitsune", en: "\"Daiki! Don't listen to it! If you lose your words, you lose yourself!\"", ja: "「だいき！耳を貸しちゃだめ！言葉を失ったら、自分自身を失うんだよ！」" },
-    { choice: { en: "How do you respond?", ja: "どう返す？" }, opts: [
-      { en: "\"You're right. I'm not giving my words to anyone.\"", ja: "「そうだな。俺の言葉はだれにも渡さない。」", go: "boss" },
-      { en: "\"I'll admit I was tempted... but no way.\"", ja: "「正直ちょっと揺れた…でも、お断りだ。」", go: "boss" }
-    ] },
-    { label: "boss" },
-    { who: "moth", en: "\"Then I will simply take them by force!\"", ja: "「ならば、力ずくでいただくまでだ！」", w: [["by force", "力ずくで"]] },
-    { battle: { name: "Ink Moth", ja: "墨蛾（沈黙の手下）", hp: 5, mark: "墨", boss: true, foe: "moth" }, qs: [
-      { en: "The moth said that meaning is a \"burden.\" A burden is something that is ___.", ja: "蛾は「意味は burden だ」と言った。burden とは、どんなもの？", opts: [["heavy and hard to carry", "重くて運ぶのが大変なもの"], ["bright and beautiful", "明るくて美しいもの"], ["easy to forget", "忘れやすいもの"], ["fast and dangerous", "速くて危険なもの"]], a: 0, why: "burden＝重荷。「重くて運ぶのが大変なもの」。" },
-      { en: "Why could Daiki hardly see his own hands on the bridge?", ja: "橋の上で、だいきが自分の手もほとんど見えなかったのはなぜ？", opts: [["Because it was too dark.", "暗すぎたから。"], ["Because the fog was very thick.", "霧がとても濃かったから。"], ["Because he closed his eyes.", "目を閉じていたから。"], ["Because the moth covered them.", "蛾がおおっていたから。"]], a: 1, why: "\"fog so thick that Daiki could hardly see\"＝霧がとても濃くてほとんど見えなかった。" },
-      { en: "Which word means \"to bring something back into your mind\"?", ja: "「何かを心に呼び戻す」＝思い出す、という意味の単語は？", opts: [["recall", "思い出す"], ["refuse", "断る"], ["reduce", "減らす"], ["reveal", "明らかにする"]], a: 0, why: "recall＝思い出す。remember とほぼ同じ。" },
-      { en: "What was Hitotsume supposed to be doing?", ja: "一つ目小僧は何をしているはずだった？", opts: [["guarding the bridge", "橋を守ること"], ["cooking dinner", "夕食を作ること"], ["studying English", "英語を勉強すること"], ["chasing the moth", "蛾を追いかけること"]], a: 0, why: "\"He was supposed to be guarding the bridge.\" とあった。be supposed to＝〜するはずだ。" },
-      { en: "In \"Daiki could hardly see his own hands,\" the word \"hardly\" means ___.", ja: "「could hardly see」の hardly の意味は？", opts: [["easily", "簡単に"], ["almost not", "ほとんど〜ない"], ["completely", "完全に"], ["carefully", "注意深く"]], a: 1, why: "hardly＝ほとんど〜ない。hard（かたい、熱心に）とはちがう意味なので注意。" }
-    ] },
-    { who: null, en: "With a cry like ripping paper, the Ink Moth broke apart and melted into the fog.", ja: "紙を引き裂くような叫び声とともに、墨蛾はばらばらになり、霧の中に溶けていった。", w: [["rip", "引き裂く"], ["melt", "溶ける"]] },
-    { if: "note", go: "shout" },
-    { who: "kogitsune", en: "\"Daiki, call his name! Names bring memories back!\"", ja: "「だいき、彼の名前を呼んで！名前は記憶を連れ戻すんだ！」" },
-    { label: "shout" },
-    { who: "daiki", en: "\"Hitotsume! Hitotsume! Hitotsume!\"", ja: "「一つ目小僧！一つ目小僧！一つ目小僧！」" },
-    { who: "hitotsume", en: "\"...That's me! I'm Hitotsume, guardian of the Lantern Bridge!\"", ja: "「…それ、ぼくだ！ぼくは一つ目小僧、提灯橋の番人だ！」", w: [["guardian", "守る人、番人"]] },
-    { who: "hitotsume", en: "\"Thank you. Without your voice, I would have faded away completely.\"", ja: "「ありがとう。きみの声がなかったら、ぼくは完全に消えてしまっていた。」", w: [["without 〜, would have ...", "〜がなかったら…していただろう（仮定法）"], ["fade away", "消えていく"]] },
-    { who: "kogitsune", en: "\"This is only the beginning. The Silence has five more generals, and each one is stronger than the last.\"", ja: "「これはまだ始まりにすぎない。沈黙にはあと5人の将軍がいて、あとになるほど強いんだ。」", w: [["general", "将軍"]] },
-    { bg: "mountain", who: null, en: "Far away, at the top of a dark mountain, something with enormous wings slowly opened its eyes.", ja: "遠く、暗い山のいただきで、巨大な翼をもつ何かが、ゆっくりと目を開いた。", w: [["enormous", "巨大な"]] },
-    { end: "第1章 クリア" }
-  ]
-}];
+const RPG_CHAPTERS = [
+/* ───────────────────────── 序章 ───────────────────────── */
+{ id: "p0", title: "Prologue: The Train with No Number", ja: "序章　番号のない列車", nodes: [
+  { bg: "station", who: null, en: "The sun was going down, and the platform was almost empty.", ja: "日が沈みかけていて、ホームにはほとんど人がいなかった。" },
+  { who: null, en: "Ren sat on a bench, holding an old photograph. In it, he was smiling next to a girl whose face had completely disappeared.", ja: "レンは古い写真を手に、ベンチに座っていた。写真の中の彼は笑っていて、その隣には顔がすっかり消えてしまった少女がいた。" },
+  { who: "ren", en: "\"Mio...\"", ja: "「ミオ……」" },
+  { who: null, en: "A year ago, his younger sister had vanished. What was worse, everyone else had forgotten that she had ever existed.", ja: "1年前、妹が姿を消した。さらに悪いことに、ほかのだれもが、彼女がこの世にいたことさえ忘れてしまった。" },
+  { who: null, en: "Her room was now used for storage. Her name was no longer on the class list. Even his parents looked confused whenever he mentioned her.", ja: "彼女の部屋は今では物置になっている。クラス名簿にも名前はない。両親でさえ、彼が妹の話をするたびに戸惑った顔をした。" },
+  { who: "ren", en: "\"Am I the only person in the world who still remembers you?\"", ja: "「おまえを覚えているのは、世界で俺だけなのか？」" },
+  { who: null, en: "Just then, a bell rang. It was a sound that did not appear on any timetable.", ja: "ちょうどそのとき、ベルが鳴った。どの時刻表にも載っていない音だった。" },
+  { who: null, en: "A silver train with no number on its side slowly approached the station and stopped in front of him.", ja: "車体に番号のない銀色の列車が、ゆっくりと駅に近づき、彼の目の前で止まった。" },
+  { who: "conductor", en: "\"If you still remember her, get on board. This train does not wait for those who hesitate.\"", ja: "「まだ彼女を覚えているなら、お乗りなさい。この列車は、ためらう者を待ちません。」" },
+  { choice: { en: "What will Ren do?", ja: "レンはどうする？" }, opts: [
+    { en: "Get on without saying a word.", ja: "何も言わずに乗る。", go: "board" },
+    { en: "\"Wait. Where does this train go?\"", ja: "「待ってくれ。この列車はどこへ行くんだ？」", go: "ask" }
+  ] },
+  { label: "ask" },
+  { who: "conductor", en: "\"To the place where forgotten things end up. Whether you can return depends entirely on you.\"", ja: "「忘れられたものが行き着く場所へ。戻ってこられるかどうかは、すべてあなたしだいです。」" },
+  { label: "board" },
+  { who: null, en: "Ren took a deep breath and stepped inside. The doors closed behind him without a sound.", ja: "レンは深く息を吸って、中へ足を踏み入れた。扉は音もなく閉まった。" },
+  { who: null, en: "Outside the window, the town melted into gold, then into darkness, and finally into a sky full of unfamiliar stars.", ja: "窓の外で、町は金色に溶け、やがて暗闇になり、最後には見たことのない星でいっぱいの空に変わった。" },
+  { who: "conductor", en: "\"Before we arrive, I must check your ticket. Here, a ticket is a memory. Show me that yours is real.\"", ja: "「到着の前に、切符を拝見します。ここでは、切符とは記憶のこと。あなたの記憶が本物だと示してください。」" },
+  { battle: { name: "Ticket Check", ja: "検札" }, vocab: 1, qs: [
+    { en: "Why was Ren holding the photograph?", ja: "レンはなぜ写真を持っていた？", opts: [["He wanted to sell it.", "売りたかったから。"], ["It was the only proof of his sister.", "妹がいた唯一の証だったから。"], ["He found it on the bench.", "ベンチで拾ったから。"], ["The conductor gave it to him.", "車掌にもらったから。"]], a: 1, tip: "ほかの人はみんな妹を忘れている。写真は、妹がいたことを示す数少ないもの。" },
+    { en: "What happened to Mio's room?", ja: "ミオの部屋はどうなった？", opts: [["It became a storage room.", "物置になった。"], ["It was locked.", "鍵がかけられた。"], ["Ren moved into it.", "レンが使うようになった。"], ["It was destroyed.", "壊された。"]], a: 0, tip: "\"Her room was now used for storage.\" storage＝保管、物置。" }
+  ] },
+  { who: "conductor", en: "\"Very well. Your memory is clear and strong. Welcome to Aster, the land of forgotten things.\"", ja: "「けっこう。あなたの記憶ははっきりしていて、強い。ようこそアスターへ。忘れられたものたちの国へ。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第1章 ───────────────────────── */
+{ id: "c1", title: "Chapter 1: The Village That Forgets", ja: "第1章　忘れていく村", nodes: [
+  { bg: "village", who: null, en: "When Ren woke up, he was lying on a stone road in the middle of a quiet village.", ja: "目を覚ますと、レンは静かな村の真ん中で、石畳の道に横たわっていた。" },
+  { who: null, en: "The sky was clear and the trees were green, but something about the place felt wrong.", ja: "空は晴れ、木々は緑だった。でも、この場所の何かがおかしい気がした。" },
+  { who: "baker", en: "\"Good morning! Would you like some bread? It costs... it costs... I'm sorry, I can't seem to remember.\"", ja: "「おはよう！パンはいかが？お値段は……ええと……ごめんなさい、どうしても思い出せなくて。」" },
+  { who: null, en: "Nearby, two children were playing together. Suddenly, one of them stopped and stared at the other.", ja: "近くで、二人の子どもがいっしょに遊んでいた。突然、ひとりが手を止めて、もうひとりをじっと見つめた。" },
+  { who: "child", en: "\"Excuse me... who are you? Why am I holding your hand?\"", ja: "「ねえ……きみ、だれ？なんでぼく、きみと手をつないでるの？」" },
+  { who: "voice", en: "\"Don't be scared. It happens every day now. People lose a little more of themselves each morning.\"", ja: "「こわがらないで。今では毎日起きていることなの。人は毎朝、自分を少しずつ失っていくの。」" },
+  { who: null, en: "A girl about Ren's age was standing behind him. She was holding a small lantern shaped like an open book.", ja: "レンと同じくらいの年の少女が、うしろに立っていた。開いた本の形をした小さなランタンを持っている。" },
+  { who: "lina", en: "\"I'm Lina, an apprentice at the Great Library of Aster. And you... you're not from here, are you?\"", ja: "「わたしはリナ。アスター大図書館の見習いよ。それにあなた……ここの人じゃないでしょう？」" },
+  { who: "ren", en: "\"How did you know?\"", ja: "「どうしてわかった？」" },
+  { who: "lina", en: "\"Your memory is shining. I can see it in my lantern. People here have lost that kind of light.\"", ja: "「あなたの記憶が光ってるの。わたしのランタンに映って見える。ここの人たちは、もうそういう光をなくしてしまったから。」" },
+  { who: null, en: "Ren showed her the photograph and explained everything: his sister, the faceless picture, and the train with no number.", ja: "レンは写真を見せて、すべてを説明した。妹のこと、顔の消えた写真のこと、そして番号のない列車のこと。" },
+  { who: "lina", en: "\"Then she might be in Aster. Everything the world forgets eventually comes here, whether it is an object, a place, or a person.\"", ja: "「それなら、彼女はアスターにいるかもしれない。世界が忘れたものは、物でも場所でも人でも、いずれはここにたどり着くの。」" },
+  { who: "lina", en: "\"But Aster is in danger, too. A year ago, something we call the Fading began. Memories turn into gray dust and simply blow away.\"", ja: "「でも、アスターも危ないの。1年前、わたしたちが『色あせ』と呼んでいるものが始まった。記憶が灰色の粉になって、そのまま吹き飛んでしまうの。」" },
+  { who: "ren", en: "\"A year ago... That's exactly when Mio disappeared.\"", ja: "「1年前……ちょうどミオが消えたときだ。」" },
+  { who: "lina", en: "\"Then perhaps the two are connected. Come with me. Elder Bram knows more about the Fading than anyone.\"", ja: "「なら、その二つはつながっているのかもしれない。いっしょに来て。ブラム長老なら、色あせについてだれよりもくわしいわ。」" },
+  { bg: "cellar", who: null, en: "The elder's house had a cellar lit by a single torch. An old man was sitting in the corner, holding a wooden box tightly.", ja: "長老の家には、たいまつ一本で照らされた地下室があった。老人が隅に座って、木の箱をしっかりと抱えていた。" },
+  { who: "elder", en: "\"Lina? Is that you? I put something precious in this box, but I can't recall what it was.\"", ja: "「リナか？わしはこの箱に大切なものを入れたのじゃが、それが何だったか思い出せんのだ。」" },
+  { who: "lina", en: "\"Elder, please try. We need to know where the Fading started.\"", ja: "「長老、思い出してみて。色あせがどこで始まったのか、知る必要があるの。」" },
+  { who: null, en: "Before the old man could answer, the torch flickered. The shadows on the wall began to move by themselves.", ja: "老人が答える前に、たいまつの火がゆらいだ。壁の影が、ひとりでに動き始めた。" },
+  { who: "lina", en: "\"A Hollow! It's a monster made from abandoned memories. Ren, stay behind me!\"", ja: "「ホロウよ！捨てられた記憶から生まれた化け物。レン、わたしのうしろに！」" },
+  { who: "ren", en: "\"No way. I'm not going to stand behind anyone while you fight alone.\"", ja: "「冗談じゃない。きみがひとりで戦ってるのに、だれかのうしろに隠れてなんかいられるか。」" },
+  { who: "lina", en: "\"Then listen. Hollows are weak against true words. Answer what they ask with the right meaning, and they will lose their shape.\"", ja: "「じゃあ聞いて。ホロウは本当の言葉に弱いの。問いかけに正しい意味で答えれば、形を保てなくなる。」" },
+  { battle: { name: "Cellar Hollow", ja: "地下室のホロウ" }, vocab: 2, qs: [
+    { en: "Why couldn't the baker tell Ren the price of the bread?", ja: "パン屋はなぜパンの値段を言えなかった？", opts: [["She did not want to sell it.", "売りたくなかったから。"], ["She had forgotten it.", "忘れてしまったから。"], ["The bread was free.", "パンは無料だったから。"], ["Ren had no money.", "レンがお金を持っていなかったから。"]], a: 1, tip: "\"I can't seem to remember.\" can't seem to ～＝どうしても～できないようだ。" },
+    { en: "According to Lina, what happens to everything the world forgets?", ja: "リナによると、世界が忘れたものはどうなる？", opts: [["It disappears forever.", "永遠に消える。"], ["It eventually comes to Aster.", "いずれアスターにやって来る。"], ["It turns into a train.", "列車に変わる。"], ["It goes back to its owner.", "持ち主のもとに戻る。"]], a: 1, tip: "eventually＝最終的に、いずれは。" }
+  ] },
+  { who: null, en: "The shadow let out a long sigh and broke into gray dust. For a moment, the cellar was silent.", ja: "影は長いため息をつき、灰色の粉になって崩れた。しばらくのあいだ、地下室は静まり返っていた。" },
+  { who: null, en: "Then the elder slowly opened the wooden box. Inside was a tiny pair of children's shoes.", ja: "やがて長老は、ゆっくりと木の箱を開けた。中には小さな子ども用の靴が入っていた。" },
+  { who: "elder", en: "\"These belonged to my grandson... I remember now. He used to run to me every evening, laughing.\"", ja: "「これは孫の靴じゃ……今、思い出した。あの子は毎晩、笑いながらわしのところへ駆けてきたものじゃ。」" },
+  { who: "elder", en: "\"I would rather feel this pain than lose him again. Thank you, young man.\"", ja: "「もう一度あの子を失うくらいなら、この痛みを感じているほうがいい。ありがとう、若いの。」" },
+  { who: "elder", en: "\"The Fading started at the old shrine in the Whispering Forest. A knight guards it now, but he no longer remembers whom he serves.\"", ja: "「色あせは、ささやきの森の古いほこらで始まった。今は騎士がそこを守っておるが、自分がだれに仕えておるのか、もう覚えてはおらん。」" },
+  { bg: "village", who: null, en: "That night, Ren and Lina sat by the fountain in the empty square.", ja: "その夜、レンとリナは、だれもいない広場の噴水のそばに座っていた。" },
+  { who: "lina", en: "\"Can I ask you something? Remembering your sister must hurt. Why don't you just let her go?\"", ja: "「ひとつ聞いてもいい？妹さんを覚えているのは、つらいはずよね。どうして手放してしまわないの？」" },
+  { choice: { en: "How does Ren answer?", ja: "レンはどう答える？" }, opts: [
+    { en: "\"Because if I forget her too, she will really be gone.\"", ja: "「俺まで忘れたら、あいつは本当にいなくなってしまうから。」", go: "c1a", flag: "promise" },
+    { en: "\"I tried. But my heart refused to let her go.\"", ja: "「やってみたさ。でも、心がどうしても手放そうとしなかった。」", go: "c1b" }
+  ] },
+  { label: "c1a" },
+  { who: "lina", en: "\"...Then I'll help you keep her. That's a promise.\"", ja: "「……なら、わたしが手伝う。彼女を失わないように。約束する。」" },
+  { go: "c1end" },
+  { label: "c1b" },
+  { who: "lina", en: "\"Hearts are stubborn like that. I think yours is right.\"", ja: "「心って、そういうところが頑固なのよね。でも、あなたの心は正しいと思う。」" },
+  { label: "c1end" },
+  { who: null, en: "Lina's lantern flickered for a moment, as if it were tired. She quickly covered it with her sleeve.", ja: "リナのランタンが、疲れたように一瞬ゆらいだ。彼女はすぐに袖でそれを隠した。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第2章 ───────────────────────── */
+{ id: "c2", title: "Chapter 2: Ruins of the Whispering Forest", ja: "第2章　ささやきの森の遺跡", nodes: [
+  { bg: "ruins", who: null, en: "Deep in the forest stood the remains of an ancient shrine, covered with moss and climbing plants.", ja: "森の奥深くに、苔とつる草におおわれた古いほこらの跡が立っていた。" },
+  { who: null, en: "As they walked, the leaves seemed to whisper words in a language Ren almost understood.", ja: "歩いていると、木の葉がささやいているように聞こえた。レンにはほとんどわかりそうな言葉で。" },
+  { who: "lina", en: "\"The trees are repeating memories that people have abandoned. Try not to listen too closely, or you might get lost in them.\"", ja: "「木々は、人々が捨てた記憶をくり返しているの。あまり聞き入らないで。迷いこんでしまうかもしれないから。」" },
+  { who: "voice", en: "\"Ren... Don't look for me... It's better this way...\"", ja: "「レン……わたしを探さないで……このほうがいいの……」" },
+  { who: "ren", en: "\"Mio? Mio! Was that you?\"", ja: "「ミオ？ミオ！今のはおまえか？」" },
+  { who: "lina", en: "\"Ren, wait! The forest imitates voices to confuse travelers!\"", ja: "「レン、待って！森は旅人をまどわすために声をまねるのよ！」" },
+  { choice: { en: "What does Ren do?", ja: "レンはどうする？" }, opts: [
+    { en: "Run toward the voice.", ja: "声のほうへ走る。", go: "run" },
+    { en: "Stop and trust Lina.", ja: "立ち止まって、リナを信じる。", go: "trust", flag: "trust" }
+  ] },
+  { label: "run" },
+  { who: null, en: "Ren ran between the trees until his breath ran out. There was no one there, only an old ribbon caught on a branch.", ja: "レンは息が切れるまで木々のあいだを走った。だれもいなかった。枝に古いリボンが引っかかっているだけだった。" },
+  { who: null, en: "He recognized it at once. It was the blue ribbon he had given Mio on her tenth birthday.", ja: "彼にはすぐにわかった。ミオの10歳の誕生日に、彼が贈った青いリボンだった。", flag: "ribbon" },
+  { who: "lina", en: "\"Ren! Don't ever run off like that again... But that ribbon proves she really came this way.\"", ja: "「レン！二度とあんなふうに走っていかないで……でも、そのリボンは、彼女が本当にこの道を通った証拠ね。」" },
+  { go: "gate" },
+  { label: "trust" },
+  { who: null, en: "Ren clenched his fists and stayed where he was. Slowly, the voice faded into the wind.", ja: "レンはこぶしを握りしめ、その場にとどまった。声はゆっくりと風の中に消えていった。" },
+  { who: "lina", en: "\"Thank you for trusting me. I know how much you wanted to follow it.\"", ja: "「信じてくれてありがとう。あの声を追いかけたかった気持ち、よくわかる。」" },
+  { label: "gate" },
+  { who: null, en: "At the center of the ruins was a dark archway. In front of it stood a knight in rusted armor, holding a broken sword.", ja: "遺跡の中心に、暗いアーチがあった。その前に、さびた鎧の騎士が折れた剣を持って立っていた。" },
+  { who: "knight", en: "\"Stop. I was ordered to protect this place. No one may pass.\"", ja: "「止まれ。わたしはこの場所を守るよう命じられた。だれも通さぬ。」" },
+  { who: "lina", en: "\"Who gave you that order, Sir Knight?\"", ja: "「騎士さま、その命令はだれから受けたのですか？」" },
+  { who: "knight", en: "\"Who...? I... I do not know. I only know that I must not fail again.\"", ja: "「だれ……？わたしは……わからぬ。ただ、二度と失敗してはならぬ、それだけはわかる。」" },
+  { who: "ren", en: "\"Again? Then you failed someone before. Who was it?\"", ja: "「二度と？じゃあ、前にだれかを守れなかったんだな。それはだれだ？」" },
+  { who: null, en: "The knight's helmet shook violently. Gray dust poured out of the gaps in his armor.", ja: "騎士のかぶとが激しく揺れた。鎧のすき間から、灰色の粉があふれ出した。" },
+  { who: "knight", en: "\"Do not ask me that! Leave, or I will make you forget your own name!\"", ja: "「それを聞くな！立ち去れ。さもなくば、おまえ自身の名前を忘れさせてやる！」" },
+  { battle: { name: "The Hollow Knight", ja: "空ろの騎士", boss: true }, vocab: 3, qs: [
+    { en: "Why did Lina tell Ren not to listen to the trees too closely?", ja: "リナはなぜ、木々の声に聞き入らないように言った？", opts: [["The trees were dangerous animals.", "木々が危険な動物だったから。"], ["He might get lost in abandoned memories.", "捨てられた記憶の中で迷うかもしれないから。"], ["The trees were telling lies about Mio.", "木々がミオについてうそをついていたから。"], ["They had no time to rest.", "休む時間がなかったから。"]], a: 1, tip: "\"or you might get lost in them\" ＝ さもないと、その中で迷うかもしれない。命令文＋or は「さもないと」。" },
+    { en: "What does the knight know for certain?", ja: "騎士がはっきりわかっていることは？", opts: [["The name of his king.", "王の名前。"], ["Where the Fading began.", "色あせが始まった場所。"], ["That he must not fail again.", "二度と失敗してはならないこと。"], ["Who Ren is.", "レンがだれか。"]], a: 2, tip: "\"I only know that I must not fail again.\" only know ＝それしかわからない。" },
+    { en: "In \"Gray dust poured out of the gaps,\" the word \"poured\" is closest to ___.", ja: "\"poured\" にいちばん近い意味は？", opts: [["flowed out", "流れ出た"], ["froze", "凍った"], ["rose slowly", "ゆっくり上がった"], ["disappeared", "消えた"]], a: 0, tip: "pour＝注ぐ、どっと流れ出る。" }
+  ] },
+  { who: null, en: "The broken sword fell from the knight's hand. He dropped to one knee, and his voice became calm and human.", ja: "折れた剣が騎士の手から落ちた。彼は片ひざをつき、その声は落ち着いた、人間らしいものになった。" },
+  { who: "knight", en: "\"Now I remember. I served a young girl who came here a year ago. She was crying, and she asked me to guard the door so that no one would follow her.\"", ja: "「今、思い出した。わたしは1年前ここに来た少女に仕えていた。彼女は泣いていて、だれも追ってこないよう、扉を守ってほしいとわたしに頼んだのだ。」" },
+  { who: "ren", en: "\"A girl... about this tall? With a quiet voice?\"", ja: "「少女……このくらいの背の？静かな声の？」" },
+  { if: "ribbon", go: "kribbon" },
+  { who: "knight", en: "\"Yes. She said her brother was the only one who would keep searching for her, and that she could not bear to be found.\"", ja: "「そうだ。彼女は言った。自分を探し続けるのは兄だけだろう、そして、見つけられることには耐えられない、と。」" },
+  { go: "kend" },
+  { label: "kribbon" },
+  { who: "knight", en: "\"Yes... she wore a blue ribbon like the one in your hand. She said her brother gave it to her, and that she could not bear to be found by him.\"", ja: "「ああ……きみが持っているような青いリボンをつけていた。兄にもらったのだと言っていた。そして、その兄に見つけられることには耐えられない、と。」" },
+  { label: "kend" },
+  { who: "ren", en: "\"Why? Why would she run away from me?\"", ja: "「なぜだ？なぜ俺から逃げなきゃいけないんだ？」" },
+  { who: "knight", en: "\"That, I cannot answer. But she went toward the Crystal Caves, and then to the capital. Please... protect her better than I did.\"", ja: "「それには答えられぬ。だが彼女は水晶の洞窟へ、そして王都へ向かった。どうか……わたしよりも、うまく彼女を守ってやってくれ。」" },
+  { who: null, en: "The knight smiled for the first time, and his armor turned into soft light that rose slowly into the trees.", ja: "騎士は初めてほほえんだ。そして彼の鎧は、やわらかな光になって、ゆっくりと木々のあいだへ昇っていった。" },
+  { who: null, en: "Where he had been kneeling, a small crystal was left on the ground. Inside it, a faint image of a girl was walking away.", ja: "彼がひざをついていた場所に、小さな水晶が残されていた。その中では、少女のかすかな姿が、遠ざかるように歩いていた。" },
+  { who: "lina", en: "\"A Memory Shard. It holds a piece of someone's past. Ren... I think it's hers.\"", ja: "「記憶のかけらよ。だれかの過去のひとかけらが入ってる。レン……これ、彼女のものだと思う。」" },
+  { if: "trust", go: "c2trust" },
+  { go: "c2fin" },
+  { label: "c2trust" },
+  { who: "lina", en: "\"And Ren... back in the forest, you chose to trust me. I won't forget that.\"", ja: "「それとね、レン……森で、あなたはわたしを信じてくれた。そのこと、忘れないから。」" },
+  { label: "c2fin" },
+  { who: "ren", en: "\"She didn't vanish by accident. She left on purpose... and I'm going to find out why.\"", ja: "「あいつは偶然消えたんじゃない。自分の意志で去ったんだ……その理由を、俺は必ず突き止める。」" },
+  { end: true }
+] }
+];

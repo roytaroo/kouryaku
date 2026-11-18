@@ -51,17 +51,17 @@
   最初の1回だけ `--migrate <ArtifactData で書き出したフォルダ>` で今までの記録を入れる（Supabase に settings が無いときだけ移す）。
 - だいき側の準備：Supabase で setup.sql を実行、Authentication でユーザーを作る（新規登録は OFF）、Project URL と anon key を config.json へ、GitHub の Settings → Pages で gh-pages を公開。
 
-## 英語RPG「提灯の道」（11/18〜）
-- 勉強タブの「物語」。だいきの希望：凝ったRPGの物語が全部英語で出て、ボタンで即座に日本語に変わる（答え合わせ）。
-- `rpg_story.js`（物語のデータ。オリジナル。節は せりふ／選択肢／戦い／ラベル）と `rpg.js`（動かす部分）。進み具合は game/rpg。
-- 戦いは読んだ内容と単語の英語の問題。正解で敵のHPが減り、間違えるとだいきのハートが減る（5つ）。章クリアで小判＋50、初めて倒した敵ごとに＋5。
-- 第1章「狐と提灯」：子狐火と出会い、ブランクと墨蛾を倒して一つ目小僧の名前を取り戻す。沈黙にはあと5人の将軍がいる（次の章の伏線：暗い山の大きな翼）。
-  英語のレベルは東洋〜MARCH向け。ターゲットの単語や、hardly・be supposed to・仮定法などを入れている。
-
-- `site/app.html`（骨組み）、`site/style.css`、`site/js/*.js`（読み込む順番は `build.py` の JS に書いてある）
-- `site/build.py`：1枚のHTMLに組み立てる。出力は `minecraft/private/site_out/index.html`（git管理外）
-- `site/restore_private.py`：公開中のサイトから、非公開データを `minecraft/private/` に戻す
-- 一番上の `index.html` は 10/3 の古い版（フェーズ1のダッシュボード）。いまは使っていない。
+## 英語RPG『Echoes of Aster』（11/18 作り直し）
+- 勉強タブの「物語」。だいきの希望：RPGらしい長編で、感動する話。全部英語で出て「訳」ですぐ日本語。妖怪とは絡めない。超大作。
+  見た目は「読みやすく、ボタンは少なく、ごちゃごちゃさせない」。こっちで描いた絵は「センスない」と言われたので使わない。
+- 背景はだいきが送ってくれたドット絵16枚（`minecraft/private/rpg_bg/*.webp`、git管理外。claude.ai 版は埋め込み、アプリ版は data.enc の中）。
+  名前：ruins sea cave library castle station village cellar harbor hall throne night_hall gate canal storm beach
+- 物語：妹ミオを世界中が忘れ、覚えているのは兄レンだけ。番号のない列車で「忘れられたものの国」アスターへ。図書館見習いのリナと旅をする。
+  全体の予定（序章＋12章＋終章）は `rpg_story.js` の先頭に書いてある。最後はミオが「忘却の女王」、リナが自分を犠牲にする流れ、終章で夕暮れの駅に戻る。
+  いまあるのは 序章・第1章・第2章（約76文、30〜40分）。続きを少しずつ書く。伏線：リナのランタンが弱っていく、青いリボン、騎士の「二度と失敗しない」。
+- 英文はターゲット1900（Part1〜2）の単語を意識して書く。`rpg.js` が文の中のターゲット単語を自動で見つけて下線を引き、「訳」で意味を出す。
+  戦いは読解の問題（手書き）＋ その章に出たターゲット単語の意味の問題（vocab の数だけ自動）。章クリアで小判＋50、初めて倒した敵ごとに＋5。
+- 進み具合は game/rpg（story:"aster"）。前の妖怪版の記録は、小判の分（cleared・won）だけ残している。
 
 ## 公開先と非公開データ
 - 公開先は Artifact：https://claude.ai/artifact/UndiPqqYjQRPYinaVgjxNs

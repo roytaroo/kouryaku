@@ -17,7 +17,7 @@ SITE = pathlib.Path(__file__).resolve().parent
 ROOT = SITE.parent
 PRIVATE = ROOT / "minecraft" / "private"
 OUT = PRIVATE / "site_out" / "index.html"
-JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg_art", "rpg", "main"]
+JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg", "main"]
 PART12_MAX = 1500
 
 
@@ -49,6 +49,13 @@ def load_chars():
     return chars
 
 
+def load_rpg_bg():
+    """英語RPGの背景（だいきが選んだ画像。minecraft/private/rpg_bg/<名前>.webp）を data URI にする"""
+    import base64
+    d = PRIVATE / "rpg_bg"
+    return {p.stem: "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.webp"))} if d.exists() else {}
+
+
 def main():
     words = [] if "--no-words" in sys.argv else load_words()
     chars = load_chars()
@@ -61,6 +68,7 @@ def main():
     js += "const SEIKEI_QA = " + json.dumps(seikei_qa, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const SEIKEI_QUIZ = " + json.dumps(seikei_quiz, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const KOBUN = " + json.dumps(kobun, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    js += "const RPG_BG = " + json.dumps(load_rpg_bg()) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)
     css = (SITE / "style.css").read_text(encoding="utf-8")
