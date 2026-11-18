@@ -499,6 +499,36 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .rpg-chlist button.cur{border-color:var(--lantern)}
 .rpg-chlist button small{color:var(--muted);font-weight:400}
 .rpg-chlist button[disabled]{opacity:.45}
+.rpg-modes{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface2);border-radius:12px;padding:3px;gap:3px}
+.rpg-modes button{border:0;background:transparent;border-radius:9px;padding:7px 0;font-size:13px;font-weight:700;color:var(--muted)}
+.rpg-modes button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.1)}
+.rpg-mon{position:absolute;left:50%;top:58%;width:34%;max-width:200px;transform:translate(-50%,-50%);image-rendering:pixelated;filter:drop-shadow(0 6px 4px rgba(0,0,0,.45));animation:rpgFloat 2.6s ease-in-out infinite}
+@keyframes rpgFloat{50%{transform:translate(-50%,calc(-50% - 6px))}}
+.rpg-mon.hit{animation:rpgHit .45s ease-out}
+@keyframes rpgHit{0%{transform:translate(-50%,-50%);filter:brightness(3)}25%{transform:translate(calc(-50% + 10px),-50%)}50%{transform:translate(calc(-50% - 8px),-50%);filter:brightness(1)}100%{transform:translate(-50%,-50%)}}
+.rpg-mon.down{animation:rpgDown .8s ease-in forwards}
+@keyframes rpgDown{to{transform:translate(-50%,-40%) scale(.85);opacity:0;filter:brightness(4)}}
+.rpg-scene.hurt::after{content:"";position:absolute;inset:0;background:rgba(220,40,40,.35);animation:rpgHurt .5s ease-out forwards}
+@keyframes rpgHurt{to{opacity:0}}
+.rpg-tools{display:flex;gap:6px;align-items:center}
+.rpg-herb{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:12px;font-weight:700;padding:3px 10px 3px 6px}
+.rpg-herb img,.rpg-drop img,.rpg-items img{image-rendering:pixelated}
+.rpg-herb img{width:18px;height:18px}
+.rpg-drop{display:flex;gap:12px;align-items:center;background:var(--surface2);border-radius:12px;padding:10px 12px}
+.rpg-drop img{width:40px;height:40px}
+.rpg-drop span{display:grid;font-size:14px}.rpg-drop small{color:var(--muted);font-size:12px}
+.rpg-text.ex{font-size:15px;background:var(--surface2);border-radius:10px;padding:10px 12px;line-height:1.7}
+.rpg-text .blank{color:var(--lantern);letter-spacing:.1em}
+.rpg-dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.rpg-dex div{display:grid;justify-items:center;gap:2px;background:var(--surface2);border-radius:10px;padding:6px 2px}
+.rpg-dex img{width:48px;height:48px;image-rendering:pixelated}
+.rpg-dex small{font-size:9px;color:var(--muted);text-align:center;line-height:1.2;min-height:2.4em}
+.rpg-dex .lock img{filter:brightness(0) opacity(.18)}
+.rpg-items{display:grid;gap:6px}
+.rpg-items div{display:flex;gap:10px;align-items:center}
+.rpg-items img{width:32px;height:32px}
+.rpg-items span{display:grid;font-size:14px}.rpg-items small{font-size:12px;color:var(--muted)}
+.rpg-items .lock img{filter:brightness(0) opacity(.2)}
 
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -792,7 +822,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794996639"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794997314"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
@@ -894,7 +924,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     catch (e) { try { localStorage.removeItem(KEY_LS); } catch (x) {} console.warn(e); say("単語データを開けなかった。" + (e.message || "")); return; }
     let rows = await loadRows(uid);
     rows = await migrate(uid, rows, D.MIGRATE);
-    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG"]) window[n] = D[n];
+    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG", "RPG_MON", "RPG_ITEM"]) window[n] = D[n];
     const db = makeDb(uid, rows);
     window.claude = { use: async kind => kind === "db" ? db : kind === "downloads" ? downloads : null };
     const s = document.createElement("script"); s.src = "app.js?v=" + CFG.ver;
