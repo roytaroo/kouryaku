@@ -75,7 +75,7 @@
     return crypto.subtle.importKey("raw", b64(k), "AES-GCM", false, ["decrypt"]);
   }
   async function openData(key) {
-    const buf = new Uint8Array(await (await fetch("data.enc", { cache: "no-cache" })).arrayBuffer());
+    const buf = new Uint8Array(await (await fetch("data.enc?v=" + CFG.ver)).arrayBuffer());
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
     const txt = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     return JSON.parse(txt);
