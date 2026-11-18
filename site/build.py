@@ -56,6 +56,15 @@ def load_rpg_bg():
     return {p.stem: "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.webp"))} if d.exists() else {}
 
 
+def load_pngs(name):
+    """minecraft/private/<name>/*.png（モンスター・アイテムの素材。再配布NGなので公開しない）を {番号: data URI} にする"""
+    import base64, re
+    d = PRIVATE / name
+    if not d.exists():
+        return {}
+    return {re.findall(r"\d+", p.stem)[-1]: "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.png"))}
+
+
 def main():
     words = [] if "--no-words" in sys.argv else load_words()
     chars = load_chars()
@@ -69,6 +78,7 @@ def main():
     js += "const SEIKEI_QUIZ = " + json.dumps(seikei_quiz, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const KOBUN = " + json.dumps(kobun, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const RPG_BG = " + json.dumps(load_rpg_bg()) + ";\n"
+    js += "const RPG_MON = " + json.dumps(load_pngs("rpg_mon")) + ";\nconst RPG_ITEM = " + json.dumps(load_pngs("rpg_item")) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)
     css = (SITE / "style.css").read_text(encoding="utf-8")
