@@ -53,7 +53,7 @@ const S = {
   days: {}, timer: { running: false }, settings: { ...DEFAULTS }, quotes: [],
   words: { w: {}, cleared: {} }, kobun: { w: {}, cleared: {} }, seikei: { w: {}, cleared: {}, quiz: {} }, cloze: { correct: 0, total: 0 }, grammar: { units: {} },
   game: { owned: {}, partner: null, freeRolls: 0, outfits: { owned: [], equipped: {} }, claims: [], spend: [], gacha: 0 },
-  tickets: { active: null, history: [] }, scores: [], loaded: {}
+  tickets: { active: null, history: [] }, scores: [], rpg: {}, loaded: {}
 };
 const SUBJ = { en: "英語", ja: "国語", se: "政経" };
 function modeOf(k) {
@@ -117,7 +117,7 @@ function econ() {
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
-  const kobanEarn = fitKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
+  const kobanEarn = fitKoban() + rpgKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
   return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
 }
@@ -144,12 +144,12 @@ const listeners = new Set();
 const onChange = fn => listeners.add(fn);
 function emit() { for (const fn of listeners) { try { fn(); } catch (e) { console.warn(e); } } }
 const CACHE = "kouryaku-cache-v2";
-function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, kobun: S.kobun, seikei: S.seikei, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, timer: S.timer })); } catch (e) {} }
+function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, kobun: S.kobun, seikei: S.seikei, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, rpg: S.rpg, timer: S.timer })); } catch (e) {} }
 function cacheLoad() { try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); if (c) for (const k in c) if (c[k] != null) S[k] = k === "settings" ? { ...DEFAULTS, ...c[k] } : c[k]; } catch (e) {} }
 function makeBackend(db) {
   const chains = {};
   const write = (path, fn) => (chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => { console.warn(e); toast("保存できなかった。通信を確認して、もう一度やって。"); setSync("err"); }));
-  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", kobun: "learn/kobun", seikei: "learn/seikei", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets" };
+  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", kobun: "learn/kobun", seikei: "learn/seikei", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets", rpg: "game/rpg" };
   const local = !db;
   let store = {};
   if (local) { try { store = JSON.parse(localStorage.getItem("kouryaku-local-v2") || "{}"); } catch (e) {} }
@@ -200,7 +200,7 @@ function setSync(s) { const el = $("sync"); if (!el) return; el.dataset.s = s; e
 function day(k = dayKey()) { return { date: k, min: 0, ...(S.days[k] || {}) }; }
 function patchDay(k, fn) { const d = JSON.parse(JSON.stringify(day(k))); fn(d); if (!d.mode) d.mode = modeOf(k); return backend.saveDay(k, d); }
 function patchDoc(name, fn) { const v = JSON.parse(JSON.stringify(S[name])); fn(v); return backend.save(name, v); }
-const NEED = ["days", "timer", "settings", "words", "kobun", "seikei", "cloze", "grammar", "game", "tickets"];
+const NEED = ["days", "timer", "settings", "words", "kobun", "seikei", "cloze", "grammar", "game", "tickets", "rpg"];
 const allLoaded = () => NEED.every(k => S.loaded[k]);
 function ready() { if (!backend || !allLoaded()) { toast("読み込み中。少し待ってからもう一度。"); return false; } return true; }
 
