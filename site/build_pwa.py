@@ -81,7 +81,7 @@ def main():
             p = build.OUT.parent / c["img"]
             c["img"] = "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode()
     dk = lambda n: json.loads((PRIVATE / "decks" / n).read_text(encoding="utf-8")) if (PRIVATE / "decks" / n).exists() else []
-    bundle = {"CHARS": chars, "SEIKEI_QA": dk("seikei_qa.json"), "SEIKEI_QUIZ": dk("seikei_quiz.json"), "KOBUN": dk("kobun.json"), "TARGET_WORDS": words, "RPG_BG": build.load_rpg_bg(), "RPG_MON": build.load_pngs("rpg_mon"), "RPG_ITEM": build.load_pngs("rpg_item")}
+    bundle = {"CHARS": chars, "SEIKEI_QA": dk("seikei_qa.json"), "SEIKEI_QUIZ": dk("seikei_quiz.json"), "KOBUN": dk("kobun.json"), "TARGET_WORDS": words, "RPG_BG": build.load_rpg_bg(), "RPG_MON": build.load_pngs("rpg_mon"), "RPG_ITEM": build.load_pngs("rpg_item"), "RPG_FACE": build.load_faces()}
     if "--migrate" in sys.argv:
         bundle["MIGRATE"] = load_migrate(sys.argv[sys.argv.index("--migrate") + 1])
     raw = gzip.compress(json.dumps(bundle, ensure_ascii=False, separators=(",", ":")).encode())

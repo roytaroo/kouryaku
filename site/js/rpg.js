@@ -83,6 +83,11 @@ function rpgScene(bg, overlay, cls) {
   const src = typeof RPG_BG !== "undefined" && RPG_BG[bg];
   return `<div class="rpg-scene${cls ? " " + cls : ""}" style="${src ? `background-image:url('${src}')` : ""}">${overlay || ""}</div>`;
 }
+function rpgFace(c, face) {
+  if (!c || !c.face || typeof RPG_FACE === "undefined") return "";
+  const src = RPG_FACE[c.face + "_" + (face || "neutral")] || RPG_FACE[c.face + "_neutral"];
+  return src ? `<img class="rpg-face" src="${src}" alt="">` : "";
+}
 const rpgMonSrc = n => typeof RPG_MON !== "undefined" && RPG_MON[n] || "";
 const rpgItemSrc = n => typeof RPG_ITEM !== "undefined" && RPG_ITEM[n] || "";
 const rpgTr = () => `<button type="button" class="rpg-tr${rpgJa ? " on" : ""}" data-r="tr" aria-pressed="${rpgJa}">訳</button>`;
@@ -117,7 +122,7 @@ function rpgStoryHtml(st) {
   const c = n.who && RPG_CAST[n.who], m = rpgMark(n.en);
   return head + rpgScene(bg) + `<div class="rpg-box tap" data-r="next" role="button" tabindex="0">
       <div class="rpg-boxhead">${c ? `<span class="rpg-name">${esc(rpgJa ? c.ja : c.name)}</span>` : `<span></span>`}${rpgTr()}</div>
-      <p class="rpg-text${c ? "" : " narr"}">${rpgJa ? esc(n.ja) : m.html}</p>${rpgGloss(m.found)}
+      <div class="rpg-say">${rpgFace(c, n.face)}<p class="rpg-text${c ? "" : " narr"}">${rpgJa ? esc(n.ja) : m.html}</p></div>${rpgGloss(m.found)}
       <span class="rpg-more" aria-hidden="true">▼</span></div>`;
 }
 function rpgEndHtml(st) {

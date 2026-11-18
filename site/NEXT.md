@@ -57,6 +57,9 @@
 - 背景はだいきが送ってくれたドット絵16枚（`minecraft/private/rpg_bg/*.webp`、git管理外。claude.ai 版は埋め込み、アプリ版は data.enc の中）。
   名前：ruins sea cave library castle station village cellar harbor hall throne night_hall gate canal storm beach
 - レンの見た目：赤髪・緑の目・アップバング（だいきがChatGPTで絵を作っている）。髪は妹が消えたあとに染めた設定（写真では黒髪）。ミオの「赤が似合う」を最後に回収する。
+- キャラの顔（`minecraft/private/rpg_face/<キャラ>_<表情>.webp`、256px）：ren・lina・mio は neutral/sad/surprised/smile、conductor・elder は neutral だけ。
+  だいきがChatGPTで作った。節に `face: "sad"` で表情を変える。名場面の絵と背景：cg_photo（顔の消えた写真）・cg_train・cg_knight・cg_fountain・train（列車の中）・village_night。
+  まだ来ていない絵：ささやきの森の小道、ホロウ、空ろの騎士（今は図鑑の No.14 と No.99 で代用）、ガロ・王・忘却の女王など。
 - 物語：妹ミオを世界中が忘れ、覚えているのは兄レンだけ。番号のない列車で「忘れられたものの国」アスターへ。図書館見習いのリナと旅をする。
   全体の予定（序章＋12章＋終章）は `rpg_story.js` の先頭に書いてある。最後はミオが「忘却の女王」、リナが自分を犠牲にする流れ、終章で夕暮れの駅に戻る。
   いまあるのは 序章・第1章・第2章（約76文、30〜40分）。続きを少しずつ書く。伏線：リナのランタンが弱っていく、青いリボン、騎士の「二度と失敗しない」。
