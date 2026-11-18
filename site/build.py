@@ -56,10 +56,10 @@ def load_rpg_bg():
     return {p.stem: "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.webp"))} if d.exists() else {}
 
 
-def load_faces():
-    """英語RPGのキャラの顔（minecraft/private/rpg_face/<キャラ>_<表情>.webp）"""
+def load_faces(name="rpg_face"):
+    """英語RPGのキャラの顔（rpg_face/<キャラ>_<表情>.webp）や物語専用の敵（rpg_foe/<名前>.webp）"""
     import base64
-    d = PRIVATE / "rpg_face"
+    d = PRIVATE / name
     return {p.stem: "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.webp"))} if d.exists() else {}
 
 
@@ -85,7 +85,7 @@ def main():
     js += "const SEIKEI_QUIZ = " + json.dumps(seikei_quiz, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const KOBUN = " + json.dumps(kobun, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const RPG_BG = " + json.dumps(load_rpg_bg()) + ";\n"
-    js += "const RPG_FACE = " + json.dumps(load_faces()) + ";\n"
+    js += "const RPG_FACE = " + json.dumps(load_faces()) + ";\nconst RPG_FOE = " + json.dumps(load_faces("rpg_foe")) + ";\n"
     js += "const RPG_MON = " + json.dumps(load_pngs("rpg_mon")) + ";\nconst RPG_ITEM = " + json.dumps(load_pngs("rpg_item")) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)

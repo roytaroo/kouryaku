@@ -98,7 +98,7 @@
     catch (e) { try { localStorage.removeItem(KEY_LS); } catch (x) {} console.warn(e); say("単語データを開けなかった。" + (e.message || "")); return; }
     let rows = await loadRows(uid);
     rows = await migrate(uid, rows, D.MIGRATE);
-    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG", "RPG_MON", "RPG_ITEM", "RPG_FACE"]) window[n] = D[n];
+    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG", "RPG_MON", "RPG_ITEM", "RPG_FACE", "RPG_FOE"]) window[n] = D[n];
     const db = makeDb(uid, rows);
     window.claude = { use: async kind => kind === "db" ? db : kind === "downloads" ? downloads : null };
     const s = document.createElement("script"); s.src = "app.js?v=" + CFG.ver;

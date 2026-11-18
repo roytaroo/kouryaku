@@ -517,3 +517,4 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .rpg-say{display:flex;gap:12px;align-items:flex-start}
 .rpg-say .rpg-text{flex:1;min-width:0}
 .rpg-face{width:72px;height:72px;flex:none;border-radius:12px;background:var(--surface2);object-fit:cover;object-position:top;image-rendering:auto}
+.rpg-mon.tall{width:auto;height:70%;max-width:60%;top:64%;image-rendering:auto}

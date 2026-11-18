@@ -140,9 +140,9 @@ function rpgMenuHtml(st) {
 /* ---- 戦い（物語と探索で共通） ---- */
 function rpgNewFight(qs, e) { return { qs, hp: qs.length, php: RPG_HP, q: qs.map((_, k) => k), res: null, pick: null, e, fx: "" }; }
 function rpgFightHtml(b, bg, st, firstWin) {
-  const e = b.e, total = b.qs.length, mon = e.mon && rpgMonSrc(e.mon);
+  const e = b.e, total = b.qs.length, foe = e.foe && typeof RPG_FOE !== "undefined" && RPG_FOE[e.foe], mon = foe || (e.mon && rpgMonSrc(e.mon));
   const over = `<div class="rpg-foe${e.boss ? " boss" : ""}"><b>${esc(rpgJa && e.ja ? e.ja : e.name)}</b><div class="rpg-hpbar"><i style="width:${100 * Math.max(0, b.hp) / total}%"></i></div></div>
-    ${mon ? `<img class="rpg-mon${b.hp <= 0 ? " down" : b.fx === "ok" ? " hit" : ""}" src="${mon}" alt="">` : ""}
+    ${mon ? `<img class="rpg-mon${foe ? " tall" : ""}${b.hp <= 0 ? " down" : b.fx === "ok" ? " hit" : ""}" src="${mon}" alt="">` : ""}
     <div class="rpg-hearts">${"♥".repeat(Math.max(0, b.php))}<span>${"♥".repeat(RPG_HP - Math.max(0, b.php))}</span></div>`;
   const scene = rpgScene(bg, over, b.fx === "ng" ? "hurt" : "");
   if (b.php <= 0) return scene + `<div class="rpg-box"><p class="rpg-text">力尽きた……もう一度挑戦しよう。</p><button type="button" class="big-btn" data-r="retry">もう一度戦う</button></div>`;
