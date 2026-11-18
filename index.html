@@ -822,7 +822,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794999005"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794999653"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
@@ -901,7 +901,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     return crypto.subtle.importKey("raw", b64(k), "AES-GCM", false, ["decrypt"]);
   }
   async function openData(key) {
-    const buf = new Uint8Array(await (await fetch("data.enc", { cache: "no-cache" })).arrayBuffer());
+    const buf = new Uint8Array(await (await fetch("data.enc?v=" + CFG.ver)).arrayBuffer());
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
     const txt = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     return JSON.parse(txt);
