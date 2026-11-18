@@ -475,6 +475,14 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .rpg-res.ng{background:color-mix(in srgb,var(--seal) 10%,var(--surface))}.rpg-res.ng b{color:var(--seal)}
 .rpg-end{display:grid;gap:8px;text-align:center;padding:12px}
 .rpg-end b{font-size:20px}.rpg-end p{margin:0}
+.rpg-scene{display:block;width:100%;aspect-ratio:2/1;border-radius:14px;background:#0d1030}
+.rg-lan{animation:rgFlick 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes rgFlick{0%,100%{opacity:1}45%{opacity:.82}55%{opacity:.95}}
+.rg-fog{animation:rgDrift 14s ease-in-out infinite alternate}
+@keyframes rgDrift{to{transform:translateX(-90px)}}
+.rg-foe{animation:rgFloat 3.2s ease-in-out infinite}
+@keyframes rgFloat{50%{transform:translateY(-6px)}}
+.rg-eyes{animation:rgFlick 3s ease-in-out infinite}
 
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -772,7 +780,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794994393"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794995601"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。

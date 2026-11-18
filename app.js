@@ -1936,8 +1936,8 @@ const RPG_CAST = {
 const RPG_CHAPTERS = [{
   id: "ch1", title: "Chapter 1: The Fox and the Lantern", ja: "第1章　狐と提灯",
   nodes: [
-    { who: null, en: "It was two in the morning, the night before the exam. Daiki's pencil rolled off the desk, and the room went dark.", ja: "午前2時、試験の前の夜。だいきの鉛筆が机から転がり落ち、部屋が暗くなった。" },
-    { who: null, en: "When he opened his eyes, he was standing on a narrow road lit by hundreds of paper lanterns.", ja: "目を開けると、彼は何百もの紙の提灯に照らされた細い道に立っていた。", w: [["narrow", "せまい"], ["lit", "light（照らす）の過去分詞"]] },
+    { bg: "room", who: null, en: "It was two in the morning, the night before the exam. Daiki's pencil rolled off the desk, and the room went dark.", ja: "午前2時、試験の前の夜。だいきの鉛筆が机から転がり落ち、部屋が暗くなった。" },
+    { bg: "road", who: null, en: "When he opened his eyes, he was standing on a narrow road lit by hundreds of paper lanterns.", ja: "目を開けると、彼は何百もの紙の提灯に照らされた細い道に立っていた。", w: [["narrow", "せまい"], ["lit", "light（照らす）の過去分詞"]] },
     { who: "voice", en: "\"Finally! A human who can still read!\"", ja: "「やっと来た！まだ字が読める人間だ！」" },
     { who: null, en: "A small white fox with a red flame on its tail jumped onto one of the lanterns.", ja: "尻尾に赤い炎をともした小さな白い狐が、提灯のひとつに飛び乗った。" },
     { who: "kogitsune", en: "\"I'm Kogitsune. Sorry to bother you, but our world is in serious trouble.\"", ja: "「ぼくは子狐火。じゃましてごめん、でもぼくらの世界は大変なことになってるんだ。」", w: [["bother", "じゃまをする、困らせる"], ["serious", "深刻な"]] },
@@ -1955,9 +1955,9 @@ const RPG_CHAPTERS = [{
     { who: "kogitsune", en: "\"There's no time to hesitate. Look behind you!\"", ja: "「迷っている暇はないよ。うしろを見て！」", w: [["hesitate", "ためらう"]] },
     { label: "blank" },
     { who: null, en: "Behind them, the lanterns began to go out one by one.", ja: "二人のうしろで、提灯がひとつずつ消え始めた。", w: [["go out", "（火・明かりが）消える"]] },
-    { who: null, en: "Out of the darkness crawled a shadow shaped like a crumpled page.", ja: "暗闇の中から、くしゃくしゃになったページのような形の影がはい出てきた。", w: [["crawl", "はう"]] },
+    { foe: "blank", who: null, en: "Out of the darkness crawled a shadow shaped like a crumpled page.", ja: "暗闇の中から、くしゃくしゃになったページのような形の影がはい出てきた。", w: [["crawl", "はう"]] },
     { who: "kogitsune", en: "\"A Blank! It feeds on the words people have forgotten. Answer correctly, and the words will turn back into light!\"", ja: "「ブランクだ！人が忘れた言葉を食べる化け物だよ。正しく答えれば、言葉が光に戻る！」", w: [["feed on", "〜を食べて生きる"], ["turn into", "〜に変わる"]] },
-    { battle: { name: "Blank", ja: "ブランク（白紙の影）", hp: 3, mark: "白" }, qs: [
+    { battle: { name: "Blank", ja: "ブランク（白紙の影）", hp: 3, mark: "白", foe: "blank" }, qs: [
       { en: "Which word means \"to go out of sight suddenly\"?", ja: "「急に見えなくなる」という意味の単語はどれ？", opts: [["vanish", "消える"], ["appear", "現れる"], ["recover", "回復する"], ["require", "必要とする"]], a: 0, why: "vanish＝（急に）消える。disappear とほぼ同じ意味。" },
       { en: "Why did Kogitsune ask Daiki for help?", ja: "子狐火はなぜだいきに助けを求めた？", opts: [["Because Daiki is good at fighting.", "だいきは戦いが得意だから。"], ["Because students still collect words every day.", "受験生は今も毎日言葉を集めているから。"], ["Because Daiki is also a fox.", "だいきも狐だから。"], ["Because the lanterns told him to.", "提灯にそうしろと言われたから。"]], a: 1, why: "\"students are the only ones who still collect words every single day\" と言っていた。" },
       { en: "Kogitsune said, \"Sorry to bother you.\" The word \"bother\" is closest in meaning to ___.", ja: "「Sorry to bother you」の bother にいちばん近い意味は？", opts: [["trouble", "困らせる"], ["help", "助ける"], ["praise", "ほめる"], ["ignore", "無視する"]], a: 0, why: "bother＝じゃまをする、困らせる。trouble にも「迷惑をかける」の意味がある。" }
@@ -1975,12 +1975,12 @@ const RPG_CHAPTERS = [{
     { who: null, en: "Under the hat, Daiki found a folded note. It said: \"If you ever forget me, call my name three times.\"", ja: "笠の下に、だいきは折りたたまれたメモを見つけた。こう書いてあった。「もしぼくを忘れたら、名前を3回呼んで。」", w: [["fold", "折りたたむ"]], flag: "note" },
     { who: "kogitsune", en: "\"Good thinking. That might come in handy later.\"", ja: "「いい考えだね。あとで役に立つかもしれない。」", w: [["come in handy", "役に立つ"]] },
     { label: "bridge" },
-    { who: null, en: "The bridge was covered in fog so thick that Daiki could hardly see his own hands.", ja: "橋はとても濃い霧におおわれていて、だいきは自分の手さえほとんど見えなかった。", w: [["so 〜 that ...", "とても〜なので…"], ["hardly", "ほとんど〜ない"]] },
+    { bg: "bridge", who: null, en: "The bridge was covered in fog so thick that Daiki could hardly see his own hands.", ja: "橋はとても濃い霧におおわれていて、だいきは自分の手さえほとんど見えなかった。", w: [["so 〜 that ...", "とても〜なので…"], ["hardly", "ほとんど〜ない"]] },
     { who: null, en: "In the middle stood a child with one huge eye, staring at nothing.", ja: "真ん中には、大きな目がひとつある子どもが立っていて、何もないところをじっと見つめていた。", w: [["stare at", "〜をじっと見る"]] },
     { who: "hitotsume", en: "\"Who... am I? I was protecting something important. I just can't recall what it was.\"", ja: "「ぼくは…だれ？何か大事なものを守っていたんだ。それが何だったか、どうしても思い出せない。」", w: [["recall", "思い出す"]] },
     { who: "kogitsune", en: "\"It's worse than I expected. The Silence must be close.\"", ja: "「思っていたよりひどい。沈黙が近くにいるにちがいない。」", w: [["expect", "予想する"], ["must", "〜にちがいない"]] },
     { who: null, en: "Suddenly, the fog gathered into the shape of a giant moth whose wings were made of torn dictionaries.", ja: "突然、霧が集まり、破れた辞書でできた羽をもつ巨大な蛾の形になった。", w: [["gather", "集まる"], ["torn", "tear（破る）の過去分詞"]] },
-    { who: "moth", en: "\"Words are heavy. Meaning is a burden. Give them all to me, and you will never have to study again.\"", ja: "「言葉は重い。意味は重荷だ。全部わたしによこしなさい。そうすれば、もう二度と勉強しなくていい。」", w: [["burden", "重荷"]] },
+    { foe: "moth", who: "moth", en: "\"Words are heavy. Meaning is a burden. Give them all to me, and you will never have to study again.\"", ja: "「言葉は重い。意味は重荷だ。全部わたしによこしなさい。そうすれば、もう二度と勉強しなくていい。」", w: [["burden", "重荷"]] },
     { who: "daiki", en: "\"...Never study again? Honestly, that sounds kind of nice.\"", ja: "「…二度と勉強しなくていい？正直、ちょっといいかも。」" },
     { who: "kogitsune", en: "\"Daiki! Don't listen to it! If you lose your words, you lose yourself!\"", ja: "「だいき！耳を貸しちゃだめ！言葉を失ったら、自分自身を失うんだよ！」" },
     { choice: { en: "How do you respond?", ja: "どう返す？" }, opts: [
@@ -1989,7 +1989,7 @@ const RPG_CHAPTERS = [{
     ] },
     { label: "boss" },
     { who: "moth", en: "\"Then I will simply take them by force!\"", ja: "「ならば、力ずくでいただくまでだ！」", w: [["by force", "力ずくで"]] },
-    { battle: { name: "Ink Moth", ja: "墨蛾（沈黙の手下）", hp: 5, mark: "墨", boss: true }, qs: [
+    { battle: { name: "Ink Moth", ja: "墨蛾（沈黙の手下）", hp: 5, mark: "墨", boss: true, foe: "moth" }, qs: [
       { en: "The moth said that meaning is a \"burden.\" A burden is something that is ___.", ja: "蛾は「意味は burden だ」と言った。burden とは、どんなもの？", opts: [["heavy and hard to carry", "重くて運ぶのが大変なもの"], ["bright and beautiful", "明るくて美しいもの"], ["easy to forget", "忘れやすいもの"], ["fast and dangerous", "速くて危険なもの"]], a: 0, why: "burden＝重荷。「重くて運ぶのが大変なもの」。" },
       { en: "Why could Daiki hardly see his own hands on the bridge?", ja: "橋の上で、だいきが自分の手もほとんど見えなかったのはなぜ？", opts: [["Because it was too dark.", "暗すぎたから。"], ["Because the fog was very thick.", "霧がとても濃かったから。"], ["Because he closed his eyes.", "目を閉じていたから。"], ["Because the moth covered them.", "蛾がおおっていたから。"]], a: 1, why: "\"fog so thick that Daiki could hardly see\"＝霧がとても濃くてほとんど見えなかった。" },
       { en: "Which word means \"to bring something back into your mind\"?", ja: "「何かを心に呼び戻す」＝思い出す、という意味の単語は？", opts: [["recall", "思い出す"], ["refuse", "断る"], ["reduce", "減らす"], ["reveal", "明らかにする"]], a: 0, why: "recall＝思い出す。remember とほぼ同じ。" },
@@ -2004,10 +2004,72 @@ const RPG_CHAPTERS = [{
     { who: "hitotsume", en: "\"...That's me! I'm Hitotsume, guardian of the Lantern Bridge!\"", ja: "「…それ、ぼくだ！ぼくは一つ目小僧、提灯橋の番人だ！」", w: [["guardian", "守る人、番人"]] },
     { who: "hitotsume", en: "\"Thank you. Without your voice, I would have faded away completely.\"", ja: "「ありがとう。きみの声がなかったら、ぼくは完全に消えてしまっていた。」", w: [["without 〜, would have ...", "〜がなかったら…していただろう（仮定法）"], ["fade away", "消えていく"]] },
     { who: "kogitsune", en: "\"This is only the beginning. The Silence has five more generals, and each one is stronger than the last.\"", ja: "「これはまだ始まりにすぎない。沈黙にはあと5人の将軍がいて、あとになるほど強いんだ。」", w: [["general", "将軍"]] },
-    { who: null, en: "Far away, at the top of a dark mountain, something with enormous wings slowly opened its eyes.", ja: "遠く、暗い山のいただきで、巨大な翼をもつ何かが、ゆっくりと目を開いた。", w: [["enormous", "巨大な"]] },
+    { bg: "mountain", who: null, en: "Far away, at the top of a dark mountain, something with enormous wings slowly opened its eyes.", ja: "遠く、暗い山のいただきで、巨大な翼をもつ何かが、ゆっくりと目を開いた。", w: [["enormous", "巨大な"]] },
     { end: "第1章 クリア" }
   ]
 }];
+
+/* ===== 英語RPGの風景と敵の絵（すべて手描きのSVG。外の画像は使わない） ===== */
+const RPG_DEFS = `<defs>
+  <radialGradient id="rgGlow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".95"/><stop offset=".45" stop-color="#ff9a3c" stop-opacity=".35"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="rgMoon"><stop offset=".55" stop-color="#fff6dc"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
+  <linearGradient id="rgNight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1030"/><stop offset=".65" stop-color="#2a1d4e"/><stop offset="1" stop-color="#4a2a4a"/></linearGradient>
+  <linearGradient id="rgRoad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a3a"/><stop offset="1" stop-color="#1a1220"/></linearGradient>
+  <linearGradient id="rgRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a0a14"/><stop offset=".7" stop-color="#5a1420"/><stop offset="1" stop-color="#a8321e"/></linearGradient>
+  <linearGradient id="rgRoom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14161f"/><stop offset="1" stop-color="#0a0b10"/></linearGradient>
+  <filter id="rgBlur"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="rgSoft"><feGaussianBlur stdDeviation="2"/></filter>
+</defs>`;
+const rgStars = n => { let s = "", x = 7; for (let i = 0; i < n; i++) { x = (x * 73 + 41) % 397; const y = (x * 37 + i * 53) % 110; s += `<circle cx="${x}" cy="${y}" r="${(i % 3) * .4 + .5}" fill="#fff" opacity="${.35 + (i % 4) * .15}"/>`; } return s; };
+/** 提灯1つ（x, y：中心、s：大きさ、d：ゆらぎの遅れ） */
+const rgLantern = (x, y, s, d = 0) => `<g class="rg-lan" style="animation-delay:${d}s">
+  <circle cx="${x}" cy="${y}" r="${s * 2.6}" fill="url(#rgGlow)"/>
+  <line x1="${x}" y1="${y - s * 1.6}" x2="${x}" y2="${y - s * 2.4}" stroke="#2a1a10" stroke-width="${s * .15}"/>
+  <rect x="${x - s * .55}" y="${y - s * 1.25}" width="${s * 1.1}" height="${s * .22}" rx="${s * .05}" fill="#2a1a10"/>
+  <ellipse cx="${x}" cy="${y}" rx="${s * .8}" ry="${s * 1.1}" fill="#f2a24a"/>
+  <ellipse cx="${x}" cy="${y}" rx="${s * .8}" ry="${s * 1.1}" fill="none" stroke="#c4622a" stroke-width="${s * .07}"/>
+  <path d="M${x - s * .8} ${y - s * .4}h${s * 1.6}M${x - s * .8} ${y + s * .4}h${s * 1.6}" stroke="#c4622a" stroke-width="${s * .06}"/>
+  <rect x="${x - s * .55}" y="${y + s * 1.03}" width="${s * 1.1}" height="${s * .22}" rx="${s * .05}" fill="#2a1a10"/></g>`;
+const rgFog = (y, o, d) => `<g class="rg-fog" style="animation-delay:${d}s" filter="url(#rgBlur)" opacity="${o}"><ellipse cx="80" cy="${y}" rx="120" ry="18" fill="#e8e6f2"/><ellipse cx="300" cy="${y + 6}" rx="140" ry="20" fill="#e8e6f2"/><ellipse cx="520" cy="${y}" rx="120" ry="18" fill="#e8e6f2"/></g>`;
+
+const RPG_SCENES = {
+  room: () => `<rect width="400" height="200" fill="url(#rgRoom)"/>
+    <rect x="250" y="22" width="100" height="80" rx="3" fill="#1c2340" stroke="#2c3350" stroke-width="4"/><circle cx="318" cy="48" r="16" fill="url(#rgMoon)"/>${'<circle cx="270" cy="35" r=".8" fill="#fff"/><circle cx="292" cy="80" r=".7" fill="#fff"/><circle cx="335" cy="88" r=".9" fill="#fff"/>'}
+    <path d="M300 22v80M250 62h100" stroke="#2c3350" stroke-width="3"/>
+    <circle cx="96" cy="118" r="60" fill="url(#rgGlow)" opacity=".55"/>
+    <path d="M70 100l18-30h26l-6 30z" fill="#3a3326"/><rect x="88" y="100" width="4" height="32" fill="#3a3326"/>
+    <rect x="20" y="132" width="300" height="12" rx="2" fill="#2b2118"/><rect x="40" y="144" width="10" height="56" fill="#21190f"/><rect x="290" y="144" width="10" height="56" fill="#21190f"/>
+    <rect x="130" y="118" width="80" height="14" rx="2" fill="#e9e3d2" transform="rotate(-4 170 125)"/><path d="M138 122h60M138 127h50" stroke="#9a937f" stroke-width="1" transform="rotate(-4 170 125)"/>
+    <rect x="225" y="160" width="26" height="3" rx="1.5" fill="#e0b040" transform="rotate(20 238 161)"/>`,
+  road: () => `<rect width="400" height="200" fill="url(#rgNight)"/>${rgStars(50)}<circle cx="320" cy="42" r="22" fill="url(#rgMoon)"/>
+    <path d="M0 120L60 92 120 112 190 80 260 108 330 86 400 110V200H0z" fill="#1a1530"/>
+    <path d="M0 132L80 116 150 126 230 108 310 124 400 114V200H0z" fill="#120f22"/>
+    <path d="M178 120h44L330 200H70z" fill="url(#rgRoad)"/>
+    ${[[150, 116, 3], [250, 116, 3], [135, 126, 4.5], [265, 126, 4.5], [112, 142, 7], [288, 142, 7], [78, 168, 10], [322, 168, 10]].map(([x, y, s], i) => rgLantern(x, y, s, i * .37)).join("")}`,
+  bridge: () => `<rect width="400" height="200" fill="url(#rgNight)"/>${rgStars(25)}
+    <path d="M0 150Q200 70 400 150" fill="none" stroke="#7a1e1e" stroke-width="10"/>
+    <path d="M0 160Q200 82 400 160" fill="none" stroke="#5a1414" stroke-width="5"/>
+    ${[40, 120, 200, 280, 360].map((x, i) => { const y = 150 - 80 * (1 - Math.pow((x - 200) / 200, 2)); return `<rect x="${x - 3}" y="${y - 22}" width="6" height="24" fill="#6a1818"/>` + rgLantern(x, y - 30, 4, i * .4); }).join("")}
+    <rect y="165" width="400" height="35" fill="#0d0b1a"/>
+    ${rgFog(150, .55, 0)}${rgFog(120, .35, 3)}${rgFog(175, .6, 6)}`,
+  mountain: () => `<rect width="400" height="200" fill="url(#rgRed)"/>${rgStars(15)}
+    <path d="M0 200L120 110 170 130 230 40 290 120 340 100 400 140V200z" fill="#0c0508"/>
+    <g class="rg-eyes"><path d="M150 70Q230 10 230 52Q230 10 310 70Q260 50 230 66Q200 50 150 70z" fill="#1a0a0e" opacity=".9"/>
+    <circle cx="220" cy="56" r="3" fill="#ffd34a"/><circle cx="240" cy="56" r="3" fill="#ffd34a"/></g>`
+};
+const RPG_FOES = {
+  blank: () => `<g class="rg-foe"><path d="M150 60l30 -14 22 10 26 -12 24 18 -8 26 14 22 -18 30 -30 6 -22 -10 -30 8 -14 -30 10 -24z" fill="#e8e6f0" opacity=".92"/>
+    <path d="M168 76l22 6M205 70l18 14M178 110l30 -6M215 112l18 8M175 92h40" stroke="#9a96aa" stroke-width="1.5"/>
+    <ellipse cx="190" cy="96" rx="6" ry="8" fill="#111"/><ellipse cx="222" cy="96" rx="6" ry="8" fill="#111"/><path d="M196 124q10 -8 20 0" stroke="#111" stroke-width="3" fill="none"/></g>`,
+  moth: () => `<g class="rg-foe"><path d="M200 100C150 40 90 40 80 80C76 110 130 120 196 108C140 130 120 170 160 176C190 180 198 140 200 116C202 140 210 180 240 176C280 170 260 130 204 108C270 120 324 110 320 80C310 40 250 40 200 100z" fill="#1c1c24" stroke="#3a3a48" stroke-width="2"/>
+    <path d="M110 70h50M106 82h56M112 94h48M240 70h50M238 82h56M240 94h48M150 150h30M222 150h30" stroke="#e8e2d0" stroke-width="1.5" opacity=".7"/>
+    <ellipse cx="200" cy="112" rx="9" ry="34" fill="#0a0a10"/><circle cx="194" cy="86" r="3" fill="#ff4a4a"/><circle cx="206" cy="86" r="3" fill="#ff4a4a"/>
+    <path d="M196 80q-14 -26 -26 -30M204 80q14 -26 26 -30" stroke="#0a0a10" stroke-width="2.5" fill="none"/></g>`
+};
+function rpgArt(bg, foe) {
+  const scene = (RPG_SCENES[bg] || RPG_SCENES.road)();
+  return `<svg class="rpg-scene" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${RPG_DEFS}${scene}${foe && RPG_FOES[foe] ? RPG_FOES[foe]() : ""}</svg>`;
+}
 
 /* ===== 英語RPG「提灯の道」：英語で読んで、ボタンで日本語に切りかえて答え合わせ =====
    進み具合は game/rpg に保存（章・何番目・フラグ・クリアした章・倒した敵）。戦いの途中は保存しない（開き直すとその戦いの最初から）。 */
@@ -2051,6 +2113,8 @@ function renderRPG() {
   const st = rpgResolve(rpgState()), ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], n = rpgNodes(st)[st.i];
   $("rpgTitle").textContent = rpgJa ? ch.ja : ch.title;
   $("rpgSub").textContent = "クリア " + st.cleared.length + "章・倒した敵 " + Object.keys(st.won).length;
+  let bg = "road"; for (let k = 0; k <= st.i; k++) { const x = rpgNodes(st)[k]; if (x && x.bg) bg = x.bg; }
+  const art = n && !n.end ? rpgArt(bg, n.battle ? n.battle.foe : n.foe) : rpgArt(bg);
   let h = "";
   if (!n) h = `<p class="note">物語が見つからない。「最初から」を押して。</p>`;
   else if (n.end) {
@@ -2065,6 +2129,7 @@ function renderRPG() {
       <p class="rpg-text" data-r="tr">${esc(rpgT(n.en, n.ja))}</p>${rpgWords(n.w)}</div>
       <div class="rpg-nav">${rpgToggle()}<button type="button" class="big-btn rpg-next" data-r="next">次へ ▶</button></div>`;
   }
+  h = art + h;
   if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
 }
 function rpgBattleHtml(st, n) {
