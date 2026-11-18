@@ -53,7 +53,7 @@ const S = {
   days: {}, timer: { running: false }, settings: { ...DEFAULTS }, quotes: [],
   words: { w: {}, cleared: {} }, kobun: { w: {}, cleared: {} }, seikei: { w: {}, cleared: {}, quiz: {} }, cloze: { correct: 0, total: 0 }, grammar: { units: {} },
   game: { owned: {}, partner: null, freeRolls: 0, outfits: { owned: [], equipped: {} }, claims: [], spend: [], gacha: 0 },
-  tickets: { active: null, history: [] }, scores: [], loaded: {}
+  tickets: { active: null, history: [] }, scores: [], rpg: {}, loaded: {}
 };
 const SUBJ = { en: "英語", ja: "国語", se: "政経" };
 function modeOf(k) {
@@ -117,7 +117,7 @@ function econ() {
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
-  const kobanEarn = fitKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
+  const kobanEarn = fitKoban() + rpgKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
   return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
 }
@@ -144,12 +144,12 @@ const listeners = new Set();
 const onChange = fn => listeners.add(fn);
 function emit() { for (const fn of listeners) { try { fn(); } catch (e) { console.warn(e); } } }
 const CACHE = "kouryaku-cache-v2";
-function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, kobun: S.kobun, seikei: S.seikei, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, timer: S.timer })); } catch (e) {} }
+function cacheSave() { try { localStorage.setItem(CACHE, JSON.stringify({ days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, kobun: S.kobun, seikei: S.seikei, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, rpg: S.rpg, timer: S.timer })); } catch (e) {} }
 function cacheLoad() { try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); if (c) for (const k in c) if (c[k] != null) S[k] = k === "settings" ? { ...DEFAULTS, ...c[k] } : c[k]; } catch (e) {} }
 function makeBackend(db) {
   const chains = {};
   const write = (path, fn) => (chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => { console.warn(e); toast("保存できなかった。通信を確認して、もう一度やって。"); setSync("err"); }));
-  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", kobun: "learn/kobun", seikei: "learn/seikei", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets" };
+  const docs = { timer: "state/timer", settings: "settings/main", words: "learn/words", kobun: "learn/kobun", seikei: "learn/seikei", cloze: "learn/cloze", grammar: "learn/grammar", game: "game/yokai", tickets: "game/tickets", rpg: "game/rpg" };
   const local = !db;
   let store = {};
   if (local) { try { store = JSON.parse(localStorage.getItem("kouryaku-local-v2") || "{}"); } catch (e) {} }
@@ -200,7 +200,7 @@ function setSync(s) { const el = $("sync"); if (!el) return; el.dataset.s = s; e
 function day(k = dayKey()) { return { date: k, min: 0, ...(S.days[k] || {}) }; }
 function patchDay(k, fn) { const d = JSON.parse(JSON.stringify(day(k))); fn(d); if (!d.mode) d.mode = modeOf(k); return backend.saveDay(k, d); }
 function patchDoc(name, fn) { const v = JSON.parse(JSON.stringify(S[name])); fn(v); return backend.save(name, v); }
-const NEED = ["days", "timer", "settings", "words", "kobun", "seikei", "cloze", "grammar", "game", "tickets"];
+const NEED = ["days", "timer", "settings", "words", "kobun", "seikei", "cloze", "grammar", "game", "tickets", "rpg"];
 const allLoaded = () => NEED.every(k => S.loaded[k]);
 function ready() { if (!backend || !allLoaded()) { toast("読み込み中。少し待ってからもう一度。"); return false; } return true; }
 
@@ -1248,7 +1248,7 @@ function pickQuiz(i) {
 }
 function renderLearn() {
   document.querySelectorAll("#learnSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === learnTab)));
-  for (const t of ["words", "cloze", "grammar", "other"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
+  for (const t of ["words", "cloze", "grammar", "other", "story"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
   if (learnTab === "seikei") renderQuiz();
   if (learnTab === "words" || learnTab === "kobun" || learnTab === "seikei") {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
@@ -1266,6 +1266,7 @@ function renderLearn() {
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
   if (learnTab === "grammar") { renderGrammar(); renderGQ(); }
+  if (learnTab === "story") renderRPG();
 }
 function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };
@@ -1775,7 +1776,7 @@ function saveSettings(e) {
 }
 async function backup() {
   const dl = await claude.use("downloads").catch(() => null);
-  const data = JSON.stringify({ exportedAt: new Date().toISOString(), days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores }, null, 1);
+  const data = JSON.stringify({ exportedAt: new Date().toISOString(), days: S.days, settings: S.settings, quotes: S.quotes, words: S.words, cloze: S.cloze, grammar: S.grammar, game: S.game, tickets: S.tickets, scores: S.scores, rpg: S.rpg }, null, 1);
   if (!dl) { toast("この画面ではファイル保存が使えない。"); return; }
   try { await dl.save({ filename: "kouryaku-backup-" + dayKey() + ".json", data }); toast("バックアップを保存した。"); } catch (e) { toast("保存しなかった。"); }
 }
@@ -1918,6 +1919,190 @@ function bindFit() {
   };
 }
 
+/* ===== 英語RPG「提灯の道」の物語（オリジナル） =====
+   1つの節は次のどれか：
+   { who, en, ja, w }           せりふ・地の文（who が null なら地の文。w は大事な単語 [英, 日]）
+   { choice: {en, ja}, opts: [{ en, ja, go, flag }] }   選択肢
+   { battle: { name, ja, hp, art }, qs: [{ en, ja, opts: [[英, 日]...], a, why }] }   戦い
+   { label }  { go }  { if: flag, go }  { end: 章の名前 } */
+const RPG_CAST = {
+  daiki: { name: "Daiki", ja: "だいき" },
+  kogitsune: { name: "Kogitsune", ja: "子狐火", img: "kogitsune" },
+  hitotsume: { name: "Hitotsume", ja: "一つ目小僧", img: "hitotsume" },
+  moth: { name: "Ink Moth", ja: "墨蛾", mark: "墨" },
+  voice: { name: "???", ja: "？？？" }
+};
+
+const RPG_CHAPTERS = [{
+  id: "ch1", title: "Chapter 1: The Fox and the Lantern", ja: "第1章　狐と提灯",
+  nodes: [
+    { who: null, en: "It was two in the morning, the night before the exam. Daiki's pencil rolled off the desk, and the room went dark.", ja: "午前2時、試験の前の夜。だいきの鉛筆が机から転がり落ち、部屋が暗くなった。" },
+    { who: null, en: "When he opened his eyes, he was standing on a narrow road lit by hundreds of paper lanterns.", ja: "目を開けると、彼は何百もの紙の提灯に照らされた細い道に立っていた。", w: [["narrow", "せまい"], ["lit", "light（照らす）の過去分詞"]] },
+    { who: "voice", en: "\"Finally! A human who can still read!\"", ja: "「やっと来た！まだ字が読める人間だ！」" },
+    { who: null, en: "A small white fox with a red flame on its tail jumped onto one of the lanterns.", ja: "尻尾に赤い炎をともした小さな白い狐が、提灯のひとつに飛び乗った。" },
+    { who: "kogitsune", en: "\"I'm Kogitsune. Sorry to bother you, but our world is in serious trouble.\"", ja: "「ぼくは子狐火。じゃましてごめん、でもぼくらの世界は大変なことになってるんだ。」", w: [["bother", "じゃまをする、困らせる"], ["serious", "深刻な"]] },
+    { who: "kogitsune", en: "\"Something called the Silence is eating our words. Once a word disappears, nobody can remember what it meant.\"", ja: "「『沈黙』っていうものが、ぼくらの言葉を食べているんだ。言葉がひとつ消えると、だれもその意味を思い出せなくなる。」", w: [["once", "いったん〜すると"], ["disappear", "消える"]] },
+    { who: "daiki", en: "\"Why are you telling me? I'm just a student who can't even finish his English homework.\"", ja: "「なんで俺に言うんだよ。英語の宿題も終わらない、ただの受験生だぞ。」" },
+    { who: "kogitsune", en: "\"Exactly. These days, students are the only ones who still collect words every single day.\"", ja: "「だからだよ。今では、毎日欠かさず言葉を集めているのは受験生くらいしかいないんだ。」", w: [["exactly", "まさにそのとおり"], ["collect", "集める"]] },
+    { choice: { en: "How do you answer?", ja: "どう答える？" }, opts: [
+      { en: "\"Fine. I'll help, but only if you show me the way home.\"", ja: "「わかった。手伝うよ。ただし、帰り道を教えてくれるならな。」", go: "deal" },
+      { en: "\"Sounds dangerous. Can I think about it?\"", ja: "「危なそうだな。少し考えさせてくれる？」", go: "hesitate" }
+    ] },
+    { label: "deal" },
+    { who: "kogitsune", en: "\"Deal! When this is over, I'll guide you to the Gate of Dawn.\"", ja: "「決まり！これが終わったら、夜明けの門まで案内するよ。」", w: [["guide", "案内する"], ["dawn", "夜明け"]] },
+    { go: "blank" },
+    { label: "hesitate" },
+    { who: "kogitsune", en: "\"There's no time to hesitate. Look behind you!\"", ja: "「迷っている暇はないよ。うしろを見て！」", w: [["hesitate", "ためらう"]] },
+    { label: "blank" },
+    { who: null, en: "Behind them, the lanterns began to go out one by one.", ja: "二人のうしろで、提灯がひとつずつ消え始めた。", w: [["go out", "（火・明かりが）消える"]] },
+    { who: null, en: "Out of the darkness crawled a shadow shaped like a crumpled page.", ja: "暗闇の中から、くしゃくしゃになったページのような形の影がはい出てきた。", w: [["crawl", "はう"]] },
+    { who: "kogitsune", en: "\"A Blank! It feeds on the words people have forgotten. Answer correctly, and the words will turn back into light!\"", ja: "「ブランクだ！人が忘れた言葉を食べる化け物だよ。正しく答えれば、言葉が光に戻る！」", w: [["feed on", "〜を食べて生きる"], ["turn into", "〜に変わる"]] },
+    { battle: { name: "Blank", ja: "ブランク（白紙の影）", hp: 3, mark: "白" }, qs: [
+      { en: "Which word means \"to go out of sight suddenly\"?", ja: "「急に見えなくなる」という意味の単語はどれ？", opts: [["vanish", "消える"], ["appear", "現れる"], ["recover", "回復する"], ["require", "必要とする"]], a: 0, why: "vanish＝（急に）消える。disappear とほぼ同じ意味。" },
+      { en: "Why did Kogitsune ask Daiki for help?", ja: "子狐火はなぜだいきに助けを求めた？", opts: [["Because Daiki is good at fighting.", "だいきは戦いが得意だから。"], ["Because students still collect words every day.", "受験生は今も毎日言葉を集めているから。"], ["Because Daiki is also a fox.", "だいきも狐だから。"], ["Because the lanterns told him to.", "提灯にそうしろと言われたから。"]], a: 1, why: "\"students are the only ones who still collect words every single day\" と言っていた。" },
+      { en: "Kogitsune said, \"Sorry to bother you.\" The word \"bother\" is closest in meaning to ___.", ja: "「Sorry to bother you」の bother にいちばん近い意味は？", opts: [["trouble", "困らせる"], ["help", "助ける"], ["praise", "ほめる"], ["ignore", "無視する"]], a: 0, why: "bother＝じゃまをする、困らせる。trouble にも「迷惑をかける」の意味がある。" }
+    ] },
+    { who: null, en: "The Blank let out a scream and burst into a shower of tiny letters.", ja: "ブランクは叫び声をあげ、小さな文字の雨になってはじけた。", w: [["burst into", "〜になってはじける"]] },
+    { who: "kogitsune", en: "\"You did it! See? Here, your words are your weapon.\"", ja: "「やった！ね？ここでは、きみの言葉がきみの武器なんだ。」", w: [["weapon", "武器"]] },
+    { who: null, en: "Among the falling letters, Daiki noticed a small straw hat lying on the road.", ja: "降ってくる文字の中に、道に落ちている小さなわら笠があるのに、だいきは気づいた。", w: [["notice", "気づく"], ["lie（lying）", "横たわる、置いてある"]] },
+    { who: "kogitsune", en: "\"That belongs to Hitotsume, the one-eyed boy. He was supposed to be guarding the bridge.\"", ja: "「それは一つ目小僧の笠だ。橋を守っているはずだったのに。」", w: [["belong to", "〜のものである"], ["be supposed to", "〜するはずだ"]] },
+    { who: "kogitsune", en: "\"If the Silence has taken his name, he may not even remember who he is.\"", ja: "「もし沈黙に名前を取られていたら、自分がだれなのかさえ覚えていないかもしれない。」" },
+    { choice: { en: "What do you do?", ja: "どうする？" }, opts: [
+      { en: "\"Let's head to the bridge right away.\"", ja: "「すぐに橋へ向かおう。」", go: "bridge" },
+      { en: "\"Wait. Let's look around for clues first.\"", ja: "「待って。先に手がかりを探そう。」", go: "clue" }
+    ] },
+    { label: "clue" },
+    { who: null, en: "Under the hat, Daiki found a folded note. It said: \"If you ever forget me, call my name three times.\"", ja: "笠の下に、だいきは折りたたまれたメモを見つけた。こう書いてあった。「もしぼくを忘れたら、名前を3回呼んで。」", w: [["fold", "折りたたむ"]], flag: "note" },
+    { who: "kogitsune", en: "\"Good thinking. That might come in handy later.\"", ja: "「いい考えだね。あとで役に立つかもしれない。」", w: [["come in handy", "役に立つ"]] },
+    { label: "bridge" },
+    { who: null, en: "The bridge was covered in fog so thick that Daiki could hardly see his own hands.", ja: "橋はとても濃い霧におおわれていて、だいきは自分の手さえほとんど見えなかった。", w: [["so 〜 that ...", "とても〜なので…"], ["hardly", "ほとんど〜ない"]] },
+    { who: null, en: "In the middle stood a child with one huge eye, staring at nothing.", ja: "真ん中には、大きな目がひとつある子どもが立っていて、何もないところをじっと見つめていた。", w: [["stare at", "〜をじっと見る"]] },
+    { who: "hitotsume", en: "\"Who... am I? I was protecting something important. I just can't recall what it was.\"", ja: "「ぼくは…だれ？何か大事なものを守っていたんだ。それが何だったか、どうしても思い出せない。」", w: [["recall", "思い出す"]] },
+    { who: "kogitsune", en: "\"It's worse than I expected. The Silence must be close.\"", ja: "「思っていたよりひどい。沈黙が近くにいるにちがいない。」", w: [["expect", "予想する"], ["must", "〜にちがいない"]] },
+    { who: null, en: "Suddenly, the fog gathered into the shape of a giant moth whose wings were made of torn dictionaries.", ja: "突然、霧が集まり、破れた辞書でできた羽をもつ巨大な蛾の形になった。", w: [["gather", "集まる"], ["torn", "tear（破る）の過去分詞"]] },
+    { who: "moth", en: "\"Words are heavy. Meaning is a burden. Give them all to me, and you will never have to study again.\"", ja: "「言葉は重い。意味は重荷だ。全部わたしによこしなさい。そうすれば、もう二度と勉強しなくていい。」", w: [["burden", "重荷"]] },
+    { who: "daiki", en: "\"...Never study again? Honestly, that sounds kind of nice.\"", ja: "「…二度と勉強しなくていい？正直、ちょっといいかも。」" },
+    { who: "kogitsune", en: "\"Daiki! Don't listen to it! If you lose your words, you lose yourself!\"", ja: "「だいき！耳を貸しちゃだめ！言葉を失ったら、自分自身を失うんだよ！」" },
+    { choice: { en: "How do you respond?", ja: "どう返す？" }, opts: [
+      { en: "\"You're right. I'm not giving my words to anyone.\"", ja: "「そうだな。俺の言葉はだれにも渡さない。」", go: "boss" },
+      { en: "\"I'll admit I was tempted... but no way.\"", ja: "「正直ちょっと揺れた…でも、お断りだ。」", go: "boss" }
+    ] },
+    { label: "boss" },
+    { who: "moth", en: "\"Then I will simply take them by force!\"", ja: "「ならば、力ずくでいただくまでだ！」", w: [["by force", "力ずくで"]] },
+    { battle: { name: "Ink Moth", ja: "墨蛾（沈黙の手下）", hp: 5, mark: "墨", boss: true }, qs: [
+      { en: "The moth said that meaning is a \"burden.\" A burden is something that is ___.", ja: "蛾は「意味は burden だ」と言った。burden とは、どんなもの？", opts: [["heavy and hard to carry", "重くて運ぶのが大変なもの"], ["bright and beautiful", "明るくて美しいもの"], ["easy to forget", "忘れやすいもの"], ["fast and dangerous", "速くて危険なもの"]], a: 0, why: "burden＝重荷。「重くて運ぶのが大変なもの」。" },
+      { en: "Why could Daiki hardly see his own hands on the bridge?", ja: "橋の上で、だいきが自分の手もほとんど見えなかったのはなぜ？", opts: [["Because it was too dark.", "暗すぎたから。"], ["Because the fog was very thick.", "霧がとても濃かったから。"], ["Because he closed his eyes.", "目を閉じていたから。"], ["Because the moth covered them.", "蛾がおおっていたから。"]], a: 1, why: "\"fog so thick that Daiki could hardly see\"＝霧がとても濃くてほとんど見えなかった。" },
+      { en: "Which word means \"to bring something back into your mind\"?", ja: "「何かを心に呼び戻す」＝思い出す、という意味の単語は？", opts: [["recall", "思い出す"], ["refuse", "断る"], ["reduce", "減らす"], ["reveal", "明らかにする"]], a: 0, why: "recall＝思い出す。remember とほぼ同じ。" },
+      { en: "What was Hitotsume supposed to be doing?", ja: "一つ目小僧は何をしているはずだった？", opts: [["guarding the bridge", "橋を守ること"], ["cooking dinner", "夕食を作ること"], ["studying English", "英語を勉強すること"], ["chasing the moth", "蛾を追いかけること"]], a: 0, why: "\"He was supposed to be guarding the bridge.\" とあった。be supposed to＝〜するはずだ。" },
+      { en: "In \"Daiki could hardly see his own hands,\" the word \"hardly\" means ___.", ja: "「could hardly see」の hardly の意味は？", opts: [["easily", "簡単に"], ["almost not", "ほとんど〜ない"], ["completely", "完全に"], ["carefully", "注意深く"]], a: 1, why: "hardly＝ほとんど〜ない。hard（かたい、熱心に）とはちがう意味なので注意。" }
+    ] },
+    { who: null, en: "With a cry like ripping paper, the Ink Moth broke apart and melted into the fog.", ja: "紙を引き裂くような叫び声とともに、墨蛾はばらばらになり、霧の中に溶けていった。", w: [["rip", "引き裂く"], ["melt", "溶ける"]] },
+    { if: "note", go: "shout" },
+    { who: "kogitsune", en: "\"Daiki, call his name! Names bring memories back!\"", ja: "「だいき、彼の名前を呼んで！名前は記憶を連れ戻すんだ！」" },
+    { label: "shout" },
+    { who: "daiki", en: "\"Hitotsume! Hitotsume! Hitotsume!\"", ja: "「一つ目小僧！一つ目小僧！一つ目小僧！」" },
+    { who: "hitotsume", en: "\"...That's me! I'm Hitotsume, guardian of the Lantern Bridge!\"", ja: "「…それ、ぼくだ！ぼくは一つ目小僧、提灯橋の番人だ！」", w: [["guardian", "守る人、番人"]] },
+    { who: "hitotsume", en: "\"Thank you. Without your voice, I would have faded away completely.\"", ja: "「ありがとう。きみの声がなかったら、ぼくは完全に消えてしまっていた。」", w: [["without 〜, would have ...", "〜がなかったら…していただろう（仮定法）"], ["fade away", "消えていく"]] },
+    { who: "kogitsune", en: "\"This is only the beginning. The Silence has five more generals, and each one is stronger than the last.\"", ja: "「これはまだ始まりにすぎない。沈黙にはあと5人の将軍がいて、あとになるほど強いんだ。」", w: [["general", "将軍"]] },
+    { who: null, en: "Far away, at the top of a dark mountain, something with enormous wings slowly opened its eyes.", ja: "遠く、暗い山のいただきで、巨大な翼をもつ何かが、ゆっくりと目を開いた。", w: [["enormous", "巨大な"]] },
+    { end: "第1章 クリア" }
+  ]
+}];
+
+/* ===== 英語RPG「提灯の道」：英語で読んで、ボタンで日本語に切りかえて答え合わせ =====
+   進み具合は game/rpg に保存（章・何番目・フラグ・クリアした章・倒した敵）。戦いの途中は保存しない（開き直すとその戦いの最初から）。 */
+const RPG_HP = 5, RPG_CLEAR_KOBAN = 50, RPG_WIN_KOBAN = 5;
+let rpgJa = false, rpgB = null;
+const rpgDefault = () => ({ ch: 0, i: 0, flags: {}, cleared: [], won: {} });
+function rpgState() { const s = { ...rpgDefault(), ...JSON.parse(JSON.stringify(S.rpg || {})) }; s.flags = s.flags || {}; s.won = s.won || {}; s.cleared = s.cleared || []; return s; }
+function rpgKoban() { const r = S.rpg || {}; return (r.cleared || []).length * RPG_CLEAR_KOBAN + Object.keys(r.won || {}).length * RPG_WIN_KOBAN; }
+const rpgNodes = st => (RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0]).nodes;
+/** 見えない節（ラベル・ジャンプ・条件）を飛ばして、次に見せる節まで進める */
+function rpgResolve(st) {
+  const ns = rpgNodes(st), at = l => ns.findIndex(n => n.label === l);
+  for (let guard = 0; guard < 200; guard++) {
+    const n = ns[st.i]; if (!n) return st;
+    if (n.label != null) st.i++;
+    else if (n.go && n.if == null) st.i = at(n.go);
+    else if (n.if != null) st.i = st.flags[n.if] ? at(n.go) : st.i + 1;
+    else return st;
+  }
+  return st;
+}
+function rpgGo(st) {
+  rpgResolve(st); rpgJa = false; rpgB = null;
+  const n = rpgNodes(st)[st.i];
+  if (n && n.end && !st.cleared.includes(RPG_CHAPTERS[st.ch].id)) { st.cleared.push(RPG_CHAPTERS[st.ch].id); setTimeout(() => { sfx("done"); confetti(); toast(n.end + "！小判＋" + RPG_CLEAR_KOBAN); }, 50); }
+  if (!ready()) return; return patchDoc("rpg", v => { for (const k of Object.keys(v)) delete v[k]; Object.assign(v, st); });
+}
+function rpgNext() { const st = rpgState(), n = rpgNodes(st)[st.i]; if (n && n.flag) st.flags[n.flag] = 1; st.i++; rpgGo(st); sfx("tap"); }
+
+function rpgFace(id) {
+  const c = RPG_CAST[id] || {}; const ch = c.img && (typeof CHARS !== "undefined" ? CHARS : []).find(x => x.id === c.img);
+  if (ch && ch.img) return `<img class="rpg-face" src="${ch.img}" alt="">`;
+  return `<span class="rpg-face mark">${esc(c.mark || (c.name || "?").slice(0, 1))}</span>`;
+}
+const rpgT = (en, ja) => rpgJa ? ja : en;
+function rpgWords(w) { return rpgJa && w && w.length ? `<ul class="rpg-words">${w.map(([e, j]) => `<li><b>${esc(e)}</b>　${esc(j)}</li>`).join("")}</ul>` : ""; }
+function rpgToggle() { return `<button type="button" class="btn sm rpg-tr" data-r="tr">${rpgJa ? "English に戻す" : "日本語にする"}</button>`; }
+
+function renderRPG() {
+  const box = $("rpgBox"); if (!box) return;
+  const st = rpgResolve(rpgState()), ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], n = rpgNodes(st)[st.i];
+  $("rpgTitle").textContent = rpgJa ? ch.ja : ch.title;
+  $("rpgSub").textContent = "クリア " + st.cleared.length + "章・倒した敵 " + Object.keys(st.won).length;
+  let h = "";
+  if (!n) h = `<p class="note">物語が見つからない。「最初から」を押して。</p>`;
+  else if (n.end) {
+    h = `<div class="rpg-end"><b>${esc(n.end)}</b><p>${rpgT("To be continued...", "つづく…")}</p><p class="note">次の章は準備中。できたら知らせるね。</p><button type="button" class="big-btn" data-r="restart">もう一度最初から読む</button></div>`;
+  } else if (n.battle) h = rpgBattleHtml(st, n);
+  else if (n.choice) {
+    h = `<div class="rpg-line narr"><p class="rpg-text">${esc(rpgT(n.choice.en, n.choice.ja))}</p></div>
+      <div class="rpg-opts">${n.opts.map((o, k) => `<button type="button" data-r="opt" data-k="${k}">${esc(rpgT(o.en, o.ja))}</button>`).join("")}</div>${rpgToggle()}`;
+  } else {
+    const c = n.who && RPG_CAST[n.who];
+    h = `<div class="rpg-line${c ? "" : " narr"}">${c ? `<div class="rpg-who">${rpgFace(n.who)}<b>${esc(rpgJa ? c.ja : c.name)}</b></div>` : ""}
+      <p class="rpg-text" data-r="tr">${esc(rpgT(n.en, n.ja))}</p>${rpgWords(n.w)}</div>
+      <div class="rpg-nav">${rpgToggle()}<button type="button" class="big-btn rpg-next" data-r="next">次へ ▶</button></div>`;
+  }
+  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+}
+function rpgBattleHtml(st, n) {
+  if (!rpgB || rpgB.i !== st.i) rpgB = { i: st.i, hp: n.qs.length, php: RPG_HP, q: n.qs.map((_, k) => k), res: null, pick: null };
+  const b = rpgB, e = n.battle, q = n.qs[b.q[0]];
+  const hearts = "♥".repeat(Math.max(0, b.php)) + "♡".repeat(RPG_HP - Math.max(0, b.php));
+  let h = `<div class="rpg-foe${e.boss ? " boss" : ""}"><span class="rpg-face mark">${esc(e.mark || "?")}</span><div><b>${esc(rpgJa ? e.ja : e.name)}</b><div class="bar-p"><i style="width:${100 * b.hp / n.qs.length}%;background:var(--seal)!important"></i></div></div></div>
+    <div class="rpg-hp">だいき <span>${hearts}</span></div>`;
+  if (b.php <= 0) return h + `<div class="rpg-end"><b>力尽きた…</b><p class="note">もう一度挑戦できる。間違えた問題は、説明を読んでから。</p><button type="button" class="big-btn" data-r="retry">もう一度戦う</button></div>`;
+  if (b.hp <= 0) return h + `<div class="rpg-end"><b>${esc(rpgJa ? e.ja : e.name)} を倒した！</b>${st.won[st.ch + ":" + st.i] ? "" : `<p class="note">小判＋${RPG_WIN_KOBAN}</p>`}<button type="button" class="big-btn" data-r="win">先へ進む ▶</button></div>`;
+  h += `<p class="rpg-q">${esc(rpgT(q.en, q.ja))}</p><div class="rpg-opts">${q.opts.map((o, k) => {
+    const cls = b.res == null ? "" : k === q.a ? " right" : k === b.pick ? " wrong" : "";
+    return `<button type="button" data-r="ans" data-k="${k}"${b.res != null ? " disabled" : ""} class="${cls.trim()}">${esc(b.res != null || rpgJa ? o[0] + "（" + o[1] + "）" : o[0])}</button>`;
+  }).join("")}</div>`;
+  if (b.res != null) h += `<div class="rpg-res ${b.res}"><b>${b.res === "ok" ? "正解！ 攻撃が当たった" : "ちがう… ダメージを受けた"}</b><p>${esc(q.ja)}</p><p>${esc(q.why || "")}</p></div><button type="button" class="big-btn" data-r="bnext">次へ ▶</button>`;
+  else h += rpgToggle();
+  return h;
+}
+function bindRPG() {
+  $("rpgBox").addEventListener("click", e => {
+    const b = e.target.closest("[data-r]"); if (!b) return;
+    const r = b.dataset.r, st = rpgResolve(rpgState()), n = rpgNodes(st)[st.i];
+    if (r === "tr") { rpgJa = !rpgJa; sfx("tap"); return renderRPG(); }
+    if (r === "next") return rpgNext();
+    if (r === "opt") { const o = n.opts[Number(b.dataset.k)]; if (o.flag) st.flags[o.flag] = 1; st.i = rpgNodes(st).findIndex(x => x.label === o.go); sfx("ok"); return rpgGo(st); }
+    if (r === "ans" && rpgB && rpgB.res == null) {
+      const k = Number(b.dataset.k), q = n.qs[rpgB.q[0]]; rpgB.pick = k;
+      if (k === q.a) { rpgB.res = "ok"; rpgB.hp--; sfx("ok"); } else { rpgB.res = "ng"; rpgB.php--; sfx("ng"); }
+      rpgJa = false; return renderRPG();
+    }
+    if (r === "bnext" && rpgB) { const q = rpgB.q.shift(); if (rpgB.res === "ng") rpgB.q.push(q); rpgB.res = null; rpgB.pick = null; rpgJa = false; return renderRPG(); }
+    if (r === "retry") { rpgB = null; return renderRPG(); }
+    if (r === "win") { st.won[st.ch + ":" + st.i] = 1; st.i++; sfx("coin"); return rpgGo(st); }
+    if (r === "restart") { st.i = 0; st.flags = {}; return rpgGo(st); }
+  });
+  $("rpgReset").onclick = () => { if (!confirm("この章を最初から読み直す？（クリアした記録と小判はそのまま）")) return; const st = rpgState(); st.i = 0; st.flags = {}; rpgGo(st); };
+}
+
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
 const VIEWS = ["home", "timer", "learn", "yokai", "record"];
 let currentView = "home";
@@ -1984,7 +2169,7 @@ function bindMain() {
   window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   $("homeMode").onclick = () => { if (!ready()) return; const k = dayKey(), m = modeOf(k) === "refresh" ? "normal" : "refresh"; patchDay(k, d => { d.mode = m; }); toast(m === "refresh" ? "今日はリフレッシュ日。ゲームは2時間まで。" : "今日は通常日。"); };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
-  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit();
+  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit(); bindRPG();
 }
 
 async function boot() {

@@ -447,6 +447,35 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .setb.chk{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;white-space:nowrap}
 .setb.chk.on{background:var(--good);border-color:var(--good);color:#fff}
 
+/* 英語RPG */
+.rpg #rpgBox{display:grid;gap:12px}
+.rpg-line{display:grid;gap:10px;background:var(--surface2);border-radius:14px;padding:14px}
+.rpg-line.narr{background:transparent;border:1px dashed var(--line)}
+.rpg-who{display:flex;align-items:center;gap:10px}
+.rpg-who b{font-size:15px}
+.rpg-face{width:52px;height:52px;border-radius:12px;object-fit:contain;background:var(--surface);border:1px solid var(--line);flex:none}
+.rpg-face.mark{display:grid;place-items:center;font-weight:700;font-size:22px;background:var(--ink);color:var(--bg)}
+.rpg-text{margin:0;font-size:17px;line-height:1.75;cursor:pointer}
+.rpg-words{margin:0;padding:10px 12px;list-style:none;background:var(--surface);border-radius:10px;display:grid;gap:3px;font-size:13px}
+.rpg-words b{color:var(--lantern)}
+.rpg-nav{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}
+.rpg-tr{justify-self:start}
+.rpg-opts{display:grid;gap:8px}
+.rpg-opts button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;font-size:15px;font-weight:600;text-align:left;line-height:1.5}
+.rpg-opts button.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.rpg-opts button.wrong{border-color:var(--seal);background:color-mix(in srgb,var(--seal) 12%,var(--surface))}
+.rpg-foe{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:var(--surface2);border-radius:14px;padding:12px}
+.rpg-foe.boss .rpg-face{background:var(--seal);color:#fff}
+.rpg-foe b{display:block;margin-bottom:6px}
+.rpg-hp{font-size:13px;color:var(--muted);font-weight:700}.rpg-hp span{color:var(--seal);letter-spacing:2px}
+.rpg-q{margin:0;font-size:16px;font-weight:700;line-height:1.6}
+.rpg-res{border-radius:12px;padding:12px;display:grid;gap:4px;font-size:14px}
+.rpg-res p{margin:0}
+.rpg-res.ok{background:color-mix(in srgb,var(--good) 12%,var(--surface))}.rpg-res.ok b{color:var(--good)}
+.rpg-res.ng{background:color-mix(in srgb,var(--seal) 10%,var(--surface))}.rpg-res.ng b{color:var(--seal)}
+.rpg-end{display:grid;gap:8px;text-align:center;padding:12px}
+.rpg-end b{font-size:20px}.rpg-end p{margin:0}
+
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
 .gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
@@ -582,7 +611,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="story">物語</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
       <div class="eyebrow" id="wEyebrow"></div>
@@ -610,6 +639,13 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
       <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
+  </div>
+  <div id="lt-story" class="view" hidden>
+    <div class="card rpg">
+      <div class="head"><div><div class="eyebrow">英語RPG　提灯の道</div><h2 id="rpgTitle"></h2></div><button class="btn ghost sm" type="button" id="rpgReset">最初から</button></div>
+      <div class="note" id="rpgSub"></div>
+      <div id="rpgBox"></div>
+    </div>
   </div>
   <div id="lt-other" class="view" hidden>
     <div class="card">
@@ -736,7 +772,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794621490"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1794994393"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
