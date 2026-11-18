@@ -1919,253 +1919,337 @@ function bindFit() {
   };
 }
 
-/* ===== 英語RPG「提灯の道」の物語（オリジナル） =====
-   1つの節は次のどれか：
-   { who, en, ja, w }           せりふ・地の文（who が null なら地の文。w は大事な単語 [英, 日]）
-   { choice: {en, ja}, opts: [{ en, ja, go, flag }] }   選択肢
-   { battle: { name, ja, hp, art }, qs: [{ en, ja, opts: [[英, 日]...], a, why }] }   戦い
-   { label }  { go }  { if: flag, go }  { end: 章の名前 } */
+/* ===== 英語RPG『Echoes of Aster（アスターの残響）』（オリジナル） =====
+   全12章＋序章の長編。英文はターゲット1900（Part1〜2）の単語を中心に書く。
+   画面では、文の中のターゲット単語を自動で見つけて下線を引き、「訳」で意味を出す（rpg.js）。
+
+   節の書き方
+   { bg, who, en, ja }                      せりふ・地の文（who が null なら地の文。bg で背景を切りかえ）
+   { choice: {en, ja}, opts: [{ en, ja, go, flag }] }
+   { battle: { name, ja, bg }, vocab: 2, qs: [{ en, ja, opts: [[英, 日]...], a, tip }] }
+       vocab：その章で出てきたターゲット単語から、意味を答える問題を何問足すか
+   { label } { go } { if: flag, go } { end: true }
+
+   全体の流れ（予定）
+   序章 番号のない列車（駅）／1 忘れていく村（村・地下室）／2 ささやきの森の遺跡（遺跡）
+   3 水晶の洞窟（洞窟）：鉱夫ガロと、彼が忘れた娘／4 王都の地下水路（地下水路）
+   5 白い城（城）：忘却こそ救いだと説く王の布告／6 灯の回廊（城の広間・夜の広間）
+   7 大図書館（図書館）：「忘却」が始まった本当の理由／8 港の倉庫と浜辺（港・浜辺）
+   9 沈んだ書庫（海の底）／10 嵐の空（嵐）／11 炎の門（地下の門）
+   12 忘却の女王（玉座の間）／終章 ふたたび夕暮れの駅で */
+
 const RPG_CAST = {
-  daiki: { name: "Daiki", ja: "だいき" },
-  kogitsune: { name: "Kogitsune", ja: "子狐火", img: "kogitsune" },
-  hitotsume: { name: "Hitotsume", ja: "一つ目小僧", img: "hitotsume" },
-  moth: { name: "Ink Moth", ja: "墨蛾", mark: "墨" },
+  ren: { name: "Ren", ja: "レン" },
+  lina: { name: "Lina", ja: "リナ" },
+  conductor: { name: "Conductor", ja: "車掌" },
+  elder: { name: "Elder Bram", ja: "ブラム長老" },
+  knight: { name: "The Hollow Knight", ja: "空ろの騎士" },
+  child: { name: "Little Boy", ja: "小さな男の子" },
+  baker: { name: "Baker", ja: "パン屋" },
   voice: { name: "???", ja: "？？？" }
 };
 
-const RPG_CHAPTERS = [{
-  id: "ch1", title: "Chapter 1: The Fox and the Lantern", ja: "第1章　狐と提灯",
-  nodes: [
-    { bg: "room", who: null, en: "It was two in the morning, the night before the exam. Daiki's pencil rolled off the desk, and the room went dark.", ja: "午前2時、試験の前の夜。だいきの鉛筆が机から転がり落ち、部屋が暗くなった。" },
-    { bg: "road", who: null, en: "When he opened his eyes, he was standing on a narrow road lit by hundreds of paper lanterns.", ja: "目を開けると、彼は何百もの紙の提灯に照らされた細い道に立っていた。", w: [["narrow", "せまい"], ["lit", "light（照らす）の過去分詞"]] },
-    { who: "voice", en: "\"Finally! A human who can still read!\"", ja: "「やっと来た！まだ字が読める人間だ！」" },
-    { who: null, en: "A small white fox with a red flame on its tail jumped onto one of the lanterns.", ja: "尻尾に赤い炎をともした小さな白い狐が、提灯のひとつに飛び乗った。" },
-    { who: "kogitsune", en: "\"I'm Kogitsune. Sorry to bother you, but our world is in serious trouble.\"", ja: "「ぼくは子狐火。じゃましてごめん、でもぼくらの世界は大変なことになってるんだ。」", w: [["bother", "じゃまをする、困らせる"], ["serious", "深刻な"]] },
-    { who: "kogitsune", en: "\"Something called the Silence is eating our words. Once a word disappears, nobody can remember what it meant.\"", ja: "「『沈黙』っていうものが、ぼくらの言葉を食べているんだ。言葉がひとつ消えると、だれもその意味を思い出せなくなる。」", w: [["once", "いったん〜すると"], ["disappear", "消える"]] },
-    { who: "daiki", en: "\"Why are you telling me? I'm just a student who can't even finish his English homework.\"", ja: "「なんで俺に言うんだよ。英語の宿題も終わらない、ただの受験生だぞ。」" },
-    { who: "kogitsune", en: "\"Exactly. These days, students are the only ones who still collect words every single day.\"", ja: "「だからだよ。今では、毎日欠かさず言葉を集めているのは受験生くらいしかいないんだ。」", w: [["exactly", "まさにそのとおり"], ["collect", "集める"]] },
-    { choice: { en: "How do you answer?", ja: "どう答える？" }, opts: [
-      { en: "\"Fine. I'll help, but only if you show me the way home.\"", ja: "「わかった。手伝うよ。ただし、帰り道を教えてくれるならな。」", go: "deal" },
-      { en: "\"Sounds dangerous. Can I think about it?\"", ja: "「危なそうだな。少し考えさせてくれる？」", go: "hesitate" }
-    ] },
-    { label: "deal" },
-    { who: "kogitsune", en: "\"Deal! When this is over, I'll guide you to the Gate of Dawn.\"", ja: "「決まり！これが終わったら、夜明けの門まで案内するよ。」", w: [["guide", "案内する"], ["dawn", "夜明け"]] },
-    { go: "blank" },
-    { label: "hesitate" },
-    { who: "kogitsune", en: "\"There's no time to hesitate. Look behind you!\"", ja: "「迷っている暇はないよ。うしろを見て！」", w: [["hesitate", "ためらう"]] },
-    { label: "blank" },
-    { who: null, en: "Behind them, the lanterns began to go out one by one.", ja: "二人のうしろで、提灯がひとつずつ消え始めた。", w: [["go out", "（火・明かりが）消える"]] },
-    { foe: "blank", who: null, en: "Out of the darkness crawled a shadow shaped like a crumpled page.", ja: "暗闇の中から、くしゃくしゃになったページのような形の影がはい出てきた。", w: [["crawl", "はう"]] },
-    { who: "kogitsune", en: "\"A Blank! It feeds on the words people have forgotten. Answer correctly, and the words will turn back into light!\"", ja: "「ブランクだ！人が忘れた言葉を食べる化け物だよ。正しく答えれば、言葉が光に戻る！」", w: [["feed on", "〜を食べて生きる"], ["turn into", "〜に変わる"]] },
-    { battle: { name: "Blank", ja: "ブランク（白紙の影）", hp: 3, mark: "白", foe: "blank" }, qs: [
-      { en: "Which word means \"to go out of sight suddenly\"?", ja: "「急に見えなくなる」という意味の単語はどれ？", opts: [["vanish", "消える"], ["appear", "現れる"], ["recover", "回復する"], ["require", "必要とする"]], a: 0, why: "vanish＝（急に）消える。disappear とほぼ同じ意味。" },
-      { en: "Why did Kogitsune ask Daiki for help?", ja: "子狐火はなぜだいきに助けを求めた？", opts: [["Because Daiki is good at fighting.", "だいきは戦いが得意だから。"], ["Because students still collect words every day.", "受験生は今も毎日言葉を集めているから。"], ["Because Daiki is also a fox.", "だいきも狐だから。"], ["Because the lanterns told him to.", "提灯にそうしろと言われたから。"]], a: 1, why: "\"students are the only ones who still collect words every single day\" と言っていた。" },
-      { en: "Kogitsune said, \"Sorry to bother you.\" The word \"bother\" is closest in meaning to ___.", ja: "「Sorry to bother you」の bother にいちばん近い意味は？", opts: [["trouble", "困らせる"], ["help", "助ける"], ["praise", "ほめる"], ["ignore", "無視する"]], a: 0, why: "bother＝じゃまをする、困らせる。trouble にも「迷惑をかける」の意味がある。" }
-    ] },
-    { who: null, en: "The Blank let out a scream and burst into a shower of tiny letters.", ja: "ブランクは叫び声をあげ、小さな文字の雨になってはじけた。", w: [["burst into", "〜になってはじける"]] },
-    { who: "kogitsune", en: "\"You did it! See? Here, your words are your weapon.\"", ja: "「やった！ね？ここでは、きみの言葉がきみの武器なんだ。」", w: [["weapon", "武器"]] },
-    { who: null, en: "Among the falling letters, Daiki noticed a small straw hat lying on the road.", ja: "降ってくる文字の中に、道に落ちている小さなわら笠があるのに、だいきは気づいた。", w: [["notice", "気づく"], ["lie（lying）", "横たわる、置いてある"]] },
-    { who: "kogitsune", en: "\"That belongs to Hitotsume, the one-eyed boy. He was supposed to be guarding the bridge.\"", ja: "「それは一つ目小僧の笠だ。橋を守っているはずだったのに。」", w: [["belong to", "〜のものである"], ["be supposed to", "〜するはずだ"]] },
-    { who: "kogitsune", en: "\"If the Silence has taken his name, he may not even remember who he is.\"", ja: "「もし沈黙に名前を取られていたら、自分がだれなのかさえ覚えていないかもしれない。」" },
-    { choice: { en: "What do you do?", ja: "どうする？" }, opts: [
-      { en: "\"Let's head to the bridge right away.\"", ja: "「すぐに橋へ向かおう。」", go: "bridge" },
-      { en: "\"Wait. Let's look around for clues first.\"", ja: "「待って。先に手がかりを探そう。」", go: "clue" }
-    ] },
-    { label: "clue" },
-    { who: null, en: "Under the hat, Daiki found a folded note. It said: \"If you ever forget me, call my name three times.\"", ja: "笠の下に、だいきは折りたたまれたメモを見つけた。こう書いてあった。「もしぼくを忘れたら、名前を3回呼んで。」", w: [["fold", "折りたたむ"]], flag: "note" },
-    { who: "kogitsune", en: "\"Good thinking. That might come in handy later.\"", ja: "「いい考えだね。あとで役に立つかもしれない。」", w: [["come in handy", "役に立つ"]] },
-    { label: "bridge" },
-    { bg: "bridge", who: null, en: "The bridge was covered in fog so thick that Daiki could hardly see his own hands.", ja: "橋はとても濃い霧におおわれていて、だいきは自分の手さえほとんど見えなかった。", w: [["so 〜 that ...", "とても〜なので…"], ["hardly", "ほとんど〜ない"]] },
-    { who: null, en: "In the middle stood a child with one huge eye, staring at nothing.", ja: "真ん中には、大きな目がひとつある子どもが立っていて、何もないところをじっと見つめていた。", w: [["stare at", "〜をじっと見る"]] },
-    { who: "hitotsume", en: "\"Who... am I? I was protecting something important. I just can't recall what it was.\"", ja: "「ぼくは…だれ？何か大事なものを守っていたんだ。それが何だったか、どうしても思い出せない。」", w: [["recall", "思い出す"]] },
-    { who: "kogitsune", en: "\"It's worse than I expected. The Silence must be close.\"", ja: "「思っていたよりひどい。沈黙が近くにいるにちがいない。」", w: [["expect", "予想する"], ["must", "〜にちがいない"]] },
-    { who: null, en: "Suddenly, the fog gathered into the shape of a giant moth whose wings were made of torn dictionaries.", ja: "突然、霧が集まり、破れた辞書でできた羽をもつ巨大な蛾の形になった。", w: [["gather", "集まる"], ["torn", "tear（破る）の過去分詞"]] },
-    { foe: "moth", who: "moth", en: "\"Words are heavy. Meaning is a burden. Give them all to me, and you will never have to study again.\"", ja: "「言葉は重い。意味は重荷だ。全部わたしによこしなさい。そうすれば、もう二度と勉強しなくていい。」", w: [["burden", "重荷"]] },
-    { who: "daiki", en: "\"...Never study again? Honestly, that sounds kind of nice.\"", ja: "「…二度と勉強しなくていい？正直、ちょっといいかも。」" },
-    { who: "kogitsune", en: "\"Daiki! Don't listen to it! If you lose your words, you lose yourself!\"", ja: "「だいき！耳を貸しちゃだめ！言葉を失ったら、自分自身を失うんだよ！」" },
-    { choice: { en: "How do you respond?", ja: "どう返す？" }, opts: [
-      { en: "\"You're right. I'm not giving my words to anyone.\"", ja: "「そうだな。俺の言葉はだれにも渡さない。」", go: "boss" },
-      { en: "\"I'll admit I was tempted... but no way.\"", ja: "「正直ちょっと揺れた…でも、お断りだ。」", go: "boss" }
-    ] },
-    { label: "boss" },
-    { who: "moth", en: "\"Then I will simply take them by force!\"", ja: "「ならば、力ずくでいただくまでだ！」", w: [["by force", "力ずくで"]] },
-    { battle: { name: "Ink Moth", ja: "墨蛾（沈黙の手下）", hp: 5, mark: "墨", boss: true, foe: "moth" }, qs: [
-      { en: "The moth said that meaning is a \"burden.\" A burden is something that is ___.", ja: "蛾は「意味は burden だ」と言った。burden とは、どんなもの？", opts: [["heavy and hard to carry", "重くて運ぶのが大変なもの"], ["bright and beautiful", "明るくて美しいもの"], ["easy to forget", "忘れやすいもの"], ["fast and dangerous", "速くて危険なもの"]], a: 0, why: "burden＝重荷。「重くて運ぶのが大変なもの」。" },
-      { en: "Why could Daiki hardly see his own hands on the bridge?", ja: "橋の上で、だいきが自分の手もほとんど見えなかったのはなぜ？", opts: [["Because it was too dark.", "暗すぎたから。"], ["Because the fog was very thick.", "霧がとても濃かったから。"], ["Because he closed his eyes.", "目を閉じていたから。"], ["Because the moth covered them.", "蛾がおおっていたから。"]], a: 1, why: "\"fog so thick that Daiki could hardly see\"＝霧がとても濃くてほとんど見えなかった。" },
-      { en: "Which word means \"to bring something back into your mind\"?", ja: "「何かを心に呼び戻す」＝思い出す、という意味の単語は？", opts: [["recall", "思い出す"], ["refuse", "断る"], ["reduce", "減らす"], ["reveal", "明らかにする"]], a: 0, why: "recall＝思い出す。remember とほぼ同じ。" },
-      { en: "What was Hitotsume supposed to be doing?", ja: "一つ目小僧は何をしているはずだった？", opts: [["guarding the bridge", "橋を守ること"], ["cooking dinner", "夕食を作ること"], ["studying English", "英語を勉強すること"], ["chasing the moth", "蛾を追いかけること"]], a: 0, why: "\"He was supposed to be guarding the bridge.\" とあった。be supposed to＝〜するはずだ。" },
-      { en: "In \"Daiki could hardly see his own hands,\" the word \"hardly\" means ___.", ja: "「could hardly see」の hardly の意味は？", opts: [["easily", "簡単に"], ["almost not", "ほとんど〜ない"], ["completely", "完全に"], ["carefully", "注意深く"]], a: 1, why: "hardly＝ほとんど〜ない。hard（かたい、熱心に）とはちがう意味なので注意。" }
-    ] },
-    { who: null, en: "With a cry like ripping paper, the Ink Moth broke apart and melted into the fog.", ja: "紙を引き裂くような叫び声とともに、墨蛾はばらばらになり、霧の中に溶けていった。", w: [["rip", "引き裂く"], ["melt", "溶ける"]] },
-    { if: "note", go: "shout" },
-    { who: "kogitsune", en: "\"Daiki, call his name! Names bring memories back!\"", ja: "「だいき、彼の名前を呼んで！名前は記憶を連れ戻すんだ！」" },
-    { label: "shout" },
-    { who: "daiki", en: "\"Hitotsume! Hitotsume! Hitotsume!\"", ja: "「一つ目小僧！一つ目小僧！一つ目小僧！」" },
-    { who: "hitotsume", en: "\"...That's me! I'm Hitotsume, guardian of the Lantern Bridge!\"", ja: "「…それ、ぼくだ！ぼくは一つ目小僧、提灯橋の番人だ！」", w: [["guardian", "守る人、番人"]] },
-    { who: "hitotsume", en: "\"Thank you. Without your voice, I would have faded away completely.\"", ja: "「ありがとう。きみの声がなかったら、ぼくは完全に消えてしまっていた。」", w: [["without 〜, would have ...", "〜がなかったら…していただろう（仮定法）"], ["fade away", "消えていく"]] },
-    { who: "kogitsune", en: "\"This is only the beginning. The Silence has five more generals, and each one is stronger than the last.\"", ja: "「これはまだ始まりにすぎない。沈黙にはあと5人の将軍がいて、あとになるほど強いんだ。」", w: [["general", "将軍"]] },
-    { bg: "mountain", who: null, en: "Far away, at the top of a dark mountain, something with enormous wings slowly opened its eyes.", ja: "遠く、暗い山のいただきで、巨大な翼をもつ何かが、ゆっくりと目を開いた。", w: [["enormous", "巨大な"]] },
-    { end: "第1章 クリア" }
-  ]
-}];
+const RPG_CHAPTERS = [
+/* ───────────────────────── 序章 ───────────────────────── */
+{ id: "p0", title: "Prologue: The Train with No Number", ja: "序章　番号のない列車", nodes: [
+  { bg: "station", who: null, en: "The sun was going down, and the platform was almost empty.", ja: "日が沈みかけていて、ホームにはほとんど人がいなかった。" },
+  { who: null, en: "Ren sat on a bench, holding an old photograph. In it, he was smiling next to a girl whose face had completely disappeared.", ja: "レンは古い写真を手に、ベンチに座っていた。写真の中の彼は笑っていて、その隣には顔がすっかり消えてしまった少女がいた。" },
+  { who: "ren", en: "\"Mio...\"", ja: "「ミオ……」" },
+  { who: null, en: "A year ago, his younger sister had vanished. What was worse, everyone else had forgotten that she had ever existed.", ja: "1年前、妹が姿を消した。さらに悪いことに、ほかのだれもが、彼女がこの世にいたことさえ忘れてしまった。" },
+  { who: null, en: "Her room was now used for storage. Her name was no longer on the class list. Even his parents looked confused whenever he mentioned her.", ja: "彼女の部屋は今では物置になっている。クラス名簿にも名前はない。両親でさえ、彼が妹の話をするたびに戸惑った顔をした。" },
+  { who: "ren", en: "\"Am I the only person in the world who still remembers you?\"", ja: "「おまえを覚えているのは、世界で俺だけなのか？」" },
+  { who: null, en: "Just then, a bell rang. It was a sound that did not appear on any timetable.", ja: "ちょうどそのとき、ベルが鳴った。どの時刻表にも載っていない音だった。" },
+  { who: null, en: "A silver train with no number on its side slowly approached the station and stopped in front of him.", ja: "車体に番号のない銀色の列車が、ゆっくりと駅に近づき、彼の目の前で止まった。" },
+  { who: "conductor", en: "\"If you still remember her, get on board. This train does not wait for those who hesitate.\"", ja: "「まだ彼女を覚えているなら、お乗りなさい。この列車は、ためらう者を待ちません。」" },
+  { choice: { en: "What will Ren do?", ja: "レンはどうする？" }, opts: [
+    { en: "Get on without saying a word.", ja: "何も言わずに乗る。", go: "board" },
+    { en: "\"Wait. Where does this train go?\"", ja: "「待ってくれ。この列車はどこへ行くんだ？」", go: "ask" }
+  ] },
+  { label: "ask" },
+  { who: "conductor", en: "\"To the place where forgotten things end up. Whether you can return depends entirely on you.\"", ja: "「忘れられたものが行き着く場所へ。戻ってこられるかどうかは、すべてあなたしだいです。」" },
+  { label: "board" },
+  { who: null, en: "Ren took a deep breath and stepped inside. The doors closed behind him without a sound.", ja: "レンは深く息を吸って、中へ足を踏み入れた。扉は音もなく閉まった。" },
+  { who: null, en: "Outside the window, the town melted into gold, then into darkness, and finally into a sky full of unfamiliar stars.", ja: "窓の外で、町は金色に溶け、やがて暗闇になり、最後には見たことのない星でいっぱいの空に変わった。" },
+  { who: "conductor", en: "\"Before we arrive, I must check your ticket. Here, a ticket is a memory. Show me that yours is real.\"", ja: "「到着の前に、切符を拝見します。ここでは、切符とは記憶のこと。あなたの記憶が本物だと示してください。」" },
+  { battle: { name: "Ticket Check", ja: "検札" }, vocab: 1, qs: [
+    { en: "Why was Ren holding the photograph?", ja: "レンはなぜ写真を持っていた？", opts: [["He wanted to sell it.", "売りたかったから。"], ["It was the only proof of his sister.", "妹がいた唯一の証だったから。"], ["He found it on the bench.", "ベンチで拾ったから。"], ["The conductor gave it to him.", "車掌にもらったから。"]], a: 1, tip: "ほかの人はみんな妹を忘れている。写真は、妹がいたことを示す数少ないもの。" },
+    { en: "What happened to Mio's room?", ja: "ミオの部屋はどうなった？", opts: [["It became a storage room.", "物置になった。"], ["It was locked.", "鍵がかけられた。"], ["Ren moved into it.", "レンが使うようになった。"], ["It was destroyed.", "壊された。"]], a: 0, tip: "\"Her room was now used for storage.\" storage＝保管、物置。" }
+  ] },
+  { who: "conductor", en: "\"Very well. Your memory is clear and strong. Welcome to Aster, the land of forgotten things.\"", ja: "「けっこう。あなたの記憶ははっきりしていて、強い。ようこそアスターへ。忘れられたものたちの国へ。」" },
+  { end: true }
+] },
 
-/* ===== 英語RPGの風景と敵の絵（すべて手描きのSVG。外の画像は使わない） ===== */
-const RPG_DEFS = `<defs>
-  <radialGradient id="rgGlow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".95"/><stop offset=".45" stop-color="#ff9a3c" stop-opacity=".35"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient>
-  <radialGradient id="rgMoon"><stop offset=".55" stop-color="#fff6dc"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
-  <linearGradient id="rgNight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1030"/><stop offset=".65" stop-color="#2a1d4e"/><stop offset="1" stop-color="#4a2a4a"/></linearGradient>
-  <linearGradient id="rgRoad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a3a"/><stop offset="1" stop-color="#1a1220"/></linearGradient>
-  <linearGradient id="rgRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a0a14"/><stop offset=".7" stop-color="#5a1420"/><stop offset="1" stop-color="#a8321e"/></linearGradient>
-  <linearGradient id="rgRoom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14161f"/><stop offset="1" stop-color="#0a0b10"/></linearGradient>
-  <filter id="rgBlur"><feGaussianBlur stdDeviation="6"/></filter>
-  <filter id="rgSoft"><feGaussianBlur stdDeviation="2"/></filter>
-</defs>`;
-const rgStars = n => { let s = "", x = 7; for (let i = 0; i < n; i++) { x = (x * 73 + 41) % 397; const y = (x * 37 + i * 53) % 110; s += `<circle cx="${x}" cy="${y}" r="${(i % 3) * .4 + .5}" fill="#fff" opacity="${.35 + (i % 4) * .15}"/>`; } return s; };
-/** 提灯1つ（x, y：中心、s：大きさ、d：ゆらぎの遅れ） */
-const rgLantern = (x, y, s, d = 0) => `<g class="rg-lan" style="animation-delay:${d}s">
-  <circle cx="${x}" cy="${y}" r="${s * 2.6}" fill="url(#rgGlow)"/>
-  <line x1="${x}" y1="${y - s * 1.6}" x2="${x}" y2="${y - s * 2.4}" stroke="#2a1a10" stroke-width="${s * .15}"/>
-  <rect x="${x - s * .55}" y="${y - s * 1.25}" width="${s * 1.1}" height="${s * .22}" rx="${s * .05}" fill="#2a1a10"/>
-  <ellipse cx="${x}" cy="${y}" rx="${s * .8}" ry="${s * 1.1}" fill="#f2a24a"/>
-  <ellipse cx="${x}" cy="${y}" rx="${s * .8}" ry="${s * 1.1}" fill="none" stroke="#c4622a" stroke-width="${s * .07}"/>
-  <path d="M${x - s * .8} ${y - s * .4}h${s * 1.6}M${x - s * .8} ${y + s * .4}h${s * 1.6}" stroke="#c4622a" stroke-width="${s * .06}"/>
-  <rect x="${x - s * .55}" y="${y + s * 1.03}" width="${s * 1.1}" height="${s * .22}" rx="${s * .05}" fill="#2a1a10"/></g>`;
-const rgFog = (y, o, d) => `<g class="rg-fog" style="animation-delay:${d}s" filter="url(#rgBlur)" opacity="${o}"><ellipse cx="80" cy="${y}" rx="120" ry="18" fill="#e8e6f2"/><ellipse cx="300" cy="${y + 6}" rx="140" ry="20" fill="#e8e6f2"/><ellipse cx="520" cy="${y}" rx="120" ry="18" fill="#e8e6f2"/></g>`;
+/* ───────────────────────── 第1章 ───────────────────────── */
+{ id: "c1", title: "Chapter 1: The Village That Forgets", ja: "第1章　忘れていく村", nodes: [
+  { bg: "village", who: null, en: "When Ren woke up, he was lying on a stone road in the middle of a quiet village.", ja: "目を覚ますと、レンは静かな村の真ん中で、石畳の道に横たわっていた。" },
+  { who: null, en: "The sky was clear and the trees were green, but something about the place felt wrong.", ja: "空は晴れ、木々は緑だった。でも、この場所の何かがおかしい気がした。" },
+  { who: "baker", en: "\"Good morning! Would you like some bread? It costs... it costs... I'm sorry, I can't seem to remember.\"", ja: "「おはよう！パンはいかが？お値段は……ええと……ごめんなさい、どうしても思い出せなくて。」" },
+  { who: null, en: "Nearby, two children were playing together. Suddenly, one of them stopped and stared at the other.", ja: "近くで、二人の子どもがいっしょに遊んでいた。突然、ひとりが手を止めて、もうひとりをじっと見つめた。" },
+  { who: "child", en: "\"Excuse me... who are you? Why am I holding your hand?\"", ja: "「ねえ……きみ、だれ？なんでぼく、きみと手をつないでるの？」" },
+  { who: "voice", en: "\"Don't be scared. It happens every day now. People lose a little more of themselves each morning.\"", ja: "「こわがらないで。今では毎日起きていることなの。人は毎朝、自分を少しずつ失っていくの。」" },
+  { who: null, en: "A girl about Ren's age was standing behind him. She was holding a small lantern shaped like an open book.", ja: "レンと同じくらいの年の少女が、うしろに立っていた。開いた本の形をした小さなランタンを持っている。" },
+  { who: "lina", en: "\"I'm Lina, an apprentice at the Great Library of Aster. And you... you're not from here, are you?\"", ja: "「わたしはリナ。アスター大図書館の見習いよ。それにあなた……ここの人じゃないでしょう？」" },
+  { who: "ren", en: "\"How did you know?\"", ja: "「どうしてわかった？」" },
+  { who: "lina", en: "\"Your memory is shining. I can see it in my lantern. People here have lost that kind of light.\"", ja: "「あなたの記憶が光ってるの。わたしのランタンに映って見える。ここの人たちは、もうそういう光をなくしてしまったから。」" },
+  { who: null, en: "Ren showed her the photograph and explained everything: his sister, the faceless picture, and the train with no number.", ja: "レンは写真を見せて、すべてを説明した。妹のこと、顔の消えた写真のこと、そして番号のない列車のこと。" },
+  { who: "lina", en: "\"Then she might be in Aster. Everything the world forgets eventually comes here, whether it is an object, a place, or a person.\"", ja: "「それなら、彼女はアスターにいるかもしれない。世界が忘れたものは、物でも場所でも人でも、いずれはここにたどり着くの。」" },
+  { who: "lina", en: "\"But Aster is in danger, too. A year ago, something we call the Fading began. Memories turn into gray dust and simply blow away.\"", ja: "「でも、アスターも危ないの。1年前、わたしたちが『色あせ』と呼んでいるものが始まった。記憶が灰色の粉になって、そのまま吹き飛んでしまうの。」" },
+  { who: "ren", en: "\"A year ago... That's exactly when Mio disappeared.\"", ja: "「1年前……ちょうどミオが消えたときだ。」" },
+  { who: "lina", en: "\"Then perhaps the two are connected. Come with me. Elder Bram knows more about the Fading than anyone.\"", ja: "「なら、その二つはつながっているのかもしれない。いっしょに来て。ブラム長老なら、色あせについてだれよりもくわしいわ。」" },
+  { bg: "cellar", who: null, en: "The elder's house had a cellar lit by a single torch. An old man was sitting in the corner, holding a wooden box tightly.", ja: "長老の家には、たいまつ一本で照らされた地下室があった。老人が隅に座って、木の箱をしっかりと抱えていた。" },
+  { who: "elder", en: "\"Lina? Is that you? I put something precious in this box, but I can't recall what it was.\"", ja: "「リナか？わしはこの箱に大切なものを入れたのじゃが、それが何だったか思い出せんのだ。」" },
+  { who: "lina", en: "\"Elder, please try. We need to know where the Fading started.\"", ja: "「長老、思い出してみて。色あせがどこで始まったのか、知る必要があるの。」" },
+  { who: null, en: "Before the old man could answer, the torch flickered. The shadows on the wall began to move by themselves.", ja: "老人が答える前に、たいまつの火がゆらいだ。壁の影が、ひとりでに動き始めた。" },
+  { who: "lina", en: "\"A Hollow! It's a monster made from abandoned memories. Ren, stay behind me!\"", ja: "「ホロウよ！捨てられた記憶から生まれた化け物。レン、わたしのうしろに！」" },
+  { who: "ren", en: "\"No way. I'm not going to stand behind anyone while you fight alone.\"", ja: "「冗談じゃない。きみがひとりで戦ってるのに、だれかのうしろに隠れてなんかいられるか。」" },
+  { who: "lina", en: "\"Then listen. Hollows are weak against true words. Answer what they ask with the right meaning, and they will lose their shape.\"", ja: "「じゃあ聞いて。ホロウは本当の言葉に弱いの。問いかけに正しい意味で答えれば、形を保てなくなる。」" },
+  { battle: { name: "Cellar Hollow", ja: "地下室のホロウ" }, vocab: 2, qs: [
+    { en: "Why couldn't the baker tell Ren the price of the bread?", ja: "パン屋はなぜパンの値段を言えなかった？", opts: [["She did not want to sell it.", "売りたくなかったから。"], ["She had forgotten it.", "忘れてしまったから。"], ["The bread was free.", "パンは無料だったから。"], ["Ren had no money.", "レンがお金を持っていなかったから。"]], a: 1, tip: "\"I can't seem to remember.\" can't seem to ～＝どうしても～できないようだ。" },
+    { en: "According to Lina, what happens to everything the world forgets?", ja: "リナによると、世界が忘れたものはどうなる？", opts: [["It disappears forever.", "永遠に消える。"], ["It eventually comes to Aster.", "いずれアスターにやって来る。"], ["It turns into a train.", "列車に変わる。"], ["It goes back to its owner.", "持ち主のもとに戻る。"]], a: 1, tip: "eventually＝最終的に、いずれは。" }
+  ] },
+  { who: null, en: "The shadow let out a long sigh and broke into gray dust. For a moment, the cellar was silent.", ja: "影は長いため息をつき、灰色の粉になって崩れた。しばらくのあいだ、地下室は静まり返っていた。" },
+  { who: null, en: "Then the elder slowly opened the wooden box. Inside was a tiny pair of children's shoes.", ja: "やがて長老は、ゆっくりと木の箱を開けた。中には小さな子ども用の靴が入っていた。" },
+  { who: "elder", en: "\"These belonged to my grandson... I remember now. He used to run to me every evening, laughing.\"", ja: "「これは孫の靴じゃ……今、思い出した。あの子は毎晩、笑いながらわしのところへ駆けてきたものじゃ。」" },
+  { who: "elder", en: "\"I would rather feel this pain than lose him again. Thank you, young man.\"", ja: "「もう一度あの子を失うくらいなら、この痛みを感じているほうがいい。ありがとう、若いの。」" },
+  { who: "elder", en: "\"The Fading started at the old shrine in the Whispering Forest. A knight guards it now, but he no longer remembers whom he serves.\"", ja: "「色あせは、ささやきの森の古いほこらで始まった。今は騎士がそこを守っておるが、自分がだれに仕えておるのか、もう覚えてはおらん。」" },
+  { bg: "village", who: null, en: "That night, Ren and Lina sat by the fountain in the empty square.", ja: "その夜、レンとリナは、だれもいない広場の噴水のそばに座っていた。" },
+  { who: "lina", en: "\"Can I ask you something? Remembering your sister must hurt. Why don't you just let her go?\"", ja: "「ひとつ聞いてもいい？妹さんを覚えているのは、つらいはずよね。どうして手放してしまわないの？」" },
+  { choice: { en: "How does Ren answer?", ja: "レンはどう答える？" }, opts: [
+    { en: "\"Because if I forget her too, she will really be gone.\"", ja: "「俺まで忘れたら、あいつは本当にいなくなってしまうから。」", go: "c1a", flag: "promise" },
+    { en: "\"I tried. But my heart refused to let her go.\"", ja: "「やってみたさ。でも、心がどうしても手放そうとしなかった。」", go: "c1b" }
+  ] },
+  { label: "c1a" },
+  { who: "lina", en: "\"...Then I'll help you keep her. That's a promise.\"", ja: "「……なら、わたしが手伝う。彼女を失わないように。約束する。」" },
+  { go: "c1end" },
+  { label: "c1b" },
+  { who: "lina", en: "\"Hearts are stubborn like that. I think yours is right.\"", ja: "「心って、そういうところが頑固なのよね。でも、あなたの心は正しいと思う。」" },
+  { label: "c1end" },
+  { who: null, en: "Lina's lantern flickered for a moment, as if it were tired. She quickly covered it with her sleeve.", ja: "リナのランタンが、疲れたように一瞬ゆらいだ。彼女はすぐに袖でそれを隠した。" },
+  { end: true }
+] },
 
-const RPG_SCENES = {
-  room: () => `<rect width="400" height="200" fill="url(#rgRoom)"/>
-    <rect x="250" y="22" width="100" height="80" rx="3" fill="#1c2340" stroke="#2c3350" stroke-width="4"/><circle cx="318" cy="48" r="16" fill="url(#rgMoon)"/>${'<circle cx="270" cy="35" r=".8" fill="#fff"/><circle cx="292" cy="80" r=".7" fill="#fff"/><circle cx="335" cy="88" r=".9" fill="#fff"/>'}
-    <path d="M300 22v80M250 62h100" stroke="#2c3350" stroke-width="3"/>
-    <circle cx="96" cy="118" r="60" fill="url(#rgGlow)" opacity=".55"/>
-    <path d="M70 100l18-30h26l-6 30z" fill="#3a3326"/><rect x="88" y="100" width="4" height="32" fill="#3a3326"/>
-    <rect x="20" y="132" width="300" height="12" rx="2" fill="#2b2118"/><rect x="40" y="144" width="10" height="56" fill="#21190f"/><rect x="290" y="144" width="10" height="56" fill="#21190f"/>
-    <rect x="130" y="118" width="80" height="14" rx="2" fill="#e9e3d2" transform="rotate(-4 170 125)"/><path d="M138 122h60M138 127h50" stroke="#9a937f" stroke-width="1" transform="rotate(-4 170 125)"/>
-    <rect x="225" y="160" width="26" height="3" rx="1.5" fill="#e0b040" transform="rotate(20 238 161)"/>`,
-  road: () => `<rect width="400" height="200" fill="url(#rgNight)"/>${rgStars(50)}<circle cx="320" cy="42" r="22" fill="url(#rgMoon)"/>
-    <path d="M0 120L60 92 120 112 190 80 260 108 330 86 400 110V200H0z" fill="#1a1530"/>
-    <path d="M0 132L80 116 150 126 230 108 310 124 400 114V200H0z" fill="#120f22"/>
-    <path d="M178 120h44L330 200H70z" fill="url(#rgRoad)"/>
-    ${[[150, 116, 3], [250, 116, 3], [135, 126, 4.5], [265, 126, 4.5], [112, 142, 7], [288, 142, 7], [78, 168, 10], [322, 168, 10]].map(([x, y, s], i) => rgLantern(x, y, s, i * .37)).join("")}`,
-  bridge: () => `<rect width="400" height="200" fill="url(#rgNight)"/>${rgStars(25)}
-    <path d="M0 150Q200 70 400 150" fill="none" stroke="#7a1e1e" stroke-width="10"/>
-    <path d="M0 160Q200 82 400 160" fill="none" stroke="#5a1414" stroke-width="5"/>
-    ${[40, 120, 200, 280, 360].map((x, i) => { const y = 150 - 80 * (1 - Math.pow((x - 200) / 200, 2)); return `<rect x="${x - 3}" y="${y - 22}" width="6" height="24" fill="#6a1818"/>` + rgLantern(x, y - 30, 4, i * .4); }).join("")}
-    <rect y="165" width="400" height="35" fill="#0d0b1a"/>
-    ${rgFog(150, .55, 0)}${rgFog(120, .35, 3)}${rgFog(175, .6, 6)}`,
-  mountain: () => `<rect width="400" height="200" fill="url(#rgRed)"/>${rgStars(15)}
-    <path d="M0 200L120 110 170 130 230 40 290 120 340 100 400 140V200z" fill="#0c0508"/>
-    <g class="rg-eyes"><path d="M150 70Q230 10 230 52Q230 10 310 70Q260 50 230 66Q200 50 150 70z" fill="#1a0a0e" opacity=".9"/>
-    <circle cx="220" cy="56" r="3" fill="#ffd34a"/><circle cx="240" cy="56" r="3" fill="#ffd34a"/></g>`
-};
-const RPG_FOES = {
-  blank: () => `<g class="rg-foe"><path d="M150 60l30 -14 22 10 26 -12 24 18 -8 26 14 22 -18 30 -30 6 -22 -10 -30 8 -14 -30 10 -24z" fill="#e8e6f0" opacity=".92"/>
-    <path d="M168 76l22 6M205 70l18 14M178 110l30 -6M215 112l18 8M175 92h40" stroke="#9a96aa" stroke-width="1.5"/>
-    <ellipse cx="190" cy="96" rx="6" ry="8" fill="#111"/><ellipse cx="222" cy="96" rx="6" ry="8" fill="#111"/><path d="M196 124q10 -8 20 0" stroke="#111" stroke-width="3" fill="none"/></g>`,
-  moth: () => `<g class="rg-foe"><path d="M200 100C150 40 90 40 80 80C76 110 130 120 196 108C140 130 120 170 160 176C190 180 198 140 200 116C202 140 210 180 240 176C280 170 260 130 204 108C270 120 324 110 320 80C310 40 250 40 200 100z" fill="#1c1c24" stroke="#3a3a48" stroke-width="2"/>
-    <path d="M110 70h50M106 82h56M112 94h48M240 70h50M238 82h56M240 94h48M150 150h30M222 150h30" stroke="#e8e2d0" stroke-width="1.5" opacity=".7"/>
-    <ellipse cx="200" cy="112" rx="9" ry="34" fill="#0a0a10"/><circle cx="194" cy="86" r="3" fill="#ff4a4a"/><circle cx="206" cy="86" r="3" fill="#ff4a4a"/>
-    <path d="M196 80q-14 -26 -26 -30M204 80q14 -26 26 -30" stroke="#0a0a10" stroke-width="2.5" fill="none"/></g>`
-};
-function rpgArt(bg, foe) {
-  const scene = (RPG_SCENES[bg] || RPG_SCENES.road)();
-  return `<svg class="rpg-scene" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${RPG_DEFS}${scene}${foe && RPG_FOES[foe] ? RPG_FOES[foe]() : ""}</svg>`;
+/* ───────────────────────── 第2章 ───────────────────────── */
+{ id: "c2", title: "Chapter 2: Ruins of the Whispering Forest", ja: "第2章　ささやきの森の遺跡", nodes: [
+  { bg: "ruins", who: null, en: "Deep in the forest stood the remains of an ancient shrine, covered with moss and climbing plants.", ja: "森の奥深くに、苔とつる草におおわれた古いほこらの跡が立っていた。" },
+  { who: null, en: "As they walked, the leaves seemed to whisper words in a language Ren almost understood.", ja: "歩いていると、木の葉がささやいているように聞こえた。レンにはほとんどわかりそうな言葉で。" },
+  { who: "lina", en: "\"The trees are repeating memories that people have abandoned. Try not to listen too closely, or you might get lost in them.\"", ja: "「木々は、人々が捨てた記憶をくり返しているの。あまり聞き入らないで。迷いこんでしまうかもしれないから。」" },
+  { who: "voice", en: "\"Ren... Don't look for me... It's better this way...\"", ja: "「レン……わたしを探さないで……このほうがいいの……」" },
+  { who: "ren", en: "\"Mio? Mio! Was that you?\"", ja: "「ミオ？ミオ！今のはおまえか？」" },
+  { who: "lina", en: "\"Ren, wait! The forest imitates voices to confuse travelers!\"", ja: "「レン、待って！森は旅人をまどわすために声をまねるのよ！」" },
+  { choice: { en: "What does Ren do?", ja: "レンはどうする？" }, opts: [
+    { en: "Run toward the voice.", ja: "声のほうへ走る。", go: "run" },
+    { en: "Stop and trust Lina.", ja: "立ち止まって、リナを信じる。", go: "trust", flag: "trust" }
+  ] },
+  { label: "run" },
+  { who: null, en: "Ren ran between the trees until his breath ran out. There was no one there, only an old ribbon caught on a branch.", ja: "レンは息が切れるまで木々のあいだを走った。だれもいなかった。枝に古いリボンが引っかかっているだけだった。" },
+  { who: null, en: "He recognized it at once. It was the blue ribbon he had given Mio on her tenth birthday.", ja: "彼にはすぐにわかった。ミオの10歳の誕生日に、彼が贈った青いリボンだった。", flag: "ribbon" },
+  { who: "lina", en: "\"Ren! Don't ever run off like that again... But that ribbon proves she really came this way.\"", ja: "「レン！二度とあんなふうに走っていかないで……でも、そのリボンは、彼女が本当にこの道を通った証拠ね。」" },
+  { go: "gate" },
+  { label: "trust" },
+  { who: null, en: "Ren clenched his fists and stayed where he was. Slowly, the voice faded into the wind.", ja: "レンはこぶしを握りしめ、その場にとどまった。声はゆっくりと風の中に消えていった。" },
+  { who: "lina", en: "\"Thank you for trusting me. I know how much you wanted to follow it.\"", ja: "「信じてくれてありがとう。あの声を追いかけたかった気持ち、よくわかる。」" },
+  { label: "gate" },
+  { who: null, en: "At the center of the ruins was a dark archway. In front of it stood a knight in rusted armor, holding a broken sword.", ja: "遺跡の中心に、暗いアーチがあった。その前に、さびた鎧の騎士が折れた剣を持って立っていた。" },
+  { who: "knight", en: "\"Stop. I was ordered to protect this place. No one may pass.\"", ja: "「止まれ。わたしはこの場所を守るよう命じられた。だれも通さぬ。」" },
+  { who: "lina", en: "\"Who gave you that order, Sir Knight?\"", ja: "「騎士さま、その命令はだれから受けたのですか？」" },
+  { who: "knight", en: "\"Who...? I... I do not know. I only know that I must not fail again.\"", ja: "「だれ……？わたしは……わからぬ。ただ、二度と失敗してはならぬ、それだけはわかる。」" },
+  { who: "ren", en: "\"Again? Then you failed someone before. Who was it?\"", ja: "「二度と？じゃあ、前にだれかを守れなかったんだな。それはだれだ？」" },
+  { who: null, en: "The knight's helmet shook violently. Gray dust poured out of the gaps in his armor.", ja: "騎士のかぶとが激しく揺れた。鎧のすき間から、灰色の粉があふれ出した。" },
+  { who: "knight", en: "\"Do not ask me that! Leave, or I will make you forget your own name!\"", ja: "「それを聞くな！立ち去れ。さもなくば、おまえ自身の名前を忘れさせてやる！」" },
+  { battle: { name: "The Hollow Knight", ja: "空ろの騎士", boss: true }, vocab: 3, qs: [
+    { en: "Why did Lina tell Ren not to listen to the trees too closely?", ja: "リナはなぜ、木々の声に聞き入らないように言った？", opts: [["The trees were dangerous animals.", "木々が危険な動物だったから。"], ["He might get lost in abandoned memories.", "捨てられた記憶の中で迷うかもしれないから。"], ["The trees were telling lies about Mio.", "木々がミオについてうそをついていたから。"], ["They had no time to rest.", "休む時間がなかったから。"]], a: 1, tip: "\"or you might get lost in them\" ＝ さもないと、その中で迷うかもしれない。命令文＋or は「さもないと」。" },
+    { en: "What does the knight know for certain?", ja: "騎士がはっきりわかっていることは？", opts: [["The name of his king.", "王の名前。"], ["Where the Fading began.", "色あせが始まった場所。"], ["That he must not fail again.", "二度と失敗してはならないこと。"], ["Who Ren is.", "レンがだれか。"]], a: 2, tip: "\"I only know that I must not fail again.\" only know ＝それしかわからない。" },
+    { en: "In \"Gray dust poured out of the gaps,\" the word \"poured\" is closest to ___.", ja: "\"poured\" にいちばん近い意味は？", opts: [["flowed out", "流れ出た"], ["froze", "凍った"], ["rose slowly", "ゆっくり上がった"], ["disappeared", "消えた"]], a: 0, tip: "pour＝注ぐ、どっと流れ出る。" }
+  ] },
+  { who: null, en: "The broken sword fell from the knight's hand. He dropped to one knee, and his voice became calm and human.", ja: "折れた剣が騎士の手から落ちた。彼は片ひざをつき、その声は落ち着いた、人間らしいものになった。" },
+  { who: "knight", en: "\"Now I remember. I served a young girl who came here a year ago. She was crying, and she asked me to guard the door so that no one would follow her.\"", ja: "「今、思い出した。わたしは1年前ここに来た少女に仕えていた。彼女は泣いていて、だれも追ってこないよう、扉を守ってほしいとわたしに頼んだのだ。」" },
+  { who: "ren", en: "\"A girl... about this tall? With a quiet voice?\"", ja: "「少女……このくらいの背の？静かな声の？」" },
+  { if: "ribbon", go: "kribbon" },
+  { who: "knight", en: "\"Yes. She said her brother was the only one who would keep searching for her, and that she could not bear to be found.\"", ja: "「そうだ。彼女は言った。自分を探し続けるのは兄だけだろう、そして、見つけられることには耐えられない、と。」" },
+  { go: "kend" },
+  { label: "kribbon" },
+  { who: "knight", en: "\"Yes... she wore a blue ribbon like the one in your hand. She said her brother gave it to her, and that she could not bear to be found by him.\"", ja: "「ああ……きみが持っているような青いリボンをつけていた。兄にもらったのだと言っていた。そして、その兄に見つけられることには耐えられない、と。」" },
+  { label: "kend" },
+  { who: "ren", en: "\"Why? Why would she run away from me?\"", ja: "「なぜだ？なぜ俺から逃げなきゃいけないんだ？」" },
+  { who: "knight", en: "\"That, I cannot answer. But she went toward the Crystal Caves, and then to the capital. Please... protect her better than I did.\"", ja: "「それには答えられぬ。だが彼女は水晶の洞窟へ、そして王都へ向かった。どうか……わたしよりも、うまく彼女を守ってやってくれ。」" },
+  { who: null, en: "The knight smiled for the first time, and his armor turned into soft light that rose slowly into the trees.", ja: "騎士は初めてほほえんだ。そして彼の鎧は、やわらかな光になって、ゆっくりと木々のあいだへ昇っていった。" },
+  { who: null, en: "Where he had been kneeling, a small crystal was left on the ground. Inside it, a faint image of a girl was walking away.", ja: "彼がひざをついていた場所に、小さな水晶が残されていた。その中では、少女のかすかな姿が、遠ざかるように歩いていた。" },
+  { who: "lina", en: "\"A Memory Shard. It holds a piece of someone's past. Ren... I think it's hers.\"", ja: "「記憶のかけらよ。だれかの過去のひとかけらが入ってる。レン……これ、彼女のものだと思う。」" },
+  { if: "trust", go: "c2trust" },
+  { go: "c2fin" },
+  { label: "c2trust" },
+  { who: "lina", en: "\"And Ren... back in the forest, you chose to trust me. I won't forget that.\"", ja: "「それとね、レン……森で、あなたはわたしを信じてくれた。そのこと、忘れないから。」" },
+  { label: "c2fin" },
+  { who: "ren", en: "\"She didn't vanish by accident. She left on purpose... and I'm going to find out why.\"", ja: "「あいつは偶然消えたんじゃない。自分の意志で去ったんだ……その理由を、俺は必ず突き止める。」" },
+  { end: true }
+] }
+];
+
+/* ===== 英語RPG『Echoes of Aster』の動き =====
+   画面：上に背景の絵、下に会話の枠。枠をタップで次へ、右上の「訳」で日本語に切りかえ。
+   文の中のターゲット単語（Part1〜2）には下線を引き、「訳」のときに意味を小さく並べる。
+   戦い：問題に答えて敵のHPを削る。間違えるとハートが減る。答えたあとに短い解説。
+   進み具合は game/rpg（story・章・何番目・フラグ・クリアした章・倒した敵）。 */
+const RPG_STORY = "aster", RPG_HP = 5, RPG_CLEAR_KOBAN = 50, RPG_WIN_KOBAN = 5;
+let rpgJa = false, rpgB = null, rpgMenu = false;
+function rpgState() {
+  let s = JSON.parse(JSON.stringify(S.rpg || {}));
+  // 前の物語（妖怪の章）の記録は、小判の分だけ残して新しい物語を最初から
+  if (s.story !== RPG_STORY) s = { story: RPG_STORY, ch: 0, i: 0, flags: {}, cleared: s.cleared || [], won: s.won || {} };
+  s.flags = s.flags || {}; s.won = s.won || {}; s.cleared = s.cleared || []; s.ch = s.ch || 0; s.i = s.i || 0;
+  return s;
 }
-
-/* ===== 英語RPG「提灯の道」：英語で読んで、ボタンで日本語に切りかえて答え合わせ =====
-   進み具合は game/rpg に保存（章・何番目・フラグ・クリアした章・倒した敵）。戦いの途中は保存しない（開き直すとその戦いの最初から）。 */
-const RPG_HP = 5, RPG_CLEAR_KOBAN = 50, RPG_WIN_KOBAN = 5;
-let rpgJa = false, rpgB = null;
-const rpgDefault = () => ({ ch: 0, i: 0, flags: {}, cleared: [], won: {} });
-function rpgState() { const s = { ...rpgDefault(), ...JSON.parse(JSON.stringify(S.rpg || {})) }; s.flags = s.flags || {}; s.won = s.won || {}; s.cleared = s.cleared || []; return s; }
 function rpgKoban() { const r = S.rpg || {}; return (r.cleared || []).length * RPG_CLEAR_KOBAN + Object.keys(r.won || {}).length * RPG_WIN_KOBAN; }
 const rpgNodes = st => (RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0]).nodes;
-/** 見えない節（ラベル・ジャンプ・条件）を飛ばして、次に見せる節まで進める */
+
+/* ---- ターゲット単語を見つける（変化形もだいたい拾う） ---- */
+let rpgForms = null;
+const RPG_SKIP = new Set(["found", "wind", "mean", "means", "left", "lie", "lay", "saw", "tear", "rose", "felt", "fell"]);
+function rpgDict() {
+  if (rpgForms) return rpgForms;
+  rpgForms = new Map();
+  const add = (f, w) => { if (!rpgForms.has(f) && !RPG_SKIP.has(f)) rpgForms.set(f, w); };
+  for (const w of (typeof TARGET_WORDS !== "undefined" ? TARGET_WORDS : [])) {
+    const b = String(w[0]).toLowerCase(); if (/[^a-z]/.test(b)) continue;
+    for (const f of [b, b + "s", b + "es", b + "ed", b + "d", b + "ing", b + "ly"]) add(f, w);
+    if (b.endsWith("e")) add(b.slice(0, -1) + "ing", w);
+    if (b.endsWith("y")) for (const t of ["ies", "ied", "ily"]) add(b.slice(0, -1) + t, w);
+    if (/[^aeiou][aeiou][bdgklmnprt]$/.test(b)) { add(b + b.slice(-1) + "ed", w); add(b + b.slice(-1) + "ing", w); }
+  }
+  return rpgForms;
+}
+const rpgShort = m => String(m).split(/[；;]/)[0].trim();
+/** 英文を、ターゲット単語に下線をつけたHTMLにする。見つけた単語も返す */
+function rpgMark(en) {
+  const d = rpgDict(), found = [];
+  const html = esc(en).replace(/[A-Za-z]+/g, t => { const w = d.get(t.toLowerCase()); if (!w) return t; if (!found.includes(w)) found.push(w); return `<u>${t}</u>`; });
+  return { html, found };
+}
+/** 章の中で、この戦いより前に出てきたターゲット単語 */
+function rpgChapterWords(st) {
+  const out = []; const ns = rpgNodes(st);
+  for (let k = 0; k < st.i; k++) { const n = ns[k]; if (n && n.en) for (const w of rpgMark(n.en).found) if (!out.includes(w)) out.push(w); }
+  return out;
+}
+function rpgVocabQs(st, n) {
+  const pool = rpgChapterWords(st), all = typeof TARGET_WORDS !== "undefined" ? TARGET_WORDS : [];
+  const pick = [], seed = (st.ch + 1) * 97 + st.i * 13;
+  for (let k = 0; k < (n.vocab || 0) && pool.length; k++) pick.push(pool.splice((seed + k * 31) % pool.length, 1)[0]);
+  return pick.map((w, k) => {
+    const wrong = []; for (let j = 1; wrong.length < 3 && j < 50; j++) { const x = all[(Number(w[2]) * 7 + j * 131 + k) % all.length]; if (x && x[0] !== w[0] && !wrong.includes(x)) wrong.push(x); }
+    const opts = [w, ...wrong], at = (seed + k) % 4; [opts[0], opts[at]] = [opts[at], opts[0]];
+    return { en: `What does "${w[0]}" mean?`, ja: `「${w[0]}」の意味は？`, opts: opts.map(x => [rpgShort(x[1]), rpgShort(x[1])]), a: at, tip: `${w[0]}＝${rpgShort(w[1])}（ターゲット No.${w[2]}）`, jaOnly: true };
+  });
+}
+
+/* ---- 進める ---- */
 function rpgResolve(st) {
   const ns = rpgNodes(st), at = l => ns.findIndex(n => n.label === l);
-  for (let guard = 0; guard < 200; guard++) {
+  for (let g = 0; g < 300; g++) {
     const n = ns[st.i]; if (!n) return st;
     if (n.label != null) st.i++;
-    else if (n.go && n.if == null) st.i = at(n.go);
     else if (n.if != null) st.i = st.flags[n.if] ? at(n.go) : st.i + 1;
+    else if (n.go) st.i = at(n.go);
     else return st;
   }
   return st;
 }
+function rpgSave(st) { rpgJa = false; rpgB = null; rpgMenu = false; if (!ready()) return; return patchDoc("rpg", v => { for (const k of Object.keys(v)) delete v[k]; Object.assign(v, st); }); }
 function rpgGo(st) {
-  rpgResolve(st); rpgJa = false; rpgB = null;
-  const n = rpgNodes(st)[st.i];
-  if (n && n.end && !st.cleared.includes(RPG_CHAPTERS[st.ch].id)) { st.cleared.push(RPG_CHAPTERS[st.ch].id); setTimeout(() => { sfx("done"); confetti(); toast(n.end + "！小判＋" + RPG_CLEAR_KOBAN); }, 50); }
-  if (!ready()) return; return patchDoc("rpg", v => { for (const k of Object.keys(v)) delete v[k]; Object.assign(v, st); });
+  rpgResolve(st);
+  const n = rpgNodes(st)[st.i], ch = RPG_CHAPTERS[st.ch];
+  if (n && n.end && !st.cleared.includes(ch.id)) { st.cleared.push(ch.id); setTimeout(() => { sfx("done"); confetti(); toast(ch.ja + " クリア！小判＋" + RPG_CLEAR_KOBAN); }, 60); }
+  return rpgSave(st);
 }
-function rpgNext() { const st = rpgState(), n = rpgNodes(st)[st.i]; if (n && n.flag) st.flags[n.flag] = 1; st.i++; rpgGo(st); sfx("tap"); }
+function rpgNext() { const st = rpgResolve(rpgState()), n = rpgNodes(st)[st.i]; if (!n) return; if (n.flag) st.flags[n.flag] = 1; st.i++; sfx("tap"); rpgGo(st); }
 
-function rpgFace(id) {
-  const c = RPG_CAST[id] || {}; const ch = c.img && (typeof CHARS !== "undefined" ? CHARS : []).find(x => x.id === c.img);
-  if (ch && ch.img) return `<img class="rpg-face" src="${ch.img}" alt="">`;
-  return `<span class="rpg-face mark">${esc(c.mark || (c.name || "?").slice(0, 1))}</span>`;
+/* ---- 表示 ---- */
+function rpgBg(st) { let bg = null; const ns = rpgNodes(st); for (let k = 0; k <= st.i; k++) if (ns[k] && ns[k].bg) bg = ns[k].bg; if (!bg) for (let c = st.ch - 1; c >= 0 && !bg; c--) for (const x of RPG_CHAPTERS[c].nodes) if (x.bg) bg = x.bg; return bg || "station"; }
+function rpgScene(st, overlay) {
+  const bg = rpgBg(st), src = typeof RPG_BG !== "undefined" && RPG_BG[bg];
+  return `<div class="rpg-scene" style="${src ? `background-image:url('${src}')` : ""}">${overlay || ""}</div>`;
 }
-const rpgT = (en, ja) => rpgJa ? ja : en;
-function rpgWords(w) { return rpgJa && w && w.length ? `<ul class="rpg-words">${w.map(([e, j]) => `<li><b>${esc(e)}</b>　${esc(j)}</li>`).join("")}</ul>` : ""; }
-function rpgToggle() { return `<button type="button" class="btn sm rpg-tr" data-r="tr">${rpgJa ? "English に戻す" : "日本語にする"}</button>`; }
+const rpgTr = () => `<button type="button" class="rpg-tr${rpgJa ? " on" : ""}" data-r="tr" aria-pressed="${rpgJa}">訳</button>`;
+function rpgGloss(found) { return rpgJa && found.length ? `<div class="rpg-gloss">${found.map(w => `<span><b>${esc(w[0])}</b>${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""; }
 
 function renderRPG() {
   const box = $("rpgBox"); if (!box) return;
-  const st = rpgResolve(rpgState()), ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], n = rpgNodes(st)[st.i];
-  $("rpgTitle").textContent = rpgJa ? ch.ja : ch.title;
-  $("rpgSub").textContent = "クリア " + st.cleared.length + "章・倒した敵 " + Object.keys(st.won).length;
-  let bg = "road"; for (let k = 0; k <= st.i; k++) { const x = rpgNodes(st)[k]; if (x && x.bg) bg = x.bg; }
-  const art = n && !n.end ? rpgArt(bg, n.battle ? n.battle.foe : n.foe) : rpgArt(bg);
-  let h = "";
-  if (!n) h = `<p class="note">物語が見つからない。「最初から」を押して。</p>`;
-  else if (n.end) {
-    h = `<div class="rpg-end"><b>${esc(n.end)}</b><p>${rpgT("To be continued...", "つづく…")}</p><p class="note">次の章は準備中。できたら知らせるね。</p><button type="button" class="big-btn" data-r="restart">もう一度最初から読む</button></div>`;
-  } else if (n.battle) h = rpgBattleHtml(st, n);
-  else if (n.choice) {
-    h = `<div class="rpg-line narr"><p class="rpg-text">${esc(rpgT(n.choice.en, n.choice.ja))}</p></div>
-      <div class="rpg-opts">${n.opts.map((o, k) => `<button type="button" data-r="opt" data-k="${k}">${esc(rpgT(o.en, o.ja))}</button>`).join("")}</div>${rpgToggle()}`;
-  } else {
-    const c = n.who && RPG_CAST[n.who];
-    h = `<div class="rpg-line${c ? "" : " narr"}">${c ? `<div class="rpg-who">${rpgFace(n.who)}<b>${esc(rpgJa ? c.ja : c.name)}</b></div>` : ""}
-      <p class="rpg-text" data-r="tr">${esc(rpgT(n.en, n.ja))}</p>${rpgWords(n.w)}</div>
-      <div class="rpg-nav">${rpgToggle()}<button type="button" class="big-btn rpg-next" data-r="next">次へ ▶</button></div>`;
+  const st = rpgResolve(rpgState()), ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], ns = rpgNodes(st), n = ns[st.i];
+  const shown = ns.filter(x => x.en || x.choice || x.battle).length, done = ns.slice(0, st.i).filter(x => x.en || x.choice || x.battle).length;
+  const head = `<div class="rpg-top"><span class="rpg-ch">${esc(ch.ja)}</span><span class="rpg-prog">${Math.min(done + 1, shown)} / ${shown}</span><button type="button" class="rpg-menu-btn" data-r="menu" aria-label="章を選ぶ">☰</button></div>`;
+  let h;
+  if (rpgMenu) h = head + rpgMenuHtml(st);
+  else if (!n) h = head + rpgScene(st) + `<div class="rpg-box"><p class="rpg-text">物語が見つからない。☰ から章を選んで。</p></div>`;
+  else if (n.end) h = head + rpgScene(st, `<div class="rpg-banner">${esc(ch.ja)}<small>CLEAR</small></div>`) + rpgEndHtml(st);
+  else if (n.battle) h = head + rpgBattleHtml(st, n);
+  else if (n.choice) h = head + rpgScene(st) + `<div class="rpg-box"><div class="rpg-boxhead"><span class="rpg-name sys">${rpgJa ? "選択" : "Choice"}</span>${rpgTr()}</div>
+      <p class="rpg-text">${esc(rpgJa ? n.choice.ja : n.choice.en)}</p>
+      <div class="rpg-opts">${n.opts.map((o, k) => `<button type="button" data-r="opt" data-k="${k}"><span>${k + 1}</span>${esc(rpgJa ? o.ja : o.en)}</button>`).join("")}</div></div>`;
+  else {
+    const c = n.who && RPG_CAST[n.who], m = rpgMark(n.en);
+    h = head + rpgScene(st) + `<div class="rpg-box tap" data-r="next" role="button" tabindex="0">
+      <div class="rpg-boxhead">${c ? `<span class="rpg-name">${esc(rpgJa ? c.ja : c.name)}</span>` : `<span></span>`}${rpgTr()}</div>
+      <p class="rpg-text${c ? "" : " narr"}">${rpgJa ? esc(n.ja) : m.html}</p>${rpgGloss(m.found)}
+      <span class="rpg-more" aria-hidden="true">▼</span></div>`;
   }
-  h = art + h;
-  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+  if (box.dataset.v !== h) {
+    box.innerHTML = h; box.dataset.v = h;
+    // 答えたあとは、結果と「次へ」が下のタブに隠れないように少しスクロール
+    const nb = box.querySelector('[data-r="bnext"]');
+    if (nb) requestAnimationFrame(() => { const over = nb.getBoundingClientRect().bottom - (innerHeight - 90); if (over > 0) scrollBy({ top: over, behavior: "smooth" }); });
+  }
+}
+function rpgEndHtml(st) {
+  const last = st.ch >= RPG_CHAPTERS.length - 1;
+  return `<div class="rpg-box"><p class="rpg-text">${last ? "ここまでが今ある物語。続きは準備中。" : "次の章へ進もう。"}</p>
+    ${last ? "" : `<button type="button" class="big-btn" data-r="nextch">${esc(RPG_CHAPTERS[st.ch + 1].ja)} へ</button>`}</div>`;
+}
+function rpgMenuHtml(st) {
+  return `<div class="rpg-box"><p class="rpg-text">章を選ぶ</p><div class="rpg-chlist">${RPG_CHAPTERS.map((c, k) => {
+    const open = k === 0 || st.cleared.includes(RPG_CHAPTERS[k - 1].id) || k <= st.ch;
+    return `<button type="button" data-r="pick" data-k="${k}"${open ? "" : " disabled"}${k === st.ch ? ' class="cur"' : ""}><span>${esc(c.ja)}</span><small>${st.cleared.includes(c.id) ? "クリア" : open ? "" : "未開放"}</small></button>`;
+  }).join("")}</div><button type="button" class="btn" data-r="menu">閉じる</button></div>`;
 }
 function rpgBattleHtml(st, n) {
-  if (!rpgB || rpgB.i !== st.i) rpgB = { i: st.i, hp: n.qs.length, php: RPG_HP, q: n.qs.map((_, k) => k), res: null, pick: null };
-  const b = rpgB, e = n.battle, q = n.qs[b.q[0]];
-  const hearts = "♥".repeat(Math.max(0, b.php)) + "♡".repeat(RPG_HP - Math.max(0, b.php));
-  let h = `<div class="rpg-foe${e.boss ? " boss" : ""}"><span class="rpg-face mark">${esc(e.mark || "?")}</span><div><b>${esc(rpgJa ? e.ja : e.name)}</b><div class="bar-p"><i style="width:${100 * b.hp / n.qs.length}%;background:var(--seal)!important"></i></div></div></div>
-    <div class="rpg-hp">だいき <span>${hearts}</span></div>`;
-  if (b.php <= 0) return h + `<div class="rpg-end"><b>力尽きた…</b><p class="note">もう一度挑戦できる。間違えた問題は、説明を読んでから。</p><button type="button" class="big-btn" data-r="retry">もう一度戦う</button></div>`;
-  if (b.hp <= 0) return h + `<div class="rpg-end"><b>${esc(rpgJa ? e.ja : e.name)} を倒した！</b>${st.won[st.ch + ":" + st.i] ? "" : `<p class="note">小判＋${RPG_WIN_KOBAN}</p>`}<button type="button" class="big-btn" data-r="win">先へ進む ▶</button></div>`;
-  h += `<p class="rpg-q">${esc(rpgT(q.en, q.ja))}</p><div class="rpg-opts">${q.opts.map((o, k) => {
-    const cls = b.res == null ? "" : k === q.a ? " right" : k === b.pick ? " wrong" : "";
-    return `<button type="button" data-r="ans" data-k="${k}"${b.res != null ? " disabled" : ""} class="${cls.trim()}">${esc(b.res != null || rpgJa ? o[0] + "（" + o[1] + "）" : o[0])}</button>`;
-  }).join("")}</div>`;
-  if (b.res != null) h += `<div class="rpg-res ${b.res}"><b>${b.res === "ok" ? "正解！ 攻撃が当たった" : "ちがう… ダメージを受けた"}</b><p>${esc(q.ja)}</p><p>${esc(q.why || "")}</p></div><button type="button" class="big-btn" data-r="bnext">次へ ▶</button>`;
-  else h += rpgToggle();
-  return h;
+  if (!rpgB || rpgB.i !== st.i) { const qs = [...n.qs, ...rpgVocabQs(st, n)]; rpgB = { i: st.i, qs, hp: qs.length, php: RPG_HP, q: qs.map((_, k) => k), res: null, pick: null }; }
+  const b = rpgB, e = n.battle, total = b.qs.length;
+  const over = `<div class="rpg-foe${e.boss ? " boss" : ""}"><b>${esc(rpgJa ? e.ja : e.name)}</b><div class="rpg-hpbar"><i style="width:${100 * Math.max(0, b.hp) / total}%"></i></div></div>
+    <div class="rpg-hearts">${"♥".repeat(Math.max(0, b.php))}<span>${"♥".repeat(RPG_HP - Math.max(0, b.php))}</span></div>`;
+  const scene = rpgScene(st, over);
+  if (b.php <= 0) return scene + `<div class="rpg-box"><p class="rpg-text">力尽きた……もう一度挑戦しよう。</p><button type="button" class="big-btn" data-r="retry">もう一度戦う</button></div>`;
+  if (b.hp <= 0) return scene + `<div class="rpg-box"><p class="rpg-text">${esc(rpgJa ? e.ja : e.name)} を倒した！${st.won[st.ch + ":" + st.i] ? "" : `<small class="rpg-gain">小判＋${RPG_WIN_KOBAN}</small>`}</p><button type="button" class="big-btn" data-r="win">先へ進む</button></div>`;
+  const q = b.qs[b.q[0]], answered = b.res != null, num = total - b.q.length + 1;
+  let h = scene + `<div class="rpg-box"><div class="rpg-boxhead"><span class="rpg-name sys">Q${Math.min(num, total)} / ${total}</span>${q.jaOnly || answered ? "" : rpgTr()}</div>
+    <p class="rpg-text q">${esc(rpgJa || answered ? q.ja : q.en)}</p>
+    <div class="rpg-opts">${q.opts.map((o, k) => {
+      const cls = !answered ? "" : k === q.a ? "right" : k === b.pick ? "wrong" : "dim";
+      const label = q.jaOnly ? esc(o[1]) : answered || rpgJa ? `${esc(o[0])}<small>${esc(o[1])}</small>` : esc(o[0]);
+      return `<button type="button" data-r="ans" data-k="${k}" class="${cls}"${answered ? " disabled" : ""}><span>${"ABCD"[k]}</span><em>${label}</em></button>`;
+    }).join("")}</div>`;
+  if (answered) h += `<div class="rpg-res ${b.res}"><b>${b.res === "ok" ? "正解" : "不正解　正解は " + "ABCD"[q.a]}</b><p>${esc(q.tip || "")}</p></div><button type="button" class="big-btn" data-r="bnext">次へ</button>`;
+  return h + `</div>`;
 }
 function bindRPG() {
-  $("rpgBox").addEventListener("click", e => {
-    const b = e.target.closest("[data-r]"); if (!b) return;
+  const box = $("rpgBox");
+  box.addEventListener("click", e => {
+    const b = e.target.closest("[data-r]"); if (!b || b.disabled) return;
     const r = b.dataset.r, st = rpgResolve(rpgState()), n = rpgNodes(st)[st.i];
-    if (r === "tr") { rpgJa = !rpgJa; sfx("tap"); return renderRPG(); }
+    if (r === "tr") { e.stopPropagation(); rpgJa = !rpgJa; sfx("tap"); return renderRPG(); }
+    if (r === "menu") { rpgMenu = !rpgMenu; return renderRPG(); }
+    if (r === "pick") { const k = Number(b.dataset.k); if (k === st.ch) { rpgMenu = false; return renderRPG(); } st.ch = k; st.i = 0; st.flags = st.flags || {}; return rpgGo(st); }
     if (r === "next") return rpgNext();
+    if (r === "nextch") { st.ch++; st.i = 0; return rpgGo(st); }
     if (r === "opt") { const o = n.opts[Number(b.dataset.k)]; if (o.flag) st.flags[o.flag] = 1; st.i = rpgNodes(st).findIndex(x => x.label === o.go); sfx("ok"); return rpgGo(st); }
     if (r === "ans" && rpgB && rpgB.res == null) {
-      const k = Number(b.dataset.k), q = n.qs[rpgB.q[0]]; rpgB.pick = k;
+      const k = Number(b.dataset.k), q = rpgB.qs[rpgB.q[0]]; rpgB.pick = k;
       if (k === q.a) { rpgB.res = "ok"; rpgB.hp--; sfx("ok"); } else { rpgB.res = "ng"; rpgB.php--; sfx("ng"); }
       rpgJa = false; return renderRPG();
     }
-    if (r === "bnext" && rpgB) { const q = rpgB.q.shift(); if (rpgB.res === "ng") rpgB.q.push(q); rpgB.res = null; rpgB.pick = null; rpgJa = false; return renderRPG(); }
+    if (r === "bnext" && rpgB) { const q = rpgB.q.shift(); if (rpgB.res === "ng") rpgB.q.push(q); rpgB.res = null; rpgB.pick = null; return renderRPG(); }
     if (r === "retry") { rpgB = null; return renderRPG(); }
     if (r === "win") { st.won[st.ch + ":" + st.i] = 1; st.i++; sfx("coin"); return rpgGo(st); }
-    if (r === "restart") { st.i = 0; st.flags = {}; return rpgGo(st); }
   });
-  $("rpgReset").onclick = () => { if (!confirm("この章を最初から読み直す？（クリアした記録と小判はそのまま）")) return; const st = rpgState(); st.i = 0; st.flags = {}; rpgGo(st); };
+  box.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.dataset.r === "next") { e.preventDefault(); rpgNext(); } });
 }
 
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
