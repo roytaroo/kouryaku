@@ -1,4 +1,4 @@
-/* ===== 『Echoes of Aster』書き足し その3（第7章〜終章） ===== */
+/* ===== 『Aster Ⅰ』書き足し その3（第7章〜終章） ===== */
 /* ───────── 第7章 大図書館 ───────── */
 rpgAddAfter("c7", "\"This is where I grew up.", [
   { who: null, en: "The library was silent, but not empty. Here and there, old librarians moved between the shelves, dusting books that nobody had opened in centuries.", ja: "図書館は静かだったが、空っぽではなかった。あちこちで年老いた司書たちが本棚のあいだを行き来し、何百年もだれも開いていない本のほこりを払っていた。" },

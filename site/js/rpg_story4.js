@@ -1,4 +1,4 @@
-/* ===== 『Echoes of Aster』書き足し その2（序章〜第6章） ===== */
+/* ===== 『Aster Ⅰ』書き足し その2（序章〜第6章） ===== */
 /* ───────── 序章：車掌との会話 ───────── */
 rpgAddBefore("p0", "\"Before we arrive, I must check your ticket.", [
   { who: "conductor", en: "\"You seem troubled, young man. Most passengers on this train are.\"", ja: "「お悩みのようですね、お若い方。この列車のお客さまは、たいていそうです。」" },

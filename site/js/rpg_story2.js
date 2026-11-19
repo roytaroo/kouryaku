@@ -1,4 +1,4 @@
-/* ===== 『Echoes of Aster』第3章〜第12章と終章（オリジナル） =====
+/* ===== 『Aster Ⅰ』第3章〜第12章と終章（オリジナル） =====
    章の中は { label: "cN_xxx" } で場面に区切ってある（game_data.js の GSCENES が切り出して流す）。
    ミオが消えた理由：親友のハルを事故で亡くし、「自分のせいだ」と思いつめた。だれも自分のことで悲しまないように、
    世界から自分を消してほしいと願った。その願いがアスターに届き、彼女は「忘却の女王」になった。彼女の悲しみが「色あせ」を広げている。
@@ -269,7 +269,7 @@ RPG_CHAPTERS.push(
   { who: null, en: "Ren took the bookmark out of his pocket. The little lantern on it seemed, just for a second, to flicker.", ja: "レンはポケットからしおりを取り出した。そこに描かれた小さなランタンが、ほんの一瞬、ゆらいだように見えた。" },
   { who: null, en: "Just then, a bell rang that was not on any timetable. A silver train passed by without stopping, and in one window, a girl with a book-shaped lantern smiled and waved.", ja: "ちょうどそのとき、どの時刻表にもないベルが鳴った。銀色の列車が止まらずに通り過ぎていき、その窓のひとつで、本の形のランタンを持った少女が、ほほえんで手を振っていた。" },
   { who: "ren", face: "smile", en: "\"...See you, Lina. I'll remember. For both of us.\"", ja: "「……またな、リナ。覚えてるよ。ふたり分。」" },
-  { who: null, en: "THE END — Thank you for playing Echoes of Aster.", ja: "おわり ——『アスターの残響』を遊んでくれて、ありがとう。" },
+  { who: null, en: "THE END — Thank you for playing Aster Ⅰ.", ja: "おわり ——『Aster Ⅰ』を遊んでくれて、ありがとう。" },
   { end: true }
 ] }
 );
