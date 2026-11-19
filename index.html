@@ -608,6 +608,13 @@ body.g-lock{overflow:hidden}
 .g-log .rpg-gloss span{background:#0b0d12;color:#aab}.g-log .rpg-gloss b{color:#fff}
 .g-lock .toast{z-index:95;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
 
+/* 長押ししても、ボタンや操作部分は文字選択・コピーのメニューが出ないように（文章はコピーできるまま） */
+button,[role="button"],.tabs,.seg,.chips,.chip,.wallet,.g-ctrl,.g-pad,.g-ab,.g-grid,.g-list,.g-tabs,.g-party,.g-top,.rpg-modes,.rpg-opts,.rpg-top,.task .ctl,.mood,.pair,.tix,.dex,.rpg-dex{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.game,.g-stage,.g-stage *,.rpg-scene,.rpg-face,.g-foe img,.dex img,.buddy img,.rpg-dex img,.rpg-items img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.game p,.game .g-msgja{-webkit-user-select:text;user-select:text}
+.g-say p,.g-log p{-webkit-user-select:none;user-select:none}
+img{-webkit-user-drag:none}
+
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
 .gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
@@ -903,7 +910,7 @@ body.g-lock{overflow:hidden}
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795105655"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795106429"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
