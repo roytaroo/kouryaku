@@ -232,7 +232,7 @@ function pickQuiz(i) {
 }
 function renderLearn() {
   document.querySelectorAll("#learnSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === learnTab)));
-  for (const t of ["words", "cloze", "grammar", "other", "story"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
+  for (const t of ["words", "cloze", "grammar", "other"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
   if (learnTab === "seikei") renderQuiz();
   if (learnTab === "words" || learnTab === "kobun" || learnTab === "seikei") {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
@@ -250,7 +250,7 @@ function renderLearn() {
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
   if (learnTab === "grammar") { renderGrammar(); renderGQ(); }
-  if (learnTab === "story") renderRPG();
+
 }
 function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };

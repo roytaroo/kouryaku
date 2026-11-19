@@ -184,7 +184,7 @@ function gTalkResolve() {
     else if (n.go) T.i = at(n.go);
     else break;
   }
-  const n = T.nodes[T.i]; if (n && n.bg) T.cg = n.bg.startsWith("cg_") ? n.bg : null;
+  const n = T.nodes[T.i]; if (n && n.bg && typeof RPG_BG !== "undefined" && RPG_BG[n.bg]) T.cg = n.bg;
 }
 function gTalkNext() {
   const T = G.talk, n = T.nodes[T.i];
@@ -371,6 +371,7 @@ function gRenderPanel() {
   else if (G.mode === "shop") h = gShopPanel();
   else if (G.mode === "menu") h = gMenuPanel();
   P.innerHTML = h;
+  if (G.mode !== "battle") gOver();
 }
 function gBattlePanel() {
   const B = G.B; let h = gPartyBar();
@@ -515,6 +516,6 @@ function gOpen(fresh) {
   if (!saved) setTimeout(() => gScene("p0_station"), 300); else if (G.pendingScene) setTimeout(gAfterWarp, 300);
 }
 function gClose() {
-  if (G) { if (G.mode === "battle") { if (!confirm("戦闘中にとじると、この戦闘はなかったことになる。とじる？")) return; } gSave(true); G.open = false; }
+  if (G) { if (G.mode === "battle") { if (!G.closeOk) { G.closeOk = true; toast("戦闘中。もう一度 ✕ を押すと、この戦闘はなかったことにしてとじる"); setTimeout(() => { if (G) G.closeOk = false; }, 3000); return; } } gSave(true); G.open = false; }
   const d = document.getElementById("game"); if (d) d.hidden = true; document.body.classList.remove("g-lock"); G = null; renderRPG();
 }

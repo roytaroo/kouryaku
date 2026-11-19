@@ -1,5 +1,5 @@
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
-const VIEWS = ["home", "timer", "learn", "yokai", "record"];
+const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
 let currentView = "home";
 function go(v) {
   if (!VIEWS.includes(v)) v = "home";
@@ -22,6 +22,7 @@ function render() {
   if (currentView === "learn") renderLearn();
   if (currentView === "yokai") renderYokai();
   if (currentView === "record") renderRecord();
+  if (currentView === "rpg") renderRPG();
 }
 let rq = 0;
 function schedule() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; render(); migrate(); checkUnlocks(); }); }
