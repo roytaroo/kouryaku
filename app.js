@@ -3519,7 +3519,7 @@ function gOver() {
     const fx = B.fx && Date.now() - B.fx.t < 600 ? B.fx : null;
     o.className = "g-over battle" + (fx && fx.hurt ? " hurt" : "");
     o.style.backgroundImage = bg ? `url('${bg}')` : "";
-    o.innerHTML = `<div class="g-foes">${B.foes.map(f => { const src = f.d.foe ? (RPG_FOE || {})[f.d.foe] : rpgMonSrc(f.d.mon); return `<div class="g-foe${f.alive ? "" : " down"}${fx && fx.i === f.i ? " " + fx.kind : ""}${f.d.boss ? " boss" : ""}"><img src="${src}" alt=""><span>${esc(f.d.name)}</span></div>`; }).join("")}</div>`;
+    o.innerHTML = `<div class="g-foes">${B.foes.map(f => { const src = (f.d.foe && typeof RPG_FOE !== "undefined" && RPG_FOE[f.d.foe]) || rpgMonSrc(f.d.mon); return `<div class="g-foe${f.alive ? "" : " down"}${fx && fx.i === f.i ? " " + fx.kind : ""}${f.d.boss ? " boss" : ""}"><img src="${src}" alt=""><span>${esc(f.d.name)}</span></div>`; }).join("")}</div>`;
     return;
   }
   const cg = G.mode === "talk" && G.talk && G.talk.cg;
