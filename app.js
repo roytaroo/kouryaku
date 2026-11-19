@@ -1919,7 +1919,7 @@ function bindFit() {
   };
 }
 
-/* ===== 英語RPG『Echoes of Aster（アスターの残響）』（オリジナル） =====
+/* ===== 英語RPG『Aster Ⅰ』（オリジナル） =====
    全12章＋序章の長編。英文はターゲット1900（Part1〜2）の単語を中心に書く。
    画面では、文の中のターゲット単語を自動で見つけて下線を引き、「訳」で意味を出す（rpg.js）。
 
@@ -2112,7 +2112,7 @@ const RPG_ITEMS = {
   73: { name: "Beast Skull", ja: "獣の頭骨", use: "強い魔物を倒したあかし" }
 };
 
-/* ===== 『Echoes of Aster』第3章〜第12章と終章（オリジナル） =====
+/* ===== 『Aster Ⅰ』第3章〜第12章と終章（オリジナル） =====
    章の中は { label: "cN_xxx" } で場面に区切ってある（game_data.js の GSCENES が切り出して流す）。
    ミオが消えた理由：親友のハルを事故で亡くし、「自分のせいだ」と思いつめた。だれも自分のことで悲しまないように、
    世界から自分を消してほしいと願った。その願いがアスターに届き、彼女は「忘却の女王」になった。彼女の悲しみが「色あせ」を広げている。
@@ -2383,12 +2383,12 @@ RPG_CHAPTERS.push(
   { who: null, en: "Ren took the bookmark out of his pocket. The little lantern on it seemed, just for a second, to flicker.", ja: "レンはポケットからしおりを取り出した。そこに描かれた小さなランタンが、ほんの一瞬、ゆらいだように見えた。" },
   { who: null, en: "Just then, a bell rang that was not on any timetable. A silver train passed by without stopping, and in one window, a girl with a book-shaped lantern smiled and waved.", ja: "ちょうどそのとき、どの時刻表にもないベルが鳴った。銀色の列車が止まらずに通り過ぎていき、その窓のひとつで、本の形のランタンを持った少女が、ほほえんで手を振っていた。" },
   { who: "ren", face: "smile", en: "\"...See you, Lina. I'll remember. For both of us.\"", ja: "「……またな、リナ。覚えてるよ。ふたり分。」" },
-  { who: null, en: "THE END — Thank you for playing Echoes of Aster.", ja: "おわり ——『アスターの残響』を遊んでくれて、ありがとう。" },
+  { who: null, en: "THE END — Thank you for playing Aster Ⅰ.", ja: "おわり ——『Aster Ⅰ』を遊んでくれて、ありがとう。" },
   { end: true }
 ] }
 );
 
-/* ===== 英語RPG『Echoes of Aster』の動き =====
+/* ===== 英語RPG『Aster Ⅰ』の動き =====
    画面：上に背景の絵、下に会話の枠。枠をタップで次へ、右上の「訳」で日本語に切りかえ。
    文の中のターゲット単語（Part1〜2）には下線を引き、「訳」のときに意味を小さく並べる。
    戦い：問題に答えて敵のHPを削る。間違えるとハートが減る。答えたあとに短い解説。
@@ -2498,7 +2498,7 @@ function renderRPG() {
 function rpgGameHtml(st) {
   const g = S.rpg && S.rpg.game, lead = g && g.party && g.party[0];
   const where = g && GMAPS[g.map] ? GMAPS[g.map].ja : "";
-  return `<div class="rpg-top"><span class="rpg-ch">Echoes of Aster</span><span class="rpg-prog">王道RPG・物語は英語</span></div>` + rpgScene("cg_train") + `<div class="rpg-box">
+  return `<div class="rpg-top"><span class="rpg-ch">Aster Ⅰ</span><span class="rpg-prog">王道RPG・物語は英語</span></div>` + rpgScene("cg_train") + `<div class="rpg-box">
     <p class="rpg-text">十字ボタンで歩いて、町の人と話し、魔物とコマンドで戦う。物語の会話はすべて英語。「訳」でいつでも日本語に。</p>
     ${g ? `<p class="note" style="margin:0">つづき：${esc(where)}　レンLv${lead ? lead.lv : 1}　${g.gold}G</p><button type="button" class="big-btn" data-r="gplay">つづきから</button><button type="button" class="btn" data-r="gnew">はじめから</button>` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
     <button type="button" class="btn ghost sm" data-r="novel">物語だけ読む（ノベル版）</button></div>`;
@@ -2648,7 +2648,7 @@ function bindRPG() {
   box.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.dataset.r === "next") { e.preventDefault(); rpgNext(); } });
 }
 
-/* ===== 王道コマンドRPG『Echoes of Aster』のデータ =====
+/* ===== 王道コマンドRPG『Aster Ⅰ』のデータ =====
    タイルはぴぽやさんのマップチップ（16pxを2倍で表示）。歩行キャラもぴぽやさん（髪の色などはこっちで塗りかえ）。
    物語の文は rpg_story.js の英文をそのまま使い、場面ごとに切り出して流す（GSCENES）。 */
 const T = (r, c) => r * 8 + c;
@@ -3119,7 +3119,7 @@ const GDONE2 = {
   c12_boss: { flag: "c12_done", clear: "c12", ending: true }
 };
 
-/* ===== 『Echoes of Aster』書き足し（序章〜第6章） =====
+/* ===== 『Aster Ⅰ』書き足し（序章〜第6章） =====
    1) 章の途中に場面を足す（rpgAddAfter：書き出しの英文の直後に入れる）
    2) 宿屋に泊まったときの仲間の会話（GINNTALK）
    3) 町の人の長い会話（GLINES を上書き）と、新しい町の人（GMAPS の npcs に足す） */
@@ -3355,7 +3355,7 @@ GMAPS.capital.npcs.push(
   { id: "c_soldier", sprite: "soldier", x: 13, y: 15, dir: 0, lines: "capital_soldier" }
 );
 
-/* ===== 『Echoes of Aster』書き足し その2（序章〜第6章） ===== */
+/* ===== 『Aster Ⅰ』書き足し その2（序章〜第6章） ===== */
 /* ───────── 序章：車掌との会話 ───────── */
 rpgAddBefore("p0", "\"Before we arrive, I must check your ticket.", [
   { who: "conductor", en: "\"You seem troubled, young man. Most passengers on this train are.\"", ja: "「お悩みのようですね、お若い方。この列車のお客さまは、たいていそうです。」" },
@@ -3493,7 +3493,7 @@ Object.assign(GLINES, {
   ]
 });
 
-/* ===== 『Echoes of Aster』書き足し その3（第7章〜終章） ===== */
+/* ===== 『Aster Ⅰ』書き足し その3（第7章〜終章） ===== */
 /* ───────── 第7章 大図書館 ───────── */
 rpgAddAfter("c7", "\"This is where I grew up.", [
   { who: null, en: "The library was silent, but not empty. Here and there, old librarians moved between the shelves, dusting books that nobody had opened in centuries.", ja: "図書館は静かだったが、空っぽではなかった。あちこちで年老いた司書たちが本棚のあいだを行き来し、何百年もだれも開いていない本のほこりを払っていた。" },
@@ -4057,7 +4057,7 @@ Object.assign(GLINES, {
 GLINES.elder_after = [{ who: "elder", en: "\"The shrine lies beyond the forest to the north. Be careful, young man.\"", ja: "「ほこらは北の森の先じゃ。気をつけてな、若いの。」" },
   { who: "elder", en: "\"...Tobin used to hide painted stones in the forest for me to find. I never went to look. If you see any, would you bring them to me?\"", ja: "「……トビンはよく、森に絵を描いた石を隠して、わしに探させようとしておった。わしは探しに行かなんだ。もし見かけたら、持ってきてくれんか？」" }];
 
-/* ===== 王道コマンドRPG『Echoes of Aster』の本体 =====
+/* ===== 王道コマンドRPG『Aster Ⅰ』の本体 =====
    画面：上にマップ（キャンバス、16pxタイルを2倍＝1マス32px、11×9マス）、下に操作パネル。
    モード：walk（歩く）／talk（会話・場面）／battle（戦闘）／menu（メニュー）／shop（お店・宿屋）
    セーブ：S.rpg.game（マップ移動・場面のあと・戦闘のあと・宿屋・宝箱・お店・メニューから） */
