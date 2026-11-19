@@ -52,6 +52,10 @@ function gEnterMap(id, x, y, dir) {
   if (typeof x === "string") { const sp = (m.spots && m.spots[x]) || [1, 1]; x = sp[0]; y = sp[1]; }
   G.map = m; G.def = def; G.st.map = id; G.st.x = x; G.st.y = y; if (dir != null) G.st.dir = dir;
   G.px = x; G.py = y; G.moving = null; G.encLeft = def.enc ? gEncSteps() : 0;
+  // 日記・手紙など（読める物）を地面に置く
+  const nsp = (m.spots && m.spots.note) || [];
+  G.notes = ((typeof GNOTES !== "undefined" && GNOTES[id]) || []).map((n, i) => n.x != null ? n : (nsp[i] ? { ...n, x: nsp[i][0], y: nsp[i][1] } : null)).filter(Boolean);
+  for (const n of G.notes) gPut(m, n.x, n.y, n.tile != null ? n.tile : T(119, 1), true);
   // 地面を先に1枚の絵にしておく
   const cv = document.createElement("canvas"); cv.width = m.w * GV.TS; cv.height = m.h * GV.TS;
   const c = cv.getContext("2d"); c.imageSmoothingEnabled = false;
@@ -135,11 +139,20 @@ function gInteract() {
   if (G.mode !== "walk" || G.moving || G.busy) return;
   const [dx, dy] = Object.values(GDIR).find(v => v[2] === G.st.dir), tx = G.px + dx, ty = G.py + dy;
   const npc = gNpcAt(tx, ty);
+  if (npc && npc.quests) { const q = npc.quests.find(q => q.need.every(f => G.st.flags[f]) && !G.st.flags["seen_" + q.scene]); if (q) { npc.dir = [3, 2, 1, 0][G.st.dir]; return gScene(q.scene); } }
+  const note = (G.notes || []).find(n => n.x === tx && n.y === ty);
+  if (note) { const first = !G.st.flags["note_" + note.id]; G.st.flags["note_" + note.id] = 1; if (first) gSave(true); return gTalk(note.nodes, () => gNoteDone(note, first)); }
   if (npc) { npc.dir = [3, 2, 1, 0][G.st.dir]; if (npc.talk && !G.st.flags["seen_" + npc.talk]) return gScene(npc.talk); return gTalk(GLINES[npc.lines] || [{ who: null, en: "...", ja: "……" }]); }
   const ch = gChestAt(tx, ty);
   if (ch) return gOpenChest(ch);
   const ev = G.events.find(e => e.x === tx && e.y === ty && e.look);
   if (ev) return gTalk(GLINES[ev.look]);
+}
+function gNoteDone(note, first) {
+  if (!first) return;
+  if (note.done && typeof GDONE2 !== "undefined" && GDONE2[note.done]) return gSceneDone(note.done);
+  const all = Object.values(GNOTES).flat().filter(n => n.kind !== "stone"), got = all.filter(n => G.st.flags["note_" + n.id]).length;
+  if (note.kind !== "stone") { G.st.gold += 15; gTalk([{ who: null, en: `Ren kept the page. (${got}/${all.length})`, ja: `ページを大切にしまった。読んだ記録 ${got}/${all.length}（15ゴールドのお礼をもらった）` }]); }
 }
 function gOpenChest(ch) {
   if (G.st.chests[ch.id]) return gTalk([{ who: null, en: "The chest is empty.", ja: "宝箱はからっぽだ。" }]);

@@ -30,6 +30,10 @@ function gDungeon(o) {
   m.spots = { entry: [bot.cx, H - 2], exit: [top.cx, 1], boss: [top.cx, top.cy], mid: [R(Math.floor(rows / 2), 1).cx, R(Math.floor(rows / 2), 1).cy],
     chest: side.flatMap(rm => [[rm.x0 + rm.rw - 1, rm.y0], [rm.x0, rm.y0 + rm.rh - 1], [rm.x0, rm.y0], [rm.x0 + rm.rw - 1, rm.y0 + rm.rh - 1]].filter(([x, y]) => free(x, y) && !m.solid[y * W + x]).slice(0, 1)) };
   for (const [x, y] of m.spots.chest) m.solid[y * W + x] = false;
+  // 日記や手紙を置く場所：宝箱と重ならない部屋の隅
+  const used = new Set(m.spots.chest.map(a => a.join(",")));
+  m.spots.note = rooms.filter(rm => rm !== top && rm !== bot).flatMap(rm => [[rm.x0, rm.y0 + rm.rh - 1], [rm.x0 + rm.rw - 1, rm.y0], [rm.x0 + rm.rw - 1, rm.y0 + rm.rh - 1], [rm.x0, rm.y0]]
+    .filter(([x, y]) => free(x, y) && !m.solid[y * W + x] && !used.has(x + "," + y)).slice(0, 1));
   return m;
 }
 /* 町：家・店・噴水。o.exits に出口、o.doors に入口の役目 */
