@@ -592,3 +592,10 @@ body.g-lock{overflow:hidden}
 .g-log{position:relative;min-height:96px}
 .g-log .rpg-gloss span{background:#0b0d12;color:#aab}.g-log .rpg-gloss b{color:#fff}
 .g-lock .toast{z-index:95;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+
+/* 長押ししても、ボタンや操作部分は文字選択・コピーのメニューが出ないように（文章はコピーできるまま） */
+button,[role="button"],.tabs,.seg,.chips,.chip,.wallet,.g-ctrl,.g-pad,.g-ab,.g-grid,.g-list,.g-tabs,.g-party,.g-top,.rpg-modes,.rpg-opts,.rpg-top,.task .ctl,.mood,.pair,.tix,.dex,.rpg-dex{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.game,.g-stage,.g-stage *,.rpg-scene,.rpg-face,.g-foe img,.dex img,.buddy img,.rpg-dex img,.rpg-items img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.game p,.game .g-msgja{-webkit-user-select:text;user-select:text}
+.g-say p,.g-log p{-webkit-user-select:none;user-select:none}
+img{-webkit-user-drag:none}
