@@ -49,6 +49,7 @@ function gLoadImages() {
 /* ---------- マップ ---------- */
 function gEnterMap(id, x, y, dir) {
   const def = GMAPS[id], m = def.build();
+  if (typeof x === "string") { const sp = (m.spots && m.spots[x]) || [1, 1]; x = sp[0]; y = sp[1]; }
   G.map = m; G.def = def; G.st.map = id; G.st.x = x; G.st.y = y; if (dir != null) G.st.dir = dir;
   G.px = x; G.py = y; G.moving = null; G.encLeft = def.enc ? gEncSteps() : 0;
   // 地面を先に1枚の絵にしておく
@@ -57,11 +58,15 @@ function gEnterMap(id, x, y, dir) {
   const draw = () => { for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) for (const t of m.cells[j * m.w + i]) c.drawImage(GIMG.tiles, (t % 8) * 16, Math.floor(t / 8) * 16, 16, 16, i * GV.TS, j * GV.TS, GV.TS, GV.TS); };
   if (GIMG.tiles.complete) draw(); else GIMG.tiles.onload = draw;
   G.ground = cv;
-  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf])).map(n => ({ ...n }));
+  const spot = a => (m.spots && m.spots[a]) || [1, 1], cs = (m.spots && m.spots.chest) || [];
+  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf])).map(n => n.at ? { ...n, x: spot(n.at)[0], y: spot(n.at)[1] } : { ...n });
+  G.chests = (def.chests || []).map(c => c.at != null ? (cs[c.at] ? { ...c, x: cs[c.at][0], y: cs[c.at][1] } : null) : c).filter(Boolean);
+  G.events = (def.events || []).map(e => e.at ? { ...e, ax: spot(e.at)[0], ay: spot(e.at)[1] } : e);
+  if (def.intro && !G.st.flags["seen_" + def.intro] && !G.pendingScene) G.pendingScene = def.intro;
   $("gMapName").textContent = def.ja;
 }
 const gEncSteps = () => 10 + Math.floor(Math.random() * (G.def.enc.rate || 14));
-function gChestAt(x, y) { return (G.def.chests || []).find(c => c.x === x && c.y === y); }
+function gChestAt(x, y) { return (G.chests || []).find(c => c.x === x && c.y === y); }
 function gNpcAt(x, y) { return G.npcs.find(n => n.x === x && n.y === y); }
 function gBlocked(x, y) {
   const m = G.map; if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true;
@@ -81,7 +86,7 @@ function gDraw(t) {
   c.drawImage(G.ground, -Math.round(cx), -Math.round(cy));
   const sprites = [];
   for (const p of (G.def.props || [])) sprites.push({ y: p.y, draw: () => { const im = GIMG.etc[p.sprite]; if (im) c.drawImage(im, (Math.floor(t / 160) % 3) * 32, 32, 32, 32, p.x * TS - cx, p.y * TS - cy, TS, TS); } });
-  for (const ch of (G.def.chests || [])) sprites.push({ y: ch.y, draw: () => { const im = GIMG.etc.chest; if (im) c.drawImage(im, (ch.eq ? 2 : 0) * 32, (G.st.chests[ch.id] ? 2 : 0) * 32, 32, 32, ch.x * TS - cx, ch.y * TS - cy, TS, TS); } });
+  for (const ch of (G.chests || [])) sprites.push({ y: ch.y, draw: () => { const im = GIMG.etc.chest; if (im) c.drawImage(im, (ch.eq ? 2 : 0) * 32, (G.st.chests[ch.id] ? 2 : 0) * 32, 32, 32, ch.x * TS - cx, ch.y * TS - cy, TS, TS); } });
   for (const n of G.npcs) sprites.push({ y: n.y, draw: () => gDrawChar(c, n.sprite, n.dir, 1, n.x * TS - cx, n.y * TS - cy) });
   const frame = G.moving ? [0, 1, 2, 1][Math.floor(t / 110) % 4] : 1;
   sprites.push({ y: fy, draw: () => gDrawChar(c, "ren", G.st.dir, frame, fx * TS - cx, fy * TS - cy) });
@@ -102,13 +107,13 @@ function gLoop(t) {
 function gTryMove(dname, t) {
   const [dx, dy, d] = GDIR[dname]; G.st.dir = d;
   const nx = G.px + dx, ny = G.py + dy, m = G.map;
-  if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) { const ev = (G.def.events || []).find(e => (e.top && ny < 0) || (e.bottom && ny >= m.h)); if (ev) gRunEvent(ev); return; }
+  if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) { const ev = G.events.find(e => (e.top && ny < 0) || (e.bottom && ny >= m.h) || (e.left && nx < 0) || (e.right && nx >= m.w)); if (ev) gRunEvent(ev); return; }
   if (gBlocked(nx, ny)) return;
   G.moving = { fx: G.px, fy: G.py, tx: nx, ty: ny, t0: t, dur: 150 };
 }
 function gOnStep() {
   G.st.steps++;
-  const evs = (G.def.events || []).filter(e => (e.x === G.px && e.y === G.py) || (e.rowLE != null && G.py <= e.rowLE && !(e.once && G.st.flags[e.once])));
+  const evs = G.events.filter(e => (e.x === G.px && e.y === G.py) || (e.rowLE != null && G.py <= e.rowLE && !(e.once && G.st.flags[e.once])) || (e.ax != null && Math.abs(e.ax - G.px) + Math.abs(e.ay - G.py) <= (e.r || 0) && !(e.once && G.st.flags[e.once])));
   for (const ev of evs) { gRunEvent(ev); return; }
   if (G.def.enc && --G.encLeft <= 0) { G.encLeft = gEncSteps(); const grp = GAREAS[G.def.enc.area]; gBattle(grp[Math.floor(Math.random() * grp.length)], null); }
 }
@@ -116,7 +121,7 @@ function gRunEvent(ev) {
   if (ev.need && !G.st.flags[ev.need]) { if (ev.block) gTalk(GLINES[ev.block]); G.held = null; return; }
   if (ev.scene) { if (ev.once) G.st.flags[ev.once] = 1; G.held = null; return gScene(ev.scene); }
   if (ev.door === "inn") return gInn();
-  if (ev.door === "armory" || ev.door === "itemshop") return gShop(ev.door);
+  if (ev.door && GSHOPS[ev.door]) return gShop(ev.door);
   if (ev.look) return gTalk(GLINES[ev.look]);
   if (ev.to) { G.held = null; return gWarp(...ev.to); }
 }
@@ -125,7 +130,7 @@ function gWarp(map, x, y, dir) {
   const step = t => { const k = (t - t0) / 220; if (k < 1) { G.fade = k; requestAnimationFrame(step); return; } gEnterMap(map, x, y, dir); const t1 = performance.now(); const back = t2 => { const k2 = (t2 - t1) / 220; G.fade = Math.max(0, 1 - k2); if (k2 < 1) requestAnimationFrame(back); else { G.fade = 0; G.busy = false; gSave(true); gAfterWarp(); } }; requestAnimationFrame(back); };
   requestAnimationFrame(step);
 }
-function gAfterWarp() { if (G.pendingScene) { const s = G.pendingScene; G.pendingScene = null; gScene(s); } }
+function gAfterWarp() { if (G.pendingScene) { const s = G.pendingScene; G.pendingScene = null; gScene(s); } else if (G.pendingTalk) { const n = G.pendingTalk; G.pendingTalk = null; gTalk(n); } }
 function gInteract() {
   if (G.mode !== "walk" || G.moving || G.busy) return;
   const [dx, dy] = Object.values(GDIR).find(v => v[2] === G.st.dir), tx = G.px + dx, ty = G.py + dy;
@@ -133,7 +138,7 @@ function gInteract() {
   if (npc) { npc.dir = [3, 2, 1, 0][G.st.dir]; if (npc.talk && !G.st.flags["seen_" + npc.talk]) return gScene(npc.talk); return gTalk(GLINES[npc.lines] || [{ who: null, en: "...", ja: "……" }]); }
   const ch = gChestAt(tx, ty);
   if (ch) return gOpenChest(ch);
-  const ev = (G.def.events || []).find(e => e.x === tx && e.y === ty && e.look);
+  const ev = G.events.find(e => e.x === tx && e.y === ty && e.look);
   if (ev) return gTalk(GLINES[ev.look]);
 }
 function gOpenChest(ch) {
@@ -177,15 +182,31 @@ function gTalkNext() {
   if (m.battle) { const key = GBOSS_OF[m.battle.name]; T.i++; return gBattle([key], () => { gTalkResolve(); G.mode = "talk"; gRenderPanel(); gOver(); }); }
   sfx("tap"); gRenderPanel();
 }
+function gRefreshNpcs() { G.npcs = G.npcs.filter(n => !(n.hideIf && G.st.flags[n.hideIf])); }
 function gSceneDone(id) {
   const f = G.st.flags;
+  const D = typeof GDONE2 !== "undefined" && GDONE2[id];
+  if (D) {
+    if (D.flag) f[D.flag] = 1;
+    if (D.join && !G.st.party.some(h => h.id === D.join)) G.st.party.push(gHero(D.join, Math.max(...G.st.party.map(h => h.lv))));
+    if (D.clear) gMarkClear(D.clear);
+    gRefreshNpcs(); gSave(true);
+    if (D.ending) { G.pendingScene = "ep_all"; return gWarp("station", 7, 5, 0); }
+    if (D.msg) return gTalk([{ who: null, en: D.msg[0], ja: D.msg[1] }]);
+    return;
+  }
+  if (id === "ep_all") {
+    f.ending = 1; gMarkClear("ep"); for (const h of G.st.party) { const s = gStats(h); h.hp = s.hp; h.mp = s.mp; }
+    G.pendingTalk = [{ who: null, en: "Thank you for playing. You can keep exploring Aster.", ja: "クリアおめでとう！　このあとも、王都から各地を歩いて、レベル上げや図鑑のモンスター集めができる。" }];
+    return gWarp("capital", 12, 15, 0);
+  }
   if (id === "p0_station") { G.pendingScene = null; return gWarp("train", 1, 4, 2); }
   if (id === "p0_train") { gMarkClear("p0"); G.pendingScene = "c1_intro"; return gWarp("village", 12, 15, 3); }
   if (id === "c1_intro") { f.lina_joined = 1; const lv = G.st.party[0].lv; G.st.party.push(gHero("lina", lv)); G.st.safe = ["village", 12, 15]; G.npcs = G.npcs.filter(n => n.id !== "lina"); gSave(true); return gTalk([{ who: null, en: "Lina joined the party!", ja: "リナが仲間になった！　まずは青い屋根の家にいるブラム長老をたずねよう。宿屋・武器屋・道具屋もある。" }]); }
   if (id === "c1_cellar") return gScene("c1_night");
   if (id === "c1_night") { f.c1_done = 1; gMarkClear("c1"); gSave(true); return gTalk([{ who: null, en: "The road to the north is now open.", ja: "第1章クリア！　北の森へ行けるようになった。森には魔物が出る。武器や防具をそろえて、レベルを上げながら進もう。" }]); }
   if (id === "c2_forest") { gSave(true); return; }
-  if (id === "c2_knight") { f.c2_done = 1; gMarkClear("c2"); G.npcs = G.npcs.filter(n => n.id !== "knight"); gSave(true); return gTalk([{ who: null, en: "To be continued...", ja: "第2章クリア！　第3章は準備中。森や遺跡でレベル上げや、図鑑のモンスター集めができる。" }]); }
+  if (id === "c2_knight") { f.c2_done = 1; gMarkClear("c2"); G.npcs = G.npcs.filter(n => n.id !== "knight"); gSave(true); return gTalk([{ who: null, en: "The gate behind the knight is open.", ja: "第2章クリア！　騎士が守っていた奥の門から、水晶の洞窟へ進める。" }]); }
 }
 function gMarkClear(id) { G.cleared = G.cleared || []; if (!G.cleared.includes(id)) { G.cleared.push(id); setTimeout(() => { sfx("done"); toast("章クリア！小判＋" + RPG_CLEAR_KOBAN); }, 200); } }
 
@@ -217,10 +238,10 @@ function gResolve() {
           const tgts = sk.kind === "healall" ? gAlive() : [P[a.t] && P[a.t].hp > 0 ? P[a.t] : h];
           for (const tg of tgts) { const st = gStats(tg), amt = Math.round(s.mag * sk.pow + 8); tg.hp = Math.min(st.hp, tg.hp + amt); msgs.push({ en: `${nm} cast ${skn}. ${GHEROES[tg.id].name} recovered ${amt} HP.`, ja: `${GHEROES[h.id].ja}の${sk.ja}！${GHEROES[tg.id].ja}のHPが${amt}回復した。`, heal: 1 }); }
         } else {
-          const tgts = (sk.kind === "magall") ? B.foes.filter(f => f.alive) : [pickFoe()];
-          const pw = sk.kind === "atk" ? s.atk : s.mag;
+          const tgts = (sk.kind === "magall" || sk.kind === "atkall") ? B.foes.filter(f => f.alive) : [pickFoe()];
+          const phys = sk.kind === "atk" || sk.kind === "atkall", pw = phys ? s.atk : s.mag;
           msgs.push({ en: `${nm} used ${skn}!`, ja: `${GHEROES[h.id].ja}の${sk.ja}！`, fx: "magic" });
-          for (const f of tgts) { const d = gDmg(pw, sk.kind === "atk" ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
+          for (const f of tgts) { const d = gDmg(pw, phys ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
         }
       } else if (a.type === "item") {
         const it = GITEMS[a.it], tg = P[a.t] || h; if (!(G.st.bag[a.it] > 0)) continue; G.st.bag[a.it]--;
@@ -306,7 +327,8 @@ function gPartyBar() {
   return `<div class="g-party">${G.st.party.map(h => { const s = gStats(h); return `<div class="${h.hp <= 0 ? "ko" : h.hp < s.hp / 4 ? "low" : ""}"><b>${GHEROES[h.id].name}<small>Lv${h.lv}</small></b><span>HP ${h.hp}/${s.hp}</span><span>MP ${h.mp}/${s.mp}</span></div>`; }).join("")}</div>`;
 }
 function gTextBox(n, ja) {
-  const c = gCast(n.who), m = rpgMark(n.en);
+  let c = gCast(n.who); const m = rpgMark(n.en);
+  if (n.who === "ren" && G.st.flags.ren_coat && typeof RPG_FACE !== "undefined" && RPG_FACE.rentravel_neutral) c = { ...c, face: "rentravel" };
   return `<div class="g-win g-say" data-g="next" role="button" tabindex="0">
     <div class="g-head">${c ? `<span class="g-name">${esc(ja ? c.ja : c.name)}</span>` : "<span></span>"}<button type="button" class="g-tr${ja ? " on" : ""}" data-g="tr">訳</button></div>
     <div class="g-line">${rpgFace(c, n.face)}<p>${ja ? esc(n.ja) : m.html}</p></div>${ja && m.found.length ? `<div class="rpg-gloss">${m.found.map(w => `<span><b>${esc(w[0])}</b>${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""}<i class="g-more">▼</i></div>`;
@@ -463,7 +485,7 @@ function gOpen(fresh) {
   G.lastSave = saved ? JSON.parse(JSON.stringify(saved)) : null;
   gEnterMap(G.st.map, G.st.x, G.st.y, G.st.dir); gRenderPanel(); gOver();
   requestAnimationFrame(gLoop);
-  if (!saved) setTimeout(() => gScene("p0_station"), 300);
+  if (!saved) setTimeout(() => gScene("p0_station"), 300); else if (G.pendingScene) setTimeout(gAfterWarp, 300);
 }
 function gClose() {
   if (G) { if (G.mode === "battle") { if (!confirm("戦闘中にとじると、この戦闘はなかったことになる。とじる？")) return; } gSave(true); G.open = false; }

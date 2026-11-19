@@ -227,8 +227,8 @@ const GFOES = {
   gargoyle: { mon: 7, name: "Iron Gargoyle", ja: "鉄のガーゴイル", hp: 75, atk: 19, def: 12, spd: 5, exp: 32, gold: 26 },
   crow: { mon: 64, name: "Crow Knight", ja: "カラスの騎士", hp: 62, atk: 20, def: 9, spd: 9, exp: 30, gold: 24 },
   // 物語のボス
-  hollow: { foe: "hollow", name: "Cellar Hollow", ja: "地下室のホロウ", hp: 60, atk: 9, def: 3, spd: 5, exp: 40, gold: 30, boss: true },
-  hknight: { foe: "hknight", name: "The Hollow Knight", ja: "空ろの騎士", hp: 420, atk: 27, def: 14, spd: 8, exp: 220, gold: 150, boss: true }
+  hollow: { foe: "hollow", name: "Cellar Hollow", ja: "地下室のホロウ", hp: 85, atk: 9, def: 3, spd: 5, exp: 40, gold: 30, boss: true },
+  hknight: { foe: "hknight", name: "The Hollow Knight", ja: "空ろの騎士", hp: 1100, atk: 29, def: 14, spd: 8, exp: 220, gold: 150, boss: true }
 };
 const GAREAS = {
   forest: [["slime"], ["slime", "slime"], ["imp"], ["sprite", "slime"], ["hedgehog"], ["owl"], ["imp", "sprite"], ["ent"]],
