@@ -65,7 +65,7 @@ function gEnterMap(id, x, y, dir) {
   if (def.intro && !G.st.flags["seen_" + def.intro] && !G.pendingScene) G.pendingScene = def.intro;
   $("gMapName").textContent = def.ja;
 }
-const gEncSteps = () => 10 + Math.floor(Math.random() * (G.def.enc.rate || 14));
+const gEncSteps = () => 18 + Math.floor(Math.random() * (G.def.enc.rate || 14) * 1.5);
 function gChestAt(x, y) { return (G.chests || []).find(c => c.x === x && c.y === y); }
 function gNpcAt(x, y) { return G.npcs.find(n => n.x === x && n.y === y); }
 function gBlocked(x, y) {
@@ -214,10 +214,18 @@ function gMarkClear(id) { G.cleared = G.cleared || []; if (!G.cleared.includes(i
 function gBattle(keys, onWin) {
   G.mode = "battle"; G.held = null; sfx("bell");
   const foes = keys.map((k, i) => { const d = GFOES[k]; return { k, d, hp: d.hp, max: d.hp, alive: true, i }; });
-  G.B = { foes, onWin, boss: foes.some(f => f.d.boss), actor: 0, acts: [], phase: "cmd", log: [], sub: null };
-  gNextActor(); gOver(); gRenderPanel();
+  G.B = { foes, onWin, boss: foes.some(f => f.d.boss), actor: 0, acts: [], phase: "intro", log: [], sub: null };
+  const seen = new Set(), intro = [];
+  for (const f of foes) { if (seen.has(f.k)) continue; seen.add(f.k); const L = gFoeLines(f); intro.push({ en: L[0], ja: L[1], read: true }); }
+  if (foes.length > 1 && seen.size === 1) intro[0] = { en: intro[0].en + ` (×${foes.length})`, ja: intro[0].ja + `（×${foes.length}）`, read: true };
+  G.B.queue = intro; gOver(); gPlayMsgs();
 }
 const gAlive = () => G.st.party.filter(h => h.hp > 0);
+/** モンスターの登場・退場の文（[英, 日, 英, 日]） */
+function gFoeLines(f) {
+  const L = (typeof GBOSSLINES !== "undefined" && GBOSSLINES[f.k]) || (typeof GMONLINES !== "undefined" && f.d.mon && !f.d.boss && GMONLINES[f.d.mon]);
+  return L || [`${f.d.name} appears!`, `${f.d.ja}があらわれた！`, `${f.d.name} was defeated!`, `${f.d.ja}をたおした！`];
+}
 function gNextActor() { const B = G.B; while (B.actor < G.st.party.length && G.st.party[B.actor].hp <= 0) B.actor++; if (B.actor >= G.st.party.length) gResolve(); else { B.phase = "cmd"; B.sub = null; } }
 function gChoose(act) { const B = G.B; B.acts.push({ ...act, who: B.actor }); B.actor++; gNextActor(); gRenderPanel(); gOver(); }
 function gDmg(atk, def, pow) { return Math.max(1, Math.round((atk * pow - def / 2) * (0.88 + Math.random() * 0.24))); }
@@ -229,7 +237,7 @@ function gResolve() {
     if (a.side === "h") {
       const h = P[a.who]; if (h.hp <= 0) continue; const s = gStats(h), nm = GHEROES[h.id].name;
       const pickFoe = () => { let f = B.foes[a.t]; if (!f || !f.alive) f = B.foes.find(x => x.alive); return f; };
-      if (a.type === "attack") { const f = pickFoe(); const crit = Math.random() < 0.07; const d = gDmg(s.atk, f.d.def, crit ? 1.8 : 1); f.hp -= d; msgs.push({ en: `${nm} attacks! ${crit ? "Critical hit! " : ""}${d} damage to ${f.d.name}.`, ja: `${GHEROES[h.id].ja}の攻撃！${crit ? "会心の一撃！" : ""}${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: crit ? "crit" : "hit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
+      if (a.type === "attack") { const f = pickFoe(); const crit = Math.random() < 0.07; const d = gDmg(s.atk, f.d.def, crit ? 1.8 : 1); f.hp -= d; msgs.push({ en: `${nm} attacks! ${crit ? "Critical hit! " : ""}${d} damage to ${f.d.name}.`, ja: `${GHEROES[h.id].ja}の攻撃！${crit ? "会心の一撃！" : ""}${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: crit ? "crit" : "hit" }); if (f.hp <= 0) { f.alive = false; { const L = gFoeLines(f); msgs.push({ en: L[2], ja: L[3], down: f.i, read: true }); } } }
       else if (a.type === "skill") {
         const sk = GSKILLS[a.sk]; if (h.mp < sk.mp) { msgs.push({ en: `${nm} doesn't have enough MP.`, ja: `MPが足りない！` }); continue; }
         h.mp -= sk.mp; const skn = sk.name;
@@ -241,7 +249,7 @@ function gResolve() {
           const tgts = (sk.kind === "magall" || sk.kind === "atkall") ? B.foes.filter(f => f.alive) : [pickFoe()];
           const phys = sk.kind === "atk" || sk.kind === "atkall", pw = phys ? s.atk : s.mag;
           msgs.push({ en: `${nm} used ${skn}!`, ja: `${GHEROES[h.id].ja}の${sk.ja}！`, fx: "magic" });
-          for (const f of tgts) { const d = gDmg(pw, phys ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
+          for (const f of tgts) { const d = gDmg(pw, phys ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; { const L = gFoeLines(f); msgs.push({ en: L[2], ja: L[3], down: f.i, read: true }); } } }
         }
       } else if (a.type === "item") {
         const it = GITEMS[a.it], tg = P[a.t] || h; if (!(G.st.bag[a.it] > 0)) continue; G.st.bag[a.it]--;
@@ -270,7 +278,7 @@ function gPlayMsgs() {
   if (!m) return gAfterRound();
   B.msg = m; if (m.hit != null) { B.fx = { i: m.hit, kind: m.fx || "hit", t: Date.now() }; sfx(m.fx === "crit" ? "coin" : "tap"); } else if (m.hurt) { B.fx = { hurt: true, t: Date.now() }; sfx("ng"); } else if (m.heal) sfx("ok");
   gOver(); gRenderPanel();
-  clearTimeout(B.timer); B.timer = setTimeout(gPlayMsgs, m.down != null ? 900 : 1050);
+  clearTimeout(B.timer); B.bja = false; if (!m.read) B.timer = setTimeout(gPlayMsgs, 1150);
 }
 function gAfterRound() {
   const B = G.B;
@@ -280,7 +288,7 @@ function gAfterRound() {
   B.actor = 0; B.msg = null; gNextActor(); gOver(); gRenderPanel();
 }
 function gWin() {
-  const B = G.B, exp = B.foes.reduce((a, f) => a + f.d.exp, 0), gold = B.foes.reduce((a, f) => a + f.d.gold, 0), msgs = [];
+  const B = G.B, exp = B.foes.reduce((a, f) => a + Math.round(f.d.exp * (f.d.boss ? 1 : 2.5)), 0), gold = B.foes.reduce((a, f) => a + f.d.gold, 0), msgs = [];
   G.st.gold += gold; msgs.push({ en: `Victory! Gained ${exp} EXP and ${gold} gold.`, ja: `たたかいに勝った！ 経験値${exp}と${gold}ゴールドを手に入れた。` });
   const dexNew = B.foes.filter(f => f.d.mon).map(f => f.d.mon);
   for (const h of G.st.party) {
@@ -294,7 +302,7 @@ function gWin() {
   }
   if (!B.boss && Math.random() < 0.12) { G.st.bag.herb = (G.st.bag.herb || 0) + 1; msgs.push({ en: `The monster dropped a Healing Herb.`, ja: `魔物は薬草を落としていった。` }); }
   B.phase = "result"; B.queue = msgs; B.dexNew = dexNew; sfx("done");
-  const play = () => { const m = B.queue.shift(); if (!m) { B.msg = null; return gEndBattle(true); } B.msg = m; if (m.lv) sfx("bell"); gRenderPanel(); gOver(); B.resultNext = play; };
+  const play = () => { const m = B.queue.shift(); if (!m) { B.msg = null; return gEndBattle(true); } B.msg = m; B.bja = false; if (m.lv) sfx("bell"); gRenderPanel(); gOver(); B.resultNext = play; };
   play();
 }
 function gLose() {
@@ -352,7 +360,7 @@ function gRenderPanel() {
 function gBattlePanel() {
   const B = G.B; let h = gPartyBar();
   if (B.phase === "lose") return h + `<div class="g-win"><p class="g-msg">${esc(B.msg.ja)}</p><button type="button" class="g-big" data-g="retry">やり直す</button></div>`;
-  if (B.msg) return h + `<div class="g-win g-log" data-g="${B.phase === "result" ? "rnext" : "skip"}" role="button"><p class="g-msg">${rpgMark(B.msg.en).html}</p><p class="g-msgja">${esc(B.msg.ja)}</p></div>`;
+  if (B.msg) { const mk = rpgMark(B.msg.en); return h + `<div class="g-win g-log" data-g="${B.phase === "result" ? "rnext" : "skip"}" role="button"><div class="g-head"><span></span><button type="button" class="g-tr${B.bja ? " on" : ""}" data-g="btr">訳</button></div><p class="g-msg">${B.bja ? esc(B.msg.ja) : mk.html}</p>${B.bja && mk.found.length ? `<div class="rpg-gloss">${mk.found.map(w => `<span><b>${esc(w[0])}</b>${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""}${B.msg.read || B.phase === "result" ? '<i class="g-more">▼</i>' : ""}</div>`; }
   const hero = G.st.party[B.actor]; if (!hero) return h;
   const nm = GHEROES[hero.id].ja;
   if (B.sub && B.sub.kind === "word") {
@@ -371,7 +379,7 @@ function gBattlePanel() {
     const its = Object.entries(G.st.bag).filter(([, n]) => n > 0);
     return h + `<div class="g-win"><p class="g-q">どうぐ</p><div class="g-list">${its.map(([k, n]) => `<button type="button" data-g="it" data-k="${k}">▶ ${esc(GITEMS[k].ja)} ×${n} <small>${esc(GITEMS[k].desc)}</small></button>`).join("") || "<p class='g-msgja'>何も持っていない</p>"}<button type="button" data-g="back">もどる</button></div></div>`;
   }
-  return h + `<div class="g-win"><p class="g-q">${nm}はどうする？</p><div class="g-grid"><button type="button" data-g="cmd" data-k="attack">たたかう</button><button type="button" data-g="cmd" data-k="skills">とくぎ</button><button type="button" data-g="cmd" data-k="items">どうぐ</button><button type="button" data-g="cmd" data-k="run">にげる</button></div></div>`;
+  return h + `<div class="g-win"><p class="g-q">What will ${GHEROES[hero.id].name} do?<small>${nm}はどうする？</small></p><div class="g-grid"><button type="button" data-g="cmd" data-k="attack">Attack<small>たたかう</small></button><button type="button" data-g="cmd" data-k="skills">Skill<small>とくぎ</small></button><button type="button" data-g="cmd" data-k="items">Item<small>どうぐ</small></button><button type="button" data-g="cmd" data-k="run">Run<small>にげる</small></button></div></div>`;
 }
 function gShopPanel() {
   const sh = G.shop, st = G.st;
@@ -422,6 +430,7 @@ function gClick(e) {
   // 戦闘
   if (G.mode === "battle" && G.B) {
     const B = G.B, hero = st.party[B.actor];
+    if (k === "btr") { e.stopPropagation(); B.bja = !B.bja; clearTimeout(B.timer); sfx("tap"); return gRenderPanel(); }
     if (k === "skip") { clearTimeout(B.timer); return gPlayMsgs(); }
     if (k === "rnext") return B.resultNext && B.resultNext();
     if (k === "retry") return gRetry();
