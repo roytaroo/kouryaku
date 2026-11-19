@@ -96,14 +96,22 @@ function rpgGloss(found) { return rpgJa && found.length ? `<div class="rpg-gloss
 function renderRPG() {
   const box = $("rpgBox"); if (!box) return;
   const st = rpgResolve(rpgState());
-  const tabs = `<div class="rpg-modes" role="tablist">${[["story", "物語"], ["explore", "探索"], ["dex", "図鑑"]].map(([k, l]) => `<button type="button" data-r="mode" data-k="${k}" aria-pressed="${rpgMode === k}">${l}</button>`).join("")}</div>`;
-  let h = tabs + (rpgMode === "explore" ? rpgExploreHtml(st) : rpgMode === "dex" ? rpgDexHtml(st) : rpgStoryHtml(st));
+  const tabs = `<div class="rpg-modes" role="tablist">${[["story", "冒険"], ["explore", "探索"], ["dex", "図鑑"]].map(([k, l]) => `<button type="button" data-r="mode" data-k="${k}" aria-pressed="${rpgMode === k}">${l}</button>`).join("")}</div>`;
+  let h = tabs + (rpgMode === "explore" ? rpgExploreHtml(st) : rpgMode === "dex" ? rpgDexHtml(st) : rpgMode === "novel" ? rpgStoryHtml(st) : rpgGameHtml(st));
   if (box.dataset.v !== h) {
     box.innerHTML = h; box.dataset.v = h;
     // 答えたあとは、結果と「次へ」が下のタブに隠れないように少しスクロール
     const nb = box.querySelector('[data-r="bnext"]');
     if (nb) requestAnimationFrame(() => { const over = nb.getBoundingClientRect().bottom - (innerHeight - 90); if (over > 0) scrollBy({ top: over, behavior: "smooth" }); });
   }
+}
+function rpgGameHtml(st) {
+  const g = S.rpg && S.rpg.game, lead = g && g.party && g.party[0];
+  const where = g && GMAPS[g.map] ? GMAPS[g.map].ja : "";
+  return `<div class="rpg-top"><span class="rpg-ch">Echoes of Aster</span><span class="rpg-prog">王道RPG・物語は英語</span></div>` + rpgScene("cg_train") + `<div class="rpg-box">
+    <p class="rpg-text">十字ボタンで歩いて、町の人と話し、魔物とコマンドで戦う。物語の会話はすべて英語。「訳」でいつでも日本語に。</p>
+    ${g ? `<p class="note" style="margin:0">つづき：${esc(where)}　レンLv${lead ? lead.lv : 1}　${g.gold}G</p><button type="button" class="big-btn" data-r="gplay">つづきから</button><button type="button" class="btn" data-r="gnew">はじめから</button>` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
+    <button type="button" class="btn ghost sm" data-r="novel">物語だけ読む（ノベル版）</button></div>`;
 }
 function rpgStoryHtml(st) {
   const ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], ns = rpgNodes(st), n = ns[st.i], bg = rpgBg(st);
@@ -219,6 +227,9 @@ function bindRPG() {
     if (r === "menu") { rpgMenu = !rpgMenu; return renderRPG(); }
     if (r === "pick") { const k = Number(b.dataset.k); if (k === st.ch) { rpgMenu = false; return renderRPG(); } st.ch = k; st.i = 0; return rpgGo(st); }
     if (r === "next") return rpgNext();
+    if (r === "gplay") return gOpen(false);
+    if (r === "gnew") { if (S.rpg && S.rpg.game && !confirm("はじめからにすると、今の冒険のデータは消える。いい？")) return; return gOpen(true); }
+    if (r === "novel") { rpgMode = "novel"; return renderRPG(); }
     if (r === "nextch") { st.ch++; st.i = 0; return rpgGo(st); }
     if (r === "explore") return rpgStartExplore();
     if (r === "opt") { const o = n.opts[Number(b.dataset.k)]; if (o.flag) st.flags[o.flag] = 1; st.i = rpgNodes(st).findIndex(x => x.label === o.go); sfx("ok"); return rpgGo(st); }

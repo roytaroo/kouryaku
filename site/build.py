@@ -17,7 +17,7 @@ SITE = pathlib.Path(__file__).resolve().parent
 ROOT = SITE.parent
 PRIVATE = ROOT / "minecraft" / "private"
 OUT = PRIVATE / "site_out" / "index.html"
-JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg", "main"]
+JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg", "game_data", "game", "main"]
 PART12_MAX = 1500
 
 
@@ -63,6 +63,18 @@ def load_faces(name="rpg_face"):
     return {p.stem: "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode() for p in sorted(d.glob("*.webp"))} if d.exists() else {}
 
 
+def load_game_art():
+    """王道RPGの絵（ぴぽやさんの素材。minecraft/private/pipoya）"""
+    import base64
+    d = PRIVATE / "pipoya"
+    if not d.exists():
+        return {}
+    uri = lambda p: "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
+    return {"tiles": uri(d / "mapchip" / "MapChip" / "base.png"),
+            "walk": {p.stem: uri(p) for p in sorted((d / "walk").glob("*.png")) if p.stem != "mio_raw"},
+            "etc": {"chest": uri(d / "etc" / "pipo-etcchara001.png"), "torch": uri(d / "etc" / "pipo-etcchara003.png")}}
+
+
 def load_pngs(name):
     """minecraft/private/<name>/*.png（モンスター・アイテムの素材。再配布NGなので公開しない）を {番号: data URI} にする"""
     import base64, re
@@ -86,6 +98,7 @@ def main():
     js += "const KOBUN = " + json.dumps(kobun, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "const RPG_BG = " + json.dumps(load_rpg_bg()) + ";\n"
     js += "const RPG_FACE = " + json.dumps(load_faces()) + ";\nconst RPG_FOE = " + json.dumps(load_faces("rpg_foe")) + ";\n"
+    js += "const GAME_ART = " + json.dumps(load_game_art()) + ";\n"
     js += "const RPG_MON = " + json.dumps(load_pngs("rpg_mon")) + ";\nconst RPG_ITEM = " + json.dumps(load_pngs("rpg_item")) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)
