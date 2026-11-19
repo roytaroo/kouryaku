@@ -2112,6 +2112,282 @@ const RPG_ITEMS = {
   73: { name: "Beast Skull", ja: "獣の頭骨", use: "強い魔物を倒したあかし" }
 };
 
+/* ===== 『Echoes of Aster』第3章〜第12章と終章（オリジナル） =====
+   章の中は { label: "cN_xxx" } で場面に区切ってある（game_data.js の GSCENES が切り出して流す）。
+   ミオが消えた理由：親友のハルを事故で亡くし、「自分のせいだ」と思いつめた。だれも自分のことで悲しまないように、
+   世界から自分を消してほしいと願った。その願いがアスターに届き、彼女は「忘却の女王」になった。彼女の悲しみが「色あせ」を広げている。
+   リナの秘密：リナ自身も、ずっと昔に元の世界から忘れられた人。ランタンは自分の記憶を燃やして光っている。最後に、その光で皆の記憶を取り戻す。 */
+Object.assign(RPG_CAST, {
+  garo: { name: "Garo", ja: "ガロ", face: "garo" },
+  ella: { name: "Ella", ja: "エラ", face: "ella" },
+  king: { name: "King Aldric", ja: "アルドリック王", face: "king" },
+  captain: { name: "Captain Varos", ja: "ヴァロス隊長" },
+  herald: { name: "The Gray Herald", ja: "灰色の使者" },
+  sailor: { name: "Old Sailor", ja: "老水夫" },
+  queen: { name: "Queen of Oblivion", ja: "忘却の女王", face: "queen" }
+});
+
+RPG_CHAPTERS.push(
+/* ───────────────────────── 第3章 ───────────────────────── */
+{ id: "c3", title: "Chapter 3: The Crystal Caves", ja: "第3章　水晶の洞窟", nodes: [
+  { label: "c3_enter" },
+  { bg: "cave", who: null, en: "Behind the ruined gate, a tunnel led deep into the mountain. The walls were covered with crystals that glowed a pale blue.", ja: "崩れた門の奥には、山の深くへ続くトンネルがあった。壁は青白く光る水晶でおおわれていた。" },
+  { who: "lina", face: "surprised", en: "\"These are memory crystals. When people forget something, the memory sinks into the earth and slowly turns to stone.\"", ja: "「これは記憶の水晶よ。人が何かを忘れると、その記憶は地面にしみこんで、ゆっくり石になるの。」" },
+  { who: "ren", en: "\"So this whole cave is made of things people have forgotten?\"", ja: "「じゃあ、この洞窟全部が、人が忘れたものでできてるのか？」" },
+  { who: "lina", face: "sad", en: "\"Yes. Somewhere in here, there may even be a memory of your sister.\"", ja: "「そう。このどこかに、妹さんの記憶だってあるかもしれない。」" },
+  { label: "c3_camp" },
+  { who: null, en: "In a wide chamber, an old dwarf was swinging a pickaxe at the wall. Next to him lay a pile of crystals and a half-finished traveling coat.", ja: "広い空洞で、年老いたドワーフが壁にツルハシを振るっていた。そばには水晶の山と、作りかけの旅の上着が置いてあった。" },
+  { who: "garo", en: "\"Visitors? Hmph. If you've come to steal crystals, you'll have to get past my axe first.\"", ja: "「客か？ふん。水晶を盗みに来たのなら、まずはわしの斧を越えてもらおうか。」" },
+  { who: "lina", en: "\"We're not thieves. We're looking for a girl who passed through here a year ago.\"", ja: "「わたしたちは泥棒じゃありません。1年前にここを通った女の子を探しているんです。」" },
+  { who: "garo", en: "\"A girl...? There was one. She cried in front of the deepest crystal for a whole night. I couldn't stand it, so I gave her my lamp.\"", ja: "「女の子……？いたな。いちばん奥の水晶の前で、ひと晩じゅう泣いておった。見ていられなくて、わしのランプを貸してやったんじゃ。」" },
+  { who: "ren", face: "surprised", en: "\"That has to be Mio! Where did she go?\"", ja: "「それ、ミオにちがいない！どこへ行ったんだ？」" },
+  { who: "garo", en: "\"Deeper. Toward the Heart Crystal, where the oldest memories sleep. But a guardian lives there now, and it attacks anyone who comes near.\"", ja: "「もっと奥じゃ。いちばん古い記憶が眠る『心臓の水晶』のほうへな。だが今はそこに番人がいて、近づく者をだれでも襲う。」" },
+  { who: "ren", en: "\"Then I'll go anyway.\"", ja: "「それでも行く。」" },
+  { who: "garo", en: "\"...You remind me of someone. I can't remember who. Bah. Fine, I'll come with you. Somebody has to keep you two alive.\"", ja: "「……おまえを見ていると、だれかを思い出す。だれだったかは思い出せんが。ちっ。いいだろう、ついていってやる。だれかがおまえたちを死なせんようにせねばな。」" },
+  { who: null, en: "Garo picked up his axe and the unfinished coat. He folded the coat carefully, as if it were precious, and put it in his bag.", ja: "ガロは斧と、作りかけの上着を手に取った。上着を大切なもののようにていねいにたたんで、袋にしまった。", flag: "garo_joined" },
+  { label: "c3_boss" },
+  { who: null, en: "At the bottom of the cave stood a giant crystal shaped like a beating heart. In front of it, the ice began to move and rise.", ja: "洞窟の底には、脈打つ心臓のような形の巨大な水晶があった。その前で、氷が動き、立ち上がり始めた。" },
+  { who: "garo", en: "\"The guardian! Stay sharp, both of you!\"", ja: "「番人だ！ふたりとも、気を抜くな！」" },
+  { battle: { name: "Glacier Titan", ja: "氷河の巨人", mon: 101, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "The titan cracked and collapsed. In the falling ice, Ren's school uniform had been torn to pieces.", ja: "巨人はひび割れ、崩れ落ちた。降りそそぐ氷の中で、レンの学生服はぼろぼろに裂けていた。" },
+  { who: "garo", en: "\"Your clothes are ruined. Here... take this coat. I was making it for someone, but I can't remember who it was for.\"", ja: "「服がだめになったな。ほれ……この上着を着ろ。だれかのために作っていたんじゃが、それがだれだったか思い出せんのじゃ。」" },
+  { who: null, en: "When Ren put on the coat, the Heart Crystal shone. Inside it, images floated: a small girl laughing on Garo's shoulders.", ja: "レンが上着をはおると、心臓の水晶が輝いた。その中に映像が浮かんだ。ガロの肩車で笑う、小さな女の子の姿だった。", flag: "ren_coat" },
+  { who: "garo", en: "\"...Ella. My daughter, Ella. How could I have forgotten you?\"", ja: "「……エラ。わしの娘、エラじゃ。どうして、おまえを忘れておったんじゃ。」" },
+  { who: "garo", en: "\"She left for the capital years ago to work at the Great Library. I promised I'd finish this coat before she came home.\"", ja: "「何年も前に、大図書館で働くために王都へ行ったんじゃ。あの子が帰ってくるまでに、この上着を仕上げると約束したのに。」" },
+  { who: "lina", face: "sad", en: "\"Then let's go to the capital together. Your daughter and Ren's sister may both be there.\"", ja: "「なら、いっしょに王都へ行きましょう。娘さんも、レンの妹さんも、きっとそこにいるわ。」" },
+  { who: null, en: "Lina smiled, but her lantern flickered again. This time, for a moment, it went completely dark.", ja: "リナはほほえんだ。でもランタンがまたゆらいだ。今度は一瞬、完全に消えてしまった。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第4章 ───────────────────────── */
+{ id: "c4", title: "Chapter 4: Under the Capital", ja: "第4章　王都の地下水路", nodes: [
+  { label: "c4_enter" },
+  { bg: "canal", who: null, en: "The gates of the capital were shut. Guards turned away everyone except people who came to give up their memories.", ja: "王都の門は閉ざされていた。衛兵たちは、記憶を差し出しに来た人以外は、だれも中へ入れなかった。" },
+  { who: "garo", en: "\"There's an old waterway under the walls. Miners like me used it to carry crystals into the city.\"", ja: "「城壁の下に古い水路がある。わしら鉱夫が、水晶を街へ運ぶのに使っておった道じゃ。」" },
+  { who: null, en: "The waterway was dark and cold. Water dripped from the ceiling, and the sound echoed endlessly.", ja: "水路は暗く、冷たかった。天井から水がしたたり、その音がいつまでも響いていた。" },
+  { label: "c4_mid" },
+  { who: "ren", en: "\"Lina, your lantern went out back in the cave. What's happening to it?\"", ja: "「リナ、洞窟でランタンが消えたよな。あれ、どうなってるんだ？」" },
+  { who: "lina", face: "sad", en: "\"...It's fine. It just gets tired sometimes, like people do.\"", ja: "「……大丈夫。ときどき疲れるだけ。人と同じよ。」" },
+  { choice: { en: "What does Ren say?", ja: "レンはどう言う？" }, opts: [
+    { en: "\"You're lying. Tell me the truth.\"", ja: "「うそだな。本当のことを言ってくれ。」", go: "c4_truth", flag: "pressed" },
+    { en: "\"Okay. But don't push yourself.\"", ja: "「わかった。でも、無理はするなよ。」", go: "c4_soft" }
+  ] },
+  { label: "c4_truth" },
+  { who: "lina", face: "sad", en: "\"...The lantern burns my own memories to make light. Every time I use it, I lose a little of who I am.\"", ja: "「……このランタンは、わたし自身の記憶を燃やして光るの。使うたびに、わたしは自分を少しずつ失っていく。」" },
+  { who: "ren", face: "surprised", en: "\"Then stop using it! I don't want you to disappear for my sake!\"", ja: "「じゃあ使うのをやめろ！俺のために、きみが消えるなんて嫌だ！」" },
+  { who: "lina", face: "smile", en: "\"I chose this myself, Ren. Please let me keep my promise.\"", ja: "「これは自分で選んだことなの、レン。お願い、約束を守らせて。」" },
+  { go: "c4_on" },
+  { label: "c4_soft" },
+  { who: "lina", face: "smile", en: "\"Thank you. I'll tell you everything someday. Just not yet.\"", ja: "「ありがとう。いつか全部話すね。でも、今はまだ。」" },
+  { label: "c4_on" },
+  { label: "c4_boss" },
+  { who: null, en: "Near the exit, the water began to swirl. Long arms rose from the dark water and blocked the way.", ja: "出口の近くで、水が渦を巻き始めた。暗い水の中から長い腕が伸びて、行く手をふさいだ。" },
+  { who: "garo", en: "\"The beast of the waterway! It swallows anything that falls into the canal!\"", ja: "「水路の怪物じゃ！水路に落ちたものは、なんでも飲みこんでしまう！」" },
+  { battle: { name: "Canal Kraken", ja: "水路のクラーケン", mon: 11, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "The kraken sank back into the water. A ladder led up to a grate, and through it they could see the white towers of the capital.", ja: "クラーケンは水の中へ沈んでいった。はしごが格子へと続いていて、そのすき間から王都の白い塔が見えた。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第5章 ───────────────────────── */
+{ id: "c5", title: "Chapter 5: The White Castle", ja: "第5章　白い城", nodes: [
+  { label: "c5_enter" },
+  { bg: "castle", who: null, en: "The capital was beautiful and silent. People walked slowly, smiling, with empty eyes.", ja: "王都は美しく、静まり返っていた。人々はゆっくりと歩き、ほほえんでいたが、その目はうつろだった。" },
+  { who: "ren", en: "\"Why does everyone look so happy?\"", ja: "「なんでみんな、あんなに幸せそうなんだ？」" },
+  { who: "lina", face: "sad", en: "\"Because they gave away their painful memories. The King's decree says that forgetting is mercy.\"", ja: "「つらい記憶を差し出したからよ。王の布告では、忘れることこそ慈悲なんですって。」" },
+  { who: "garo", en: "\"Mercy? A man who forgets his own daughter isn't saved. He's just empty.\"", ja: "「慈悲じゃと？自分の娘を忘れた男は、救われてなどおらん。ただ、からっぽなだけじゃ。」" },
+  { who: "lina", en: "\"Let's get ready before we go to the castle. There are good shops in this city.\"", ja: "「城へ行く前に、準備をしましょう。この街にはいいお店があるわ。」" },
+  { label: "c5_boss" },
+  { bg: "hall", who: null, en: "In the great hall of the White Castle, King Aldric sat on his throne. His face was calm, like a lake with no wind.", ja: "白い城の大広間で、アルドリック王は玉座に座っていた。その顔は、風のない湖のように静かだった。" },
+  { who: "king", en: "\"Travelers. I heard you are searching for a girl. Why carry such a heavy memory? Let it go, and you will finally be at peace.\"", ja: "「旅の者たちよ。少女を探しているそうだな。なぜそのように重い記憶を背負う？手放せば、ようやく安らぎが得られるのだ。」" },
+  { who: "ren", en: "\"You're the one who ordered people to forget!\"", ja: "「人に忘れろと命じたのは、あんただろ！」" },
+  { who: "king", en: "\"I lost my queen many years ago. For years, every morning hurt. Then a girl in white offered to take my grief away. I accepted.\"", ja: "「わたしは何年も前に王妃を亡くした。何年も、毎朝がつらかった。そこへ白い服の少女が、悲しみを持っていってあげると申し出た。わたしは受け入れた。」" },
+  { who: "king", en: "\"Now I can't even remember her face. And I feel... nothing at all. Isn't that wonderful?\"", ja: "「今では王妃の顔さえ思い出せぬ。そして、何も……何も感じない。すばらしいことではないか？」" },
+  { choice: { en: "How does Ren answer the King?", ja: "レンは王にどう答える？" }, opts: [
+    { en: "\"That isn't peace. You just gave up loving her.\"", ja: "「それは安らぎじゃない。あんたは、彼女を愛するのをやめただけだ。」", go: "c5_fight", flag: "told_king" },
+    { en: "\"Where is the girl in white?\"", ja: "「白い服の少女はどこにいる？」", go: "c5_fight" }
+  ] },
+  { label: "c5_fight" },
+  { who: "king", en: "\"...Captain Varos. These travelers are disturbing the peace. Take their memories.\"", ja: "「……ヴァロス隊長。この旅人たちは安らぎを乱している。記憶を奪え。」" },
+  { who: "captain", en: "\"Yes, Your Majesty. Forgive me, travelers. Orders are orders.\"", ja: "「はっ、陛下。許せ、旅人よ。命令は命令だ。」" },
+  { battle: { name: "Captain Varos", ja: "ヴァロス隊長", mon: 64, boss: true }, vocab: 2, qs: [] },
+  { who: "captain", en: "\"...Strange. When your sword hit my armor, I remembered my mother's voice. I had forgotten it.\"", ja: "「……ふしぎだ。おまえの剣がわたしの鎧に当たったとき、母の声を思い出した。忘れていたのに。」" },
+  { if: "told_king", go: "c5_king" },
+  { who: "king", en: "\"Enough. Leave my castle. ...Go, before I change my mind.\"", ja: "「もうよい。城から去れ。……行け。わたしの気が変わらぬうちに。」" },
+  { go: "c5_out" },
+  { label: "c5_king" },
+  { who: "king", en: "\"\"You just gave up loving her\"... Those words hurt. Why do they hurt, if I feel nothing?\"", ja: "「『彼女を愛するのをやめただけだ』……その言葉が痛む。何も感じぬはずなのに、なぜ痛むのだ。」" },
+  { label: "c5_out" },
+  { who: "lina", en: "\"The girl in white went to the Hall of Lanterns, deep inside the castle. I'm sure of it.\"", ja: "「白い服の少女は、城の奥の『灯の回廊』へ行ったはずよ。まちがいない。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第6章 ───────────────────────── */
+{ id: "c6", title: "Chapter 6: The Hall of Lanterns", ja: "第6章　灯の回廊", nodes: [
+  { label: "c6_enter" },
+  { bg: "night_hall", who: null, en: "The Hall of Lanterns was a long corridor lit by thousands of tiny flames. Each flame was a memory someone had given up.", ja: "灯の回廊は、何千もの小さな炎に照らされた長い廊下だった。炎のひとつひとつが、だれかが手放した記憶だった。" },
+  { who: "garo", en: "\"So many... Is Ella's memory of me burning here too?\"", ja: "「こんなに……。エラがわしを覚えていた記憶も、ここで燃えておるのか。」" },
+  { label: "c6_mid" },
+  { who: null, en: "At the end of the corridor, a pale figure appeared. It was a girl with a blue ribbon, but she was transparent, like a reflection on glass.", ja: "廊下の奥に、白っぽい人影が現れた。青いリボンの少女だった。でもその姿は、ガラスに映った影のように透き通っていた。" },
+  { who: "mio", face: "sad", en: "\"Ren. Please go home. You're the only one who still remembers me, and that's why you're the only one who still hurts.\"", ja: "「レン。お願い、帰って。わたしを覚えているのはもうお兄ちゃんだけ。だから、まだ苦しんでいるのもお兄ちゃんだけなの。」" },
+  { who: "ren", face: "surprised", en: "\"Mio! What are you saying? Come home with me!\"", ja: "「ミオ！何言ってるんだ？いっしょに帰るぞ！」" },
+  { who: "mio", face: "sad", en: "\"I can't. I did something unforgivable. If everyone forgets me, nobody will ever have to be sad because of me again.\"", ja: "「無理だよ。わたし、許されないことをしたの。みんながわたしを忘れれば、もうだれも、わたしのせいで悲しまなくてすむ。」" },
+  { who: null, en: "The image of Mio faded. In her place, a figure in a gray cloak rose from the shadows.", ja: "ミオの姿は消えた。その代わりに、影の中から灰色のマントの人影が立ち上がった。" },
+  { label: "c6_boss" },
+  { who: "herald", en: "\"The Queen has spoken. Turn back, brother of the Queen, or I will burn your memories with the rest.\"", ja: "「女王はおっしゃった。引き返せ、女王の兄よ。さもなくば、おまえの記憶もほかと共に燃やしてやろう。」" },
+  { who: "ren", en: "\"Queen? ...Mio is the Queen?\"", ja: "「女王？……ミオが、女王だっていうのか？」" },
+  { battle: { name: "The Gray Herald", ja: "灰色の使者", mon: 86, boss: true }, vocab: 2, qs: [] },
+  { who: "herald", en: "\"...Then go. Go to the Great Library. Read what she wished for. And then decide whether you still want to drag her home.\"", ja: "「……ならば行け。大図書館へ行き、あの方が何を願ったのかを読むがいい。そのうえで、まだ連れ戻したいのか決めるのだな。」" },
+  { who: null, en: "The herald dissolved into ash. The thousands of flames in the hall trembled, and a few of them drifted out of the window like fireflies.", ja: "使者は灰になって消えた。回廊の何千もの炎がふるえ、そのいくつかが、ほたるのように窓の外へ流れていった。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第7章 ───────────────────────── */
+{ id: "c7", title: "Chapter 7: The Great Library", ja: "第7章　大図書館", nodes: [
+  { label: "c7_enter" },
+  { bg: "library", who: null, en: "The Great Library was filled with golden light. Shelves rose higher than any tower, and the air smelled of old paper.", ja: "大図書館は金色の光に満ちていた。本棚はどんな塔よりも高くそびえ、空気は古い紙のにおいがした。" },
+  { who: "lina", face: "smile", en: "\"This is where I grew up. Every forgotten story in Aster is kept here, so that someone, someday, can read it again.\"", ja: "「ここでわたしは育ったの。アスターで忘れられた物語は全部ここにしまってある。いつか、だれかがまた読めるように。」" },
+  { label: "c7_mid" },
+  { who: null, en: "In the deepest room, Lina took down a thin book. Its cover read: \"The Wish of Mio Amane.\"", ja: "いちばん奥の部屋で、リナは薄い本を取り出した。表紙にはこう書かれていた。「天音ミオの願い」。" },
+  { who: "lina", face: "sad", en: "\"A year ago, Mio's best friend, Haru, was in an accident. Mio had asked her to come out that day. She believed it was her fault.\"", ja: "「1年前、ミオの親友のハルが事故にあったの。その日、ハルを呼び出したのはミオだった。ミオは、自分のせいだと思いこんだ。」" },
+  { who: "lina", face: "sad", en: "\"She wished: \"Let everyone forget me, so that no one will ever be hurt by me again.\" The wish was so strong that it reached Aster.\"", ja: "「彼女は願った。『みんながわたしを忘れますように。もう二度と、だれもわたしのせいで傷つかないように』。その願いがあまりにも強くて、アスターまで届いたの。」" },
+  { who: "ren", face: "sad", en: "\"...She never told me. I was right next to her, and I didn't notice anything.\"", ja: "「……何も言わなかったんだ。俺はすぐそばにいたのに、何も気づかなかった。」" },
+  { who: "garo", en: "\"Children hide the heaviest things best. That's not your sin, boy.\"", ja: "「子どもは、いちばん重いものほど上手に隠すんじゃ。おまえの罪じゃないぞ、坊主。」" },
+  { who: "lina", en: "\"There's one more page. Her sadness became the Fading. As long as she wants to forget, all of Aster will keep forgetting too.\"", ja: "「もう1ページあるの。彼女の悲しみが『色あせ』になった。彼女が忘れたいと願い続けるかぎり、アスター全体も忘れ続けるの。」" },
+  { label: "c7_boss" },
+  { who: null, en: "Suddenly, the ink on every page began to run. Letters crawled off the paper and gathered into a huge shape with too many arms.", ja: "突然、すべてのページのインクが流れ始めた。文字が紙からはい出し、腕の多すぎる巨大な形に集まった。" },
+  { who: "lina", face: "surprised", en: "\"The Ink Weaver! It's trying to erase her book!\"", ja: "「インクの織り手よ！あの子の本を消そうとしてる！」" },
+  { battle: { name: "Ink Weaver", ja: "インクの織り手", mon: 61, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "When the monster fell, the ink returned to the pages. Among the books, a librarian's card slipped out and landed at Ren's feet.", ja: "怪物が倒れると、インクはページに戻った。本のあいだから一枚の図書館の名札がすべり落ちて、レンの足元に落ちた。" },
+  { who: null, en: "It said: \"Apprentice: Lina. Arrived in Aster: 112 years ago.\"", ja: "そこにはこう書かれていた。「見習い：リナ。アスター到着：112年前」。" },
+  { who: "ren", face: "surprised", en: "\"Lina... a hundred and twelve years?\"", ja: "「リナ……112年って？」" },
+  { who: "lina", face: "sad", en: "\"I was forgotten by my world too, long ago. That's why I wanted to help you. I didn't want anyone else to end up like me.\"", ja: "「わたしも、ずっと昔に自分の世界から忘れられたの。だからあなたを助けたかった。わたしみたいになる人を、もう出したくなかったから。」" },
+  { who: "lina", en: "\"The Queen's castle floats above the Storm Sea. To reach it, we need the First Page from the Sunken Archive. Let's go to the harbor.\"", ja: "「女王の城は、嵐の海の上に浮かんでいる。そこへ行くには、沈んだ書庫にある『最初のページ』が必要なの。港へ行きましょう。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第8章 ───────────────────────── */
+{ id: "c8", title: "Chapter 8: The Harbor Town", ja: "第8章　港町", nodes: [
+  { label: "c8_enter" },
+  { bg: "harbor", who: null, en: "The harbor town smelled of salt and tar. Ships with gray sails rocked quietly in the evening light.", ja: "港町は潮とタールのにおいがした。灰色の帆の船が、夕方の光の中で静かにゆれていた。" },
+  { who: "sailor", en: "\"The Sunken Archive? Nobody sails there anymore. A giant whale guards the beach, and the sea beyond it is full of monsters.\"", ja: "「沈んだ書庫だと？もうだれもあそこへは船を出さん。浜辺を巨大なクジラが守っていて、その先の海は魔物だらけだ。」" },
+  { label: "c8_mid" },
+  { who: null, en: "In front of the warehouse, a young woman was counting boxes. When she looked up, Garo dropped his axe.", ja: "倉庫の前で、若い女性が木箱を数えていた。彼女が顔を上げたとき、ガロは斧を取り落とした。" },
+  { who: "garo", en: "\"Ella...!\"", ja: "「エラ……！」" },
+  { who: "ella", en: "\"I'm sorry, sir. Do I know you?\"", ja: "「すみません、どちらさまでしょう？」" },
+  { who: null, en: "Garo's hands shook. Then he took out the Memory Shard from the cave and placed it gently in her palm.", ja: "ガロの手はふるえていた。それから彼は洞窟の記憶のかけらを取り出し、そっと彼女の手のひらにのせた。" },
+  { who: null, en: "Light filled the shard. A small girl laughing on her father's shoulders. A promise about a coat. A mountain full of blue crystals.", ja: "かけらが光で満ちた。父親の肩車で笑う小さな女の子。上着についての約束。青い水晶でいっぱいの山。" },
+  { who: "ella", en: "\"...Papa? Papa, it's you! I forgot you... I forgot you, and you never forgot me!\"", ja: "「……父さん？父さんなのね！わたし、父さんを忘れてた……忘れてたのに、父さんはわたしを忘れなかったのね！」" },
+  { who: "garo", en: "\"I did forget, Ella. But a stubborn boy reminded me. I'm sorry the coat went to him.\"", ja: "「わしも忘れておったよ、エラ。じゃが、頑固な坊主が思い出させてくれた。上着はそいつにやってしまったがな、すまん。」" },
+  { who: "ren", face: "smile", en: "\"I'll give it back when this is over. Promise.\"", ja: "「全部終わったら返すよ。約束する。」" },
+  { label: "c8_boss" },
+  { bg: "beach", who: null, en: "On the beach, the waves rose like a wall, and a golden whale burst out of the sea.", ja: "浜辺で波が壁のように立ち上がり、金色のクジラが海から飛び出した。" },
+  { who: "lina", en: "\"It's guarding the path to the Archive! We have to get past it!\"", ja: "「書庫への道を守ってる！ここを突破しなきゃ！」" },
+  { battle: { name: "Golden Whale", ja: "黄金のクジラ", mon: 67, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "The whale sank slowly, and the sea split open, revealing a stone stairway leading down beneath the waves.", ja: "クジラはゆっくりと沈み、海が左右に割れた。波の下へと続く石の階段が現れた。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第9章 ───────────────────────── */
+{ id: "c9", title: "Chapter 9: The Sunken Archive", ja: "第9章　沈んだ書庫", nodes: [
+  { label: "c9_enter" },
+  { bg: "sea", who: null, en: "Under the sea, the ruins of an ancient library stood in silence. Fish swam between the pillars like readers who had lost their way.", ja: "海の底で、古代の図書館の跡が静まり返っていた。魚たちが、道に迷った読者のように柱のあいだを泳いでいた。" },
+  { who: "lina", en: "\"My lantern keeps the water away from us. Stay close to me.\"", ja: "「わたしのランタンが、水をわたしたちから遠ざけてる。そばを離れないで。」" },
+  { label: "c9_mid" },
+  { who: "ren", en: "\"Lina, you're using the lantern constantly. How much of yourself is left?\"", ja: "「リナ、ずっとランタンを使ってるだろ。きみ自身は、あとどれくらい残ってるんだ？」" },
+  { who: "lina", face: "sad", en: "\"I've already forgotten my mother's name. And the town where I was born. But I still remember you, Ren. That's enough.\"", ja: "「お母さんの名前は、もう忘れちゃった。生まれた町も。でも、あなたのことはまだ覚えてる、レン。それで十分よ。」" },
+  { choice: { en: "What does Ren do?", ja: "レンはどうする？" }, opts: [
+    { en: "Take her hand and say, \"Then I'll remember you, for both of us.\"", ja: "彼女の手を取って言う。「なら、ふたり分、俺がきみを覚えてる。」", go: "c9_hand", flag: "held_hand" },
+    { en: "Stay silent, unable to find the words.", ja: "言葉が見つからず、黙ってしまう。", go: "c9_quiet" }
+  ] },
+  { label: "c9_hand" },
+  { who: "lina", face: "smile", en: "\"...That's the nicest promise anyone has ever made me.\"", ja: "「……それ、今までだれかにもらった中で、いちばんすてきな約束。」" },
+  { go: "c9_go" },
+  { label: "c9_quiet" },
+  { who: "lina", face: "smile", en: "\"It's okay. You don't have to say anything. Just keep walking with me.\"", ja: "「いいの。何も言わなくていい。ただ、いっしょに歩いて。」" },
+  { label: "c9_go" },
+  { label: "c9_boss" },
+  { who: null, en: "In the central hall, the First Page floated inside a bubble of light. Around it coiled a dragon made of deep blue water.", ja: "中央の広間で、『最初のページ』が光の泡の中に浮かんでいた。そのまわりに、深い青の水でできた竜がとぐろを巻いていた。" },
+  { battle: { name: "Abyss Wyrm", ja: "深淵の竜", mon: 88, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "When the wyrm fell, the bubble burst. The First Page drifted down into Ren's hands. On it was a child's drawing: two stick figures holding hands.", ja: "竜が倒れると、泡がはじけた。『最初のページ』がひらひらとレンの手に落ちてきた。そこには子どもの絵が描かれていた。手をつないだ、ふたりの棒人間。" },
+  { who: "ren", face: "sad", en: "\"I remember this. Mio drew it when she was six. \"Me and big brother.\" She said I'd always find her when we played hide-and-seek.\"", ja: "「覚えてる。ミオが6歳のときに描いた絵だ。『わたしとお兄ちゃん』。かくれんぼのとき、お兄ちゃんはいつもわたしを見つけてくれるって言ってた。」" },
+  { who: "ren", en: "\"I promised her I always would. I'm not breaking that promise now.\"", ja: "「いつでも見つけるって、俺は約束したんだ。今その約束を破るつもりはない。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第10章 ───────────────────────── */
+{ id: "c10", title: "Chapter 10: The Storm Sky", ja: "第10章　嵐の空", nodes: [
+  { label: "c10_enter" },
+  { bg: "storm", who: null, en: "The First Page glowed, and a staircase of light rose into the storm clouds. Lightning tore across the sky.", ja: "『最初のページ』が光り、光の階段が嵐の雲の中へと伸びていった。稲妻が空を引き裂いた。" },
+  { who: "garo", en: "\"So the Queen lives above the clouds. Well, I've climbed worse mountains.\"", ja: "「女王は雲の上に住んでおるのか。まあ、もっとひどい山も登ってきたわい。」" },
+  { label: "c10_mid" },
+  { who: null, en: "Halfway up, the stairs narrowed into a single bridge of light. Behind them, a swarm of storm monsters was coming fast.", ja: "途中で、階段は一本の光の橋へと細くなった。うしろから、嵐の魔物の群れが迫ってきていた。" },
+  { who: "garo", en: "\"Go on ahead, you two. I'll hold the bridge.\"", ja: "「ふたりとも、先に行け。わしが橋を守る。」" },
+  { who: "ren", face: "surprised", en: "\"Garo, no! There are too many of them!\"", ja: "「ガロ、だめだ！数が多すぎる！」" },
+  { who: "garo", en: "\"I promised Ella I'd come home, and I'm a man who keeps his promises now. Go! Find your sister!\"", ja: "「エラに帰ると約束したんじゃ。わしはもう、約束を守る男なんじゃよ。行け！妹を見つけてこい！」" },
+  { who: null, en: "Garo's axe flashed in the lightning. Ren and Lina ran up the bridge without looking back.", ja: "稲妻の中でガロの斧がひらめいた。レンとリナは、振り返らずに橋を駆け上がった。" },
+  { label: "c10_boss" },
+  { who: null, en: "At the top of the storm, a lion made of thunder blocked the gate to the floating castle.", ja: "嵐のいただきで、雷でできた獅子が、浮かぶ城の門の前に立ちはだかった。" },
+  { battle: { name: "Thunder Lion", ja: "雷獅子", mon: 100, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "As the lion vanished, Garo came limping up the bridge, covered in scratches, but grinning.", ja: "獅子が消えると、ガロが傷だらけで、足を引きずりながら、それでもにやりと笑って橋を上がってきた。" },
+  { who: "garo", en: "\"Told you. I keep my promises.\"", ja: "「言ったじゃろ。わしは約束を守るんじゃ。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第11章 ───────────────────────── */
+{ id: "c11", title: "Chapter 11: The Gate of Flame", ja: "第11章　炎の門", nodes: [
+  { label: "c11_enter" },
+  { bg: "gate", who: null, en: "Inside the floating castle, the halls burned with fire that gave no heat. It was the fire of memories being destroyed.", ja: "浮かぶ城の中では、熱のない炎が広間を燃やしていた。記憶が壊されていく炎だった。" },
+  { who: "lina", face: "sad", en: "\"Every memory in Aster is burning here. If we don't hurry, there'll be nothing left to save.\"", ja: "「アスター中の記憶が、ここで燃えてる。急がないと、救えるものが何も残らなくなる。」" },
+  { label: "c11_mid" },
+  { who: null, en: "Someone was standing in the flames, pouring water from a silver jug again and again. It was King Aldric.", ja: "炎の中にだれかが立っていて、銀の水差しで何度も何度も水をかけていた。アルドリック王だった。" },
+  { who: "king", en: "\"Your words would not leave me, boy. So I came to take back my queen's memory. I found her face in these flames.\"", ja: "「おまえの言葉が頭から離れなかったのだ、少年。だから王妃の記憶を取り戻しに来た。この炎の中に、あの人の顔を見つけたのだ。」" },
+  { who: "king", en: "\"It hurts. It hurts terribly. But I would rather hurt than forget her. Go. I will keep this gate open for you.\"", ja: "「痛む。ひどく痛む。だが、彼女を忘れるよりは、痛むほうがいい。行け。この門は、わたしが開けておこう。」" },
+  { label: "c11_boss" },
+  { who: null, en: "Before the last door stood a beast of ash and embers, its eyes burning with the anger of a thousand forgotten things.", ja: "最後の扉の前に、灰と燃えさしでできた獣が立っていた。その目は、忘れられた千のものの怒りで燃えていた。" },
+  { battle: { name: "Gatekeeper of Ash", ja: "灰の門番", mon: 80, boss: true }, vocab: 2, qs: [] },
+  { who: null, en: "The gatekeeper crumbled into ash. Beyond the door, a cold white light was waiting.", ja: "門番は灰になって崩れた。扉の向こうで、冷たく白い光が待っていた。" },
+  { end: true }
+] },
+
+/* ───────────────────────── 第12章 ───────────────────────── */
+{ id: "c12", title: "Chapter 12: The Queen of Oblivion", ja: "第12章　忘却の女王", nodes: [
+  { label: "c12_enter" },
+  { bg: "throne", who: null, en: "The throne room was white and empty. Gray snow fell from the ceiling, and every flake was a memory losing its color.", ja: "玉座の間は白く、がらんとしていた。天井から灰色の雪が降っていて、そのひとひらひとひらが、色を失っていく記憶だった。" },
+  { label: "c12_boss" },
+  { who: null, en: "On the throne sat a girl in a white and gray dress. Only the ribbon in her hair was still blue.", ja: "玉座には、白と灰色のドレスの少女が座っていた。髪のリボンだけが、まだ青かった。" },
+  { who: "queen", face: "sad", en: "\"You came all this way. Even though I asked you not to.\"", ja: "「こんなところまで来たんだね。来ないでって、頼んだのに。」" },
+  { who: "ren", en: "\"I found you, Mio. Just like I promised. Hide-and-seek is over. Let's go home.\"", ja: "「見つけたぞ、ミオ。約束どおりだ。かくれんぼは終わりだ。帰ろう。」" },
+  { who: "queen", face: "sad", en: "\"I can't go home! Haru is gone because of me! If I go back, everyone will look at me and remember!\"", ja: "「帰れないよ！ハルはわたしのせいでいなくなったの！帰ったら、みんながわたしを見て、思い出すんだよ！」" },
+  { who: null, en: "The gray snow became a blizzard. The Queen rose, and the storm of forgetting rushed toward them.", ja: "灰色の雪が吹雪になった。女王が立ち上がり、忘却の嵐がふたりに襲いかかった。" },
+  { battle: { name: "Queen of Oblivion", ja: "忘却の女王", foe: "queen", mon: 74, boss: true, final: true }, vocab: 3, qs: [] },
+  { who: null, en: "The blizzard stopped. Mio fell to her knees, crying like the little girl in the drawing.", ja: "吹雪がやんだ。ミオはひざから崩れ落ち、あの絵の中の小さな女の子のように泣いていた。" },
+  { who: "ren", face: "sad", en: "\"It wasn't your fault, Mio. And even if it were, I'd still want you here. Being remembered means being loved, even when it hurts.\"", ja: "「おまえのせいじゃない、ミオ。もしそうだったとしても、俺はおまえにいてほしい。覚えていてもらえるってことは、愛されてるってことなんだ。たとえ痛くても。」" },
+  { who: "lina", face: "smile", en: "\"Ren. Mio. It's time for me to keep my promise.\"", ja: "「レン。ミオ。わたしが約束を守る番ね。」" },
+  { who: null, en: "Lina raised her lantern. It burned brighter than it ever had, and golden light poured out across the whole of Aster.", ja: "リナがランタンを高く掲げた。それは今までにないほど明るく燃え、金色の光がアスター全体へと流れ出した。" },
+  { who: null, en: "In the capital, the King wept for his queen. In the harbor, Ella hugged her father. Everywhere, people remembered the names of the ones they loved.", ja: "王都では、王が王妃を思って涙を流した。港では、エラが父を抱きしめた。あらゆる場所で、人々は愛する人の名前を思い出した。" },
+  { who: "ren", face: "surprised", en: "\"Lina, stop! You'll disappear!\"", ja: "「リナ、やめろ！きみが消えてしまう！」" },
+  { who: "lina", face: "smile", en: "\"I won't disappear, Ren. You said you'd remember me for both of us. As long as you do, I'll still be here.\"", ja: "「消えないよ、レン。ふたり分覚えていてくれるって、言ってくれたでしょう。あなたが覚えているかぎり、わたしはここにいる。」" },
+  { who: null, en: "The light faded. Where Lina had been standing, there was only a small bookmark with a lantern drawn on it.", ja: "光が消えた。リナが立っていた場所には、ランタンの絵が描かれた小さなしおりが一枚、残っているだけだった。" },
+  { who: "queen", face: "sad", en: "\"...Brother. Let's go home. ...And by the way, red really does suit you.\"", ja: "「……お兄ちゃん。帰ろう。……それと、赤、ほんとに似合ってるよ。」" },
+  { end: true }
+] },
+
+/* ───────────────────────── 終章 ───────────────────────── */
+{ id: "ep", title: "Epilogue: The Sunset Station", ja: "終章　ふたたび夕暮れの駅で", nodes: [
+  { label: "ep_all" },
+  { bg: "cg_train", who: null, en: "The sun was going down, and the platform was almost empty. Two people sat together on the bench.", ja: "日が沈みかけていて、ホームにはほとんど人がいなかった。ベンチに、ふたりが並んで座っていた。" },
+  { who: "mio", face: "smile", en: "\"Mom cried for an hour when she saw me. Then she was angry for two hours. Then she made curry.\"", ja: "「お母さん、わたしを見て1時間泣いたよ。そのあと2時間怒られた。それからカレー作ってくれた。」" },
+  { who: "ren", face: "smile", en: "\"That sounds about right.\"", ja: "「だろうな。」" },
+  { who: "mio", face: "sad", en: "\"I'm going to visit Haru's family tomorrow. I'm scared. But I want to say her name out loud, instead of running away.\"", ja: "「明日、ハルの家に行ってくる。こわいけど。逃げるんじゃなくて、ちゃんとハルの名前を口に出して言いたいの。」" },
+  { who: "ren", en: "\"I'll come with you.\"", ja: "「俺もいっしょに行く。」" },
+  { who: null, en: "Ren took the bookmark out of his pocket. The little lantern on it seemed, just for a second, to flicker.", ja: "レンはポケットからしおりを取り出した。そこに描かれた小さなランタンが、ほんの一瞬、ゆらいだように見えた。" },
+  { who: null, en: "Just then, a bell rang that was not on any timetable. A silver train passed by without stopping, and in one window, a girl with a book-shaped lantern smiled and waved.", ja: "ちょうどそのとき、どの時刻表にもないベルが鳴った。銀色の列車が止まらずに通り過ぎていき、その窓のひとつで、本の形のランタンを持った少女が、ほほえんで手を振っていた。" },
+  { who: "ren", face: "smile", en: "\"...See you, Lina. I'll remember. For both of us.\"", ja: "「……またな、リナ。覚えてるよ。ふたり分。」" },
+  { who: null, en: "THE END — Thank you for playing Echoes of Aster.", ja: "おわり ——『アスターの残響』を遊んでくれて、ありがとう。" },
+  { end: true }
+] }
+);
+
 /* ===== 英語RPG『Echoes of Aster』の動き =====
    画面：上に背景の絵、下に会話の枠。枠をタップで次へ、右上の「訳」で日本語に切りかえ。
    文の中のターゲット単語（Part1〜2）には下線を引き、「訳」のときに意味を小さく並べる。
@@ -2601,14 +2877,243 @@ const GFOES = {
   gargoyle: { mon: 7, name: "Iron Gargoyle", ja: "鉄のガーゴイル", hp: 75, atk: 19, def: 12, spd: 5, exp: 32, gold: 26 },
   crow: { mon: 64, name: "Crow Knight", ja: "カラスの騎士", hp: 62, atk: 20, def: 9, spd: 9, exp: 30, gold: 24 },
   // 物語のボス
-  hollow: { foe: "hollow", name: "Cellar Hollow", ja: "地下室のホロウ", hp: 60, atk: 9, def: 3, spd: 5, exp: 40, gold: 30, boss: true },
-  hknight: { foe: "hknight", name: "The Hollow Knight", ja: "空ろの騎士", hp: 420, atk: 27, def: 14, spd: 8, exp: 220, gold: 150, boss: true }
+  hollow: { foe: "hollow", name: "Cellar Hollow", ja: "地下室のホロウ", hp: 85, atk: 9, def: 3, spd: 5, exp: 40, gold: 30, boss: true },
+  hknight: { foe: "hknight", name: "The Hollow Knight", ja: "空ろの騎士", hp: 1100, atk: 29, def: 14, spd: 8, exp: 220, gold: 150, boss: true }
 };
 const GAREAS = {
   forest: [["slime"], ["slime", "slime"], ["imp"], ["sprite", "slime"], ["hedgehog"], ["owl"], ["imp", "sprite"], ["ent"]],
   ruins: [["goblin"], ["ghost", "ghost"], ["lizard"], ["goblin", "ghost"], ["gargoyle"], ["crow"], ["lizard", "ghost"]]
 };
 const GBOSS_OF = { "Cellar Hollow": "hollow", "The Hollow Knight": "hknight" };
+
+/* ===== 王道RPG：第3章〜終章のデータ =====
+   ダンジョンは gDungeon で部屋と通路を自動で組む（同じ seed なら毎回同じ形）。入口は下、出口・ボスは上。
+   部屋の中心を spots に入れておき、人・宝箱・場面のきっかけをそこへ置く。 */
+function gRng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function gDungeon(o) {
+  const rnd = gRng(o.seed), cols = 3, rows = o.rows || 4, W = cols * 8 + 1, H = rows * 7 + 2;
+  const m = gMapNew(W, H, o.floor); for (let i = 0; i < W * H; i++) { m.cells[i] = [o.wallBase || o.floor, o.wall]; m.solid[i] = true; }
+  const open = (x, y) => { if (x < 1 || y < 0 || x >= W - 1 || y >= H) return; const i = y * W + x; m.cells[i] = [o.floor]; m.solid[i] = false; };
+  const rooms = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const rw = 4 + Math.floor(rnd() * 3), rh = 3 + Math.floor(rnd() * 2), x0 = c * 8 + 1 + Math.floor(rnd() * (7 - rw)), y0 = 1 + r * 7 + Math.floor(rnd() * (6 - rh));
+    for (let y = y0; y < y0 + rh; y++) for (let x = x0; x < x0 + rw; x++) open(x, y);
+    rooms.push({ r, c, x0, y0, rw, rh, cx: x0 + Math.floor(rw / 2), cy: y0 + Math.floor(rh / 2) });
+  }
+  const R = (r, c) => rooms[r * cols + c];
+  const path = new Set(), mark = (x, y) => { open(x, y); path.add(x + "," + y); };
+  const dig = (a, b) => { let x = a.cx, y = a.cy; while (x !== b.cx) { mark(x, y); x += Math.sign(b.cx - x); } while (y !== b.cy) { mark(x, y); y += Math.sign(b.cy - y); } mark(x, y); };
+  for (let r = 0; r < rows; r++) { dig(R(r, 0), R(r, 1)); dig(R(r, 1), R(r, 2)); }
+  for (let r = rows - 1; r > 0; r--) dig(R(r, (rows - r) % 2 ? 0 : 2), R(r - 1, (rows - r) % 2 ? 0 : 2)); // 左右交互に上がる＝くねくね道
+  const bot = R(rows - 1, 1), top = R(0, 1);
+  for (let y = bot.cy; y < H; y++) mark(bot.cx, y);
+  for (let y = 0; y <= top.cy; y++) mark(top.cx, y);
+  // 通路と、そのとなりのマスには物を置かない
+  const free = (x, y) => ![[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => path.has((x + a) + "," + (y + b)));
+  // 飾り：部屋の四隅（通路は部屋の中心からなのでふさがない）
+  for (const rm of rooms) if (rm !== top) for (const [x, y] of [[rm.x0, rm.y0], [rm.x0 + rm.rw - 1, rm.y0 + rm.rh - 1]]) if (o.deco && free(x, y) && rnd() < 0.7) { const t = o.deco[Math.floor(rnd() * o.deco.length)]; gPut(m, x, y, t, true); }
+  for (const rm of rooms) if (o.floorDeco && rnd() < 0.6) gPut(m, rm.x0 + rm.rw - 1, rm.y0, o.floorDeco[Math.floor(rnd() * o.floorDeco.length)]);
+  // 宝箱を置く部屋の隅をふさがないよう、四隅のもう片方を使う
+  const side = rooms.filter(rm => rm !== top && rm !== bot && rm.c !== 1);
+  m.spots = { entry: [bot.cx, H - 2], exit: [top.cx, 1], boss: [top.cx, top.cy], mid: [R(Math.floor(rows / 2), 1).cx, R(Math.floor(rows / 2), 1).cy],
+    chest: side.flatMap(rm => [[rm.x0 + rm.rw - 1, rm.y0], [rm.x0, rm.y0 + rm.rh - 1], [rm.x0, rm.y0], [rm.x0 + rm.rw - 1, rm.y0 + rm.rh - 1]].filter(([x, y]) => free(x, y) && !m.solid[y * W + x]).slice(0, 1)) };
+  for (const [x, y] of m.spots.chest) m.solid[y * W + x] = false;
+  return m;
+}
+/* 町：家・店・噴水。o.exits に出口、o.doors に入口の役目 */
+function gTownMap(o) {
+  const m = gMapNew(26, 22, o.ground);
+  const edge = o.edge || "tree";
+  const wallAt = (x, y) => { if (edge === "tree") return; gSet(m, x, y, o.wall, true); };
+  if (edge === "tree") { for (let x = 0; x < 26; x += 2) { if (!(o.gapTop && x === 12)) gTree(m, x, 0); if (!(o.gapBot && x === 12)) gTree(m, x, 20); } for (let y = 2; y < 20; y += 2) { if (!(o.gapRight && y === 10)) gTree(m, 24, y); if (!(o.gapLeft && y === 10)) gTree(m, 0, y); } }
+  else { for (let x = 0; x < 26; x++) { if (!(o.gapTop && (x === 12 || x === 13))) { wallAt(x, 0); wallAt(x, 1); } if (!(o.gapBot && (x === 12 || x === 13))) { wallAt(x, 20); wallAt(x, 21); } } for (let y = 0; y < 22; y++) { wallAt(0, y); wallAt(1, y); if (!(o.gapRight && (y === 10 || y === 11))) { wallAt(24, y); wallAt(25, y); } } }
+  gRect(m, 2, 10, 22, 2, o.path); gRect(m, 12, 2, 2, 18, o.path);
+  if (o.gapRight) gRect(m, 24, 10, 2, 2, o.path);
+  if (o.gapLeft) gRect(m, 0, 10, 2, 2, o.path);
+  if (o.gapTop) gRect(m, 12, 0, 2, 2, o.path); if (o.gapBot) gRect(m, 12, 20, 2, 2, o.path);
+  TILE.fountain.forEach((t, i) => { const x = 11 + (i % 3), y = 6 + Math.floor(i / 3); gSet(m, x, y, o.path, true); gPut(m, x, y, t); });
+  gRect(m, 10, 5, 5, 1, o.path); gRect(m, 10, 9, 5, 1, o.path); gRect(m, 10, 5, 1, 5, o.path); gRect(m, 14, 5, 1, 5, o.path);
+  TILE.fountain.forEach((t, i) => { const x = 11 + (i % 3), y = 6 + Math.floor(i / 3); gSet(m, x, y, o.path, true); gPut(m, x, y, t); });
+  gHouse(m, 3, 3, 6, o.roofs[0], o.walls[0], 5, o.signs[0]);
+  gHouse(m, 16, 3, 6, o.roofs[1], o.walls[1], 18, o.signs[1]);
+  gHouse(m, 3, 14, 6, o.roofs[2], o.walls[2], 5, o.signs[2]);
+  gHouse(m, 16, 14, 6, o.roofs[3], o.walls[3], 18, o.signs[3]);
+  for (const [x1, y1, y2] of [[5, 7, 9], [18, 7, 9], [5, 12, 13], [18, 12, 13]]) gRect(m, x1, y1, 1, y2 - y1 + 1, o.path);
+  for (const [x, y, t] of (o.deco || [])) gPut(m, x, y, t, t === TILE.bush || t === TILE.barrelTop || t === TILE.crate);
+  return m;
+}
+
+/* ---- 第3章〜の強さ（章 t ごと） ---- */
+function gTierFoe(mon, t, boss, name, ja, extra) {
+  const k = t - 3, bAtk = 43 + k * 8.8, bDef = 16 + k * 4.9;
+  const d = boss
+    ? { hp: Math.round(2600 * Math.pow(1.18, k)), atk: Math.round(bAtk * 1.15), def: Math.round(bDef), spd: 8 + t, exp: Math.round(320 * Math.pow(1.35, k)), gold: Math.round(200 * Math.pow(1.3, k)), boss: true }
+    : { hp: Math.round(62 * Math.pow(1.28, k)), atk: Math.round(bAtk * 0.74), def: Math.round(bDef * 0.8), spd: 5 + t, exp: Math.round(37 * Math.pow(1.15, k)), gold: Math.round(20 * Math.pow(1.3, k)) };
+  return { mon, name: name || RPG_MON_NAMES[mon], ja: ja || RPG_MON_NAMES[mon], ...d, ...(extra || {}) };
+}
+const GAREA2 = {
+  cave: { t: 3, mons: [16, 13, 17, 36, 75, 73] }, canal: { t: 4, mons: [56, 53, 39, 54, 55, 31] },
+  castle: { t: 5, mons: [64, 7, 12, 105, 102, 106] }, hall: { t: 6, mons: [61, 51, 30, 86, 2, 14] },
+  library: { t: 7, mons: [74, 63, 22, 108, 43, 59] }, beach: { t: 8, mons: [44, 69, 42, 76, 52, 39] },
+  sea: { t: 9, mons: [82, 68, 69, 14, 11, 34] }, storm: { t: 10, mons: [62, 6, 27, 72, 15, 100] },
+  gate: { t: 11, mons: [60, 92, 18, 38, 71, 25] }, throne: { t: 12, mons: [49, 93, 4, 61, 72, 80] }
+};
+for (const [area, a] of Object.entries(GAREA2)) {
+  GAREAS[area] = [];
+  a.mons.forEach((mon, i) => { const key = area + "_" + mon; GFOES[key] = gTierFoe(mon, a.t, false); GAREAS[area].push([key]); if (i % 2 === 0) GAREAS[area].push([key, key]); });
+  GAREAS[area].push([area + "_" + a.mons[0], area + "_" + a.mons[1], area + "_" + a.mons[2]]);
+}
+const GBOSS2 = [
+  ["Glacier Titan", "氷河の巨人", 101, 3], ["Canal Kraken", "水路のクラーケン", 11, 4], ["Captain Varos", "ヴァロス隊長", 64, 5], ["The Gray Herald", "灰色の使者", 86, 6],
+  ["Ink Weaver", "インクの織り手", 61, 7], ["Golden Whale", "黄金のクジラ", 67, 8], ["Abyss Wyrm", "深淵の竜", 88, 9], ["Thunder Lion", "雷獅子", 100, 10],
+  ["Gatekeeper of Ash", "灰の門番", 80, 11], ["Queen of Oblivion", "忘却の女王", 74, 12.6]
+];
+for (const [name, ja, mon, t] of GBOSS2) { const key = "boss_" + mon; GFOES[key] = gTierFoe(mon, t, true, name, ja, name === "Queen of Oblivion" ? { foe: "queen" } : null); GBOSS_OF[name] = key; }
+
+/* ---- 仲間：ガロ ---- */
+GHEROES.garo = { name: "Garo", ja: "ガロ", face: "garo", base: { hp: 70, mp: 6, atk: 26, def: 22, mag: 2, spd: 4 }, grow: { hp: 9, mp: 1, atk: 3, def: 3, mag: 0, spd: 1 }, eq: { w: "handaxe", a: "miner" },
+  skills: [{ lv: 1, line: ["cleave", "quake", "titanfall"] }] };
+GHEROES.ren.skills.push({ lv: 24, id: "promise" });
+GHEROES.lina.skills.push({ lv: 24, id: "lantern" });
+Object.assign(GSKILLS, {
+  cleave: { name: "Cleave", ja: "なぎはらい", mp: 3, kind: "atkall", pow: 1.1, evo: { lv: 20, to: "quake" } },
+  quake: { name: "Earthquake", ja: "アースクエイク", mp: 6, kind: "atkall", pow: 1.6, evo: { lv: 30, to: "titanfall" } },
+  titanfall: { name: "Titanfall", ja: "タイタンフォール", mp: 10, kind: "atkall", pow: 2.3 },
+  promise: { name: "Promise Blade", ja: "約束の剣", mp: 8, kind: "atk", pow: 4.6 },
+  lantern: { name: "Lantern of Aster", ja: "アスターの灯", mp: 14, kind: "healall", pow: 7 }
+});
+Object.assign(GEQUIP, {
+  handaxe: { name: "Hand Axe", ja: "手斧", slot: "w", who: "garo", atk: 8, price: 0 },
+  miner: { name: "Miner's Coat", ja: "鉱夫の上着", slot: "a", who: "garo", def: 6, price: 0 },
+  steelsword: { name: "Steel Sword", ja: "鋼の剣", slot: "w", who: "ren", atk: 20, price: 520 },
+  knightarmor: { name: "Knight Armor", ja: "騎士の鎧", slot: "a", who: "ren", def: 18, price: 560 },
+  magerod: { name: "Mage Rod", ja: "魔導士のロッド", slot: "w", who: "lina", atk: 6, mag: 13, price: 500 },
+  magecloak: { name: "Mage Cloak", ja: "魔導士のマント", slot: "a", who: "lina", def: 12, mag: 4, price: 460 },
+  battleaxe: { name: "Battle Axe", ja: "バトルアックス", slot: "w", who: "garo", atk: 18, price: 520 },
+  ironplate: { name: "Iron Plate", ja: "鉄の胸当て", slot: "a", who: "garo", def: 16, price: 520 },
+  mithrilsword: { name: "Mithril Sword", ja: "ミスリルの剣", slot: "w", who: "ren", atk: 30, price: 1600 },
+  mithrilmail: { name: "Mithril Mail", ja: "ミスリルの鎧", slot: "a", who: "ren", def: 28, price: 1700 },
+  starrod: { name: "Star Rod", ja: "星のロッド", slot: "w", who: "lina", atk: 9, mag: 21, price: 1500 },
+  starcloak: { name: "Star Cloak", ja: "星のマント", slot: "a", who: "lina", def: 20, mag: 6, price: 1400 },
+  mithrilaxe: { name: "Mithril Axe", ja: "ミスリルの斧", slot: "w", who: "garo", atk: 28, price: 1600 },
+  mithrilplate: { name: "Mithril Plate", ja: "ミスリルの胸当て", slot: "a", who: "garo", def: 26, price: 1600 },
+  redpromise: { name: "Red Promise", ja: "紅の約束", slot: "w", who: "ren", atk: 42, price: 0 },
+  aegis: { name: "Lantern Robe", ja: "灯のローブ", slot: "a", who: "lina", def: 30, mag: 12, price: 0 },
+  earthbreaker: { name: "Earthbreaker", ja: "大地砕き", slot: "w", who: "garo", atk: 40, price: 0 },
+  starplate: { name: "Starlight Mail", ja: "星明かりの鎧", slot: "a", who: "ren", def: 38, price: 0 }
+});
+Object.assign(GITEMS, {
+  hiherb: { name: "Great Herb", ja: "上薬草", price: 60, heal: 160, icon: 1, desc: "HPを160回復" },
+  hiwater: { name: "Holy Water", ja: "聖なる水", price: 150, mp: 50, icon: 13, desc: "MPを50回復" }
+});
+GSHOPS.capital_arms = ["steelsword", "knightarmor", "magerod", "magecloak", "battleaxe", "ironplate"];
+GSHOPS.capital_items = ["herb", "hiherb", "water", "hiwater", "feather"];
+GSHOPS.harbor_arms = ["mithrilsword", "mithrilmail", "starrod", "starcloak", "mithrilaxe", "mithrilplate"];
+GSHOPS.harbor_items = ["hiherb", "water", "hiwater", "feather"];
+
+/* ---- マップ（第3章〜） ---- */
+const GD = (seed, rows, wall, floor, deco, floorDeco) => () => gDungeon({ seed, rows, wall, floor, deco, floorDeco });
+const DECO_ROCK = [TILE.rock, T(8, 0)], DECO_ICE = [T(165, 4), T(144, 0)];
+Object.assign(GMAPS, {
+  cave: { name: "Crystal Caves", ja: "水晶の洞窟", bg: "cave", area: "cave", enc: { rate: 14, area: "cave" }, intro: "c3_enter", build: GD(31, 5, T(144, 0), TILE.gravel, DECO_ROCK, [T(8, 0)]),
+    npcs: [{ id: "garo", sprite: "garo", at: "mid", dir: 0, talk: "c3_camp", hideIf: "garo_joined" }, { id: "titan", sprite: "golem", at: "boss", dir: 0, talk: "c3_boss", hideIf: "c3_done" }],
+    chests: [{ id: "cv1", at: 0, item: "hiherb", n: 2 }, { id: "cv2", at: 1, eq: "battleaxe" }, { id: "cv3", at: 2, gold: 300 }],
+    events: [{ bottom: true, to: ["ruins", 7, 4, 0] }, { top: true, to: ["canal", "entry", null, 3], need: "c3_done" }] },
+  canal: { name: "Capital Waterway", ja: "王都の地下水路", bg: "canal", area: "canal", enc: { rate: 14, area: "canal" }, intro: "c4_enter", build: GD(47, 5, T(31, 4), T(38, 1), [TILE.barrelTop, TILE.crate], [T(7, 4)]),
+    npcs: [{ id: "kraken", sprite: "beast", at: "boss", dir: 0, talk: "c4_boss", hideIf: "c4_done" }],
+    chests: [{ id: "cn1", at: 0, item: "water", n: 3 }, { id: "cn2", at: 1, eq: "knightarmor" }, { id: "cn3", at: 3, item: "feather", n: 1 }],
+    events: [{ at: "mid", r: 2, scene: "c4_mid", once: "c4_mid_seen" }, { bottom: true, to: ["cave", "exit", null, 0] }, { top: true, to: ["capital", 12, 19, 3], need: "c4_done" }] },
+  capital: { name: "Royal Capital", ja: "王都アスター", bg: "castle", intro: "c5_enter", build: () => gTownMap({ ground: TILE.tileGray, path: TILE.cobble, edge: "wall", wall: T(53, 0), gapTop: true, gapBot: true, gapRight: true,
+      roofs: [TILE.roofBlue, TILE.roofRed, TILE.roofBlue, TILE.roofRed], walls: [T(53, 0), T(53, 0), T(57, 0), T(53, 0)], signs: [TILE.signInn, TILE.signSword, TILE.signItem, null],
+      deco: [[3, 9, TILE.flowerW], [22, 9, TILE.flowerP], [9, 13, TILE.bush], [16, 13, TILE.bush]] }),
+    npcs: [{ id: "c_man", sprite: "man", x: 8, y: 11, dir: 2, lines: "capital_man" }, { id: "c_woman", sprite: "woman", x: 17, y: 10, dir: 1, lines: "capital_woman" }, { id: "c_guard", sprite: "soldier", x: 11, y: 2, dir: 0, lines: "capital_guard" }],
+    events: [{ x: 5, y: 6, door: "inn" }, { x: 18, y: 6, door: "capital_arms" }, { x: 5, y: 17, door: "capital_items" }, { x: 18, y: 17, to: ["library", "entry", null, 3], need: "c6_done", block: "library_closed" },
+      { top: true, to: ["castle", "entry", null, 3] }, { bottom: true, to: ["canal", "exit", null, 0] }, { right: true, to: ["harbor", 2, 10, 2], need: "c7_done", block: "harbor_closed" }] },
+  castle: { name: "The White Castle", ja: "白い城", bg: "hall", area: "castle", enc: { rate: 15, area: "castle" }, build: GD(59, 4, T(53, 0), T(39, 2), [TILE.pillarTop, T(103, 3), T(103, 4)]),
+    npcs: [{ id: "king", sprite: "king", at: "boss", dir: 0, talk: "c5_boss", hideIf: "c5_done" }],
+    chests: [{ id: "cs1", at: 0, eq: "magecloak" }, { id: "cs2", at: 1, item: "hiherb", n: 3 }],
+    events: [{ bottom: true, to: ["capital", 12, 1, 0] }, { top: true, to: ["hall", "entry", null, 3], need: "c5_done" }] },
+  hall: { name: "Hall of Lanterns", ja: "灯の回廊", bg: "night_hall", area: "hall", enc: { rate: 14, area: "hall" }, intro: "c6_enter", build: GD(71, 5, T(152, 0), T(38, 3), [T(123, 4), T(124, 7)], [T(125, 4)]),
+    npcs: [{ id: "herald", sprite: "herald", at: "boss", dir: 0, talk: "c6_boss", hideIf: "c6_done" }],
+    chests: [{ id: "hl1", at: 0, item: "hiwater", n: 2 }, { id: "hl2", at: 1, eq: "magerod" }, { id: "hl3", at: 2, gold: 900 }],
+    events: [{ at: "mid", r: 2, scene: "c6_mid", once: "c6_mid_seen" }, { bottom: true, to: ["castle", "exit", null, 0] }] },
+  library: { name: "Great Library", ja: "大図書館", bg: "library", area: "library", enc: { rate: 15, area: "library" }, intro: "c7_enter", build: GD(83, 5, TILE.shelfBot, TILE.woodFloor, [T(119, 0), T(119, 1)], [T(119, 3)]),
+    npcs: [{ id: "weaver", sprite: "herald", at: "boss", dir: 0, talk: "c7_boss", hideIf: "c7_done" }],
+    chests: [{ id: "lb1", at: 0, item: "hiherb", n: 4 }, { id: "lb2", at: 1, eq: "ironplate" }, { id: "lb3", at: 2, gold: 1200 }],
+    events: [{ at: "mid", r: 2, scene: "c7_mid", once: "c7_mid_seen" }, { bottom: true, to: ["capital", 18, 18, 0] }] },
+  harbor: { name: "Harbor Town", ja: "港町", bg: "harbor", intro: "c8_enter", build: () => gTownMap({ ground: TILE.sand, path: TILE.plank, edge: "tree", gapRight: true, gapLeft: true,
+      roofs: [TILE.roofOrange, TILE.roofBrown, TILE.roofOrange, TILE.roofBlue], walls: [TILE.woodWall, TILE.woodWall, TILE.brickWall, TILE.woodWall], signs: [TILE.signInn, TILE.signSword, TILE.signItem, null],
+      deco: [[21, 12, TILE.barrelTop], [22, 12, TILE.crate], [3, 12, TILE.crate], [9, 9, TILE.flowerY]] }),
+    npcs: [{ id: "sailor", sprite: "oldman", x: 20, y: 9, dir: 0, lines: "sailor" }, { id: "ella", sprite: "ella", x: 15, y: 18, dir: 0, talk: "c8_mid", lines: "ella_after" }],
+    events: [{ x: 5, y: 6, door: "inn" }, { x: 18, y: 6, door: "harbor_arms" }, { x: 5, y: 17, door: "harbor_items" }, { left: true, to: ["capital", 23, 10, 1] }, { right: true, to: ["beach", 1, 6, 2] }] },
+  beach: { name: "Gold Shore", ja: "黄金の浜", bg: "beach", area: "beach", enc: { rate: 13, area: "beach" }, build() {
+      const m = gMapNew(18, 13, TILE.sand); gRect(m, 0, 0, 18, 2, T(144, 0), true); gRect(m, 15, 0, 3, 13, T(144, 0), true);
+      for (const [x, y] of [[4, 4], [9, 9], [12, 3], [6, 10]]) gPut(m, x, y, TILE.rock, true); gRect(m, 0, 12, 18, 1, T(144, 0), true);
+      for (const [x, y, t] of [[3, 7, TILE.tuft], [10, 6, TILE.tuft2], [7, 3, TILE.flowerW]]) gPut(m, x, y, t);
+      m.spots = { boss: [13, 6], entry: [1, 6] }; return m; },
+    npcs: [{ id: "whale", sprite: "beast", x: 13, y: 6, dir: 1, talk: "c8_boss", hideIf: "c8_done" }],
+    chests: [{ id: "bc1", x: 2, y: 2, item: "hiherb", n: 2 }],
+    events: [{ left: true, to: ["harbor", 23, 10, 1] }, { x: 14, y: 6, to: ["sea", "entry", null, 3], need: "c8_done" }] },
+  sea: { name: "Sunken Archive", ja: "沈んだ書庫", bg: "sea", area: "sea", enc: { rate: 14, area: "sea" }, intro: "c9_enter", build: GD(97, 5, T(144, 0), TILE.floorTile, [T(113, 2), T(165, 4)], [T(7, 6)]),
+    npcs: [{ id: "wyrm", sprite: "beast", at: "boss", dir: 0, talk: "c9_boss", hideIf: "c9_done" }],
+    chests: [{ id: "se1", at: 0, eq: "aegis" }, { id: "se2", at: 1, item: "hiwater", n: 2 }, { id: "se3", at: 2, eq: "earthbreaker" }],
+    events: [{ at: "mid", r: 2, scene: "c9_mid", once: "c9_mid_seen" }, { bottom: true, to: ["beach", 13, 7, 0] }, { top: true, to: ["storm", "entry", null, 3], need: "c9_done" }] },
+  storm: { name: "Storm Sky", ja: "嵐の空", bg: "storm", area: "storm", enc: { rate: 13, area: "storm" }, intro: "c10_enter", build: GD(113, 6, T(137, 0), TILE.stoneTile, [T(113, 2)], [T(165, 2)]),
+    npcs: [{ id: "lion", sprite: "beast", at: "boss", dir: 0, talk: "c10_boss", hideIf: "c10_done" }],
+    chests: [{ id: "st1", at: 0, eq: "redpromise" }, { id: "st2", at: 1, item: "feather", n: 2 }, { id: "st3", at: 3, eq: "starplate" }],
+    events: [{ at: "mid", r: 2, scene: "c10_mid", once: "c10_mid_seen" }, { bottom: true, to: ["sea", "exit", null, 0] }, { top: true, to: ["gate", "entry", null, 3], need: "c10_done" }] },
+  gate: { name: "Gate of Flame", ja: "炎の門", bg: "gate", area: "gate", enc: { rate: 13, area: "gate" }, intro: "c11_enter", build: GD(127, 5, T(142, 0), TILE.cobbleBrown, [T(123, 4)], [T(124, 7)]),
+    npcs: [{ id: "king2", sprite: "king", at: "mid", dir: 0, talk: "c11_mid", lines: "king_gate" }, { id: "ash", sprite: "beast", at: "boss", dir: 0, talk: "c11_boss", hideIf: "c11_done" }],
+    chests: [{ id: "gt1", at: 0, item: "hiherb", n: 5 }, { id: "gt2", at: 1, item: "hiwater", n: 3 }],
+    events: [{ bottom: true, to: ["storm", "exit", null, 0] }, { top: true, to: ["throne", "entry", null, 3], need: "c11_done" }] },
+  throne: { name: "Throne of Oblivion", ja: "忘却の玉座", bg: "throne", area: "throne", enc: { rate: 16, area: "throne" }, intro: "c12_enter", build: GD(139, 4, T(152, 0), T(39, 2), [T(103, 3), T(103, 4)]),
+    npcs: [{ id: "queen", sprite: "mio", at: "boss", dir: 0, talk: "c12_boss", hideIf: "c12_done" }],
+    chests: [{ id: "th1", at: 0, item: "feather", n: 3 }],
+    events: [{ bottom: true, to: ["gate", "exit", null, 0] }] }
+});
+// 遺跡の奥の門 → 洞窟（騎士を倒したあと）
+GMAPS.ruins.events.push({ x: 7, y: 3, to: ["cave", "entry", null, 3], need: "c2_done" });
+
+Object.assign(GLINES, {
+  capital_man: [{ who: "villager", en: "\"I gave away the memory of my first love. Now I can't remember why I feel lonely at night.\"", ja: "「初恋の記憶を差し出したんだ。今は、なぜ夜になるとさびしいのか思い出せない。」" }],
+  capital_woman: [{ who: "villager", en: "\"The library is beside the item shop, but it's sealed. They say only someone with a true memory can open it.\"", ja: "「図書館は道具屋のとなりよ。でも封印されているの。本当の記憶を持つ人しか開けられないんですって。」" }],
+  capital_guard: [{ who: "guard", en: "\"The castle is to the north. His Majesty sees no one... but the doors are strangely open today.\"", ja: "「城は北だ。陛下はだれにもお会いにならない……だが、今日はなぜか扉が開いている。」" }],
+  library_closed: [{ who: "lina", en: "\"The library is sealed. We need to find out more inside the castle first.\"", ja: "「図書館は封印されてる。先に城の中で手がかりを探しましょう。」" }],
+  harbor_closed: [{ who: "lina", en: "\"Let's go to the Great Library before we leave the capital.\"", ja: "「王都を出る前に、大図書館へ行きましょう。」" }],
+  sailor: [{ who: "sailor", en: "\"The beach to the east is guarded by the Golden Whale. Bring strong weapons, young ones.\"", ja: "「東の浜は黄金のクジラが守っている。強い武器を持っていけよ、若いの。」" }],
+  ella_after: [{ who: "ella", en: "\"Please bring my father home safely. I still owe him a hundred hugs.\"", ja: "「父を無事に連れて帰ってきてね。まだ百回はハグしなきゃいけないの。」" }],
+  king_gate: [{ who: "king", en: "\"Go, boy. The gate will stay open as long as I stand.\"", ja: "「行け、少年。わたしが立っているかぎり、門は開いている。」" }]
+});
+
+/* ---- 場面 ---- */
+const gLab = (ch, a, b) => () => { const ns = RPG_CHAPTERS.find(c => c.id === ch).nodes, i = ns.findIndex(n => n.label === a), j = b ? ns.findIndex(n => n.label === b) : ns.length; return ns.slice(i, j < 0 ? ns.length : j).filter(n => !n.end); };
+Object.assign(GSCENES, {
+  c3_enter: gLab("c3", "c3_enter", "c3_camp"), c3_camp: gLab("c3", "c3_camp", "c3_boss"), c3_boss: gLab("c3", "c3_boss"),
+  c4_enter: gLab("c4", "c4_enter", "c4_mid"), c4_mid: gLab("c4", "c4_mid", "c4_boss"), c4_boss: gLab("c4", "c4_boss"),
+  c5_enter: gLab("c5", "c5_enter", "c5_boss"), c5_boss: gLab("c5", "c5_boss"),
+  c6_enter: gLab("c6", "c6_enter", "c6_mid"), c6_mid: gLab("c6", "c6_mid", "c6_boss"), c6_boss: gLab("c6", "c6_boss"),
+  c7_enter: gLab("c7", "c7_enter", "c7_mid"), c7_mid: gLab("c7", "c7_mid", "c7_boss"), c7_boss: gLab("c7", "c7_boss"),
+  c8_enter: gLab("c8", "c8_enter", "c8_mid"), c8_mid: gLab("c8", "c8_mid", "c8_boss"), c8_boss: gLab("c8", "c8_boss"),
+  c9_enter: gLab("c9", "c9_enter", "c9_mid"), c9_mid: gLab("c9", "c9_mid", "c9_boss"), c9_boss: gLab("c9", "c9_boss"),
+  c10_enter: gLab("c10", "c10_enter", "c10_mid"), c10_mid: gLab("c10", "c10_mid", "c10_boss"), c10_boss: gLab("c10", "c10_boss"),
+  c11_enter: gLab("c11", "c11_enter", "c11_mid"), c11_mid: gLab("c11", "c11_mid", "c11_boss"), c11_boss: gLab("c11", "c11_boss"),
+  c12_enter: gLab("c12", "c12_enter", "c12_boss"), c12_boss: gLab("c12", "c12_boss"),
+  ep_all: gLab("ep", "ep_all")
+});
+/* 場面が終わったあと（章のクリアなど） */
+const GDONE2 = {
+  c3_camp: { join: "garo", msg: ["Garo joined the party!", "ガロが仲間になった！　洞窟の奥にいる番人をたおそう。"] },
+  c3_boss: { flag: "c3_done", clear: "c3", msg: ["The way to the capital is open.", "第3章クリア！　レンは旅人の上着を手に入れた。洞窟の北の出口から、王都の地下水路へ進もう。"] },
+  c4_boss: { flag: "c4_done", clear: "c4", msg: ["The capital lies ahead.", "第4章クリア！　水路の北から王都へ。王都にはいい武器と防具が売っている。"] },
+  c5_boss: { flag: "c5_done", clear: "c5", msg: ["The Hall of Lanterns lies deeper in the castle.", "第5章クリア！　城の奥（北）にある『灯の回廊』へ進もう。"] },
+  c6_boss: { flag: "c6_done", clear: "c6", msg: ["The library seal is broken.", "第6章クリア！　王都の大図書館（道具屋のとなり）の封印が解けた。"] },
+  c7_boss: { flag: "c7_done", clear: "c7", msg: ["The road to the harbor is open.", "第7章クリア！　王都の東の門から港町へ行けるようになった。"] },
+  c8_boss: { flag: "c8_done", clear: "c8", msg: ["A stairway opened in the sea.", "第8章クリア！　浜の東の端から、海の底の書庫へ下りられる。港町で装備を整えよう。"] },
+  c9_boss: { flag: "c9_done", clear: "c9", msg: ["A stairway of light rises into the storm.", "第9章クリア！　書庫の北から、嵐の空へ。"] },
+  c10_boss: { flag: "c10_done", clear: "c10", msg: ["The floating castle awaits.", "第10章クリア！　北の門から、浮かぶ城へ。"] },
+  c11_boss: { flag: "c11_done", clear: "c11", msg: ["The throne room lies beyond.", "第11章クリア！　いよいよ最後の玉座の間へ。準備を整えて進もう。"] },
+  c12_boss: { flag: "c12_done", clear: "c12", ending: true }
+};
 
 /* ===== 王道コマンドRPG『Echoes of Aster』の本体 =====
    画面：上にマップ（キャンバス、16pxタイルを2倍＝1マス32px、11×9マス）、下に操作パネル。
@@ -2661,6 +3166,7 @@ function gLoadImages() {
 /* ---------- マップ ---------- */
 function gEnterMap(id, x, y, dir) {
   const def = GMAPS[id], m = def.build();
+  if (typeof x === "string") { const sp = (m.spots && m.spots[x]) || [1, 1]; x = sp[0]; y = sp[1]; }
   G.map = m; G.def = def; G.st.map = id; G.st.x = x; G.st.y = y; if (dir != null) G.st.dir = dir;
   G.px = x; G.py = y; G.moving = null; G.encLeft = def.enc ? gEncSteps() : 0;
   // 地面を先に1枚の絵にしておく
@@ -2669,11 +3175,15 @@ function gEnterMap(id, x, y, dir) {
   const draw = () => { for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) for (const t of m.cells[j * m.w + i]) c.drawImage(GIMG.tiles, (t % 8) * 16, Math.floor(t / 8) * 16, 16, 16, i * GV.TS, j * GV.TS, GV.TS, GV.TS); };
   if (GIMG.tiles.complete) draw(); else GIMG.tiles.onload = draw;
   G.ground = cv;
-  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf])).map(n => ({ ...n }));
+  const spot = a => (m.spots && m.spots[a]) || [1, 1], cs = (m.spots && m.spots.chest) || [];
+  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf])).map(n => n.at ? { ...n, x: spot(n.at)[0], y: spot(n.at)[1] } : { ...n });
+  G.chests = (def.chests || []).map(c => c.at != null ? (cs[c.at] ? { ...c, x: cs[c.at][0], y: cs[c.at][1] } : null) : c).filter(Boolean);
+  G.events = (def.events || []).map(e => e.at ? { ...e, ax: spot(e.at)[0], ay: spot(e.at)[1] } : e);
+  if (def.intro && !G.st.flags["seen_" + def.intro] && !G.pendingScene) G.pendingScene = def.intro;
   $("gMapName").textContent = def.ja;
 }
 const gEncSteps = () => 10 + Math.floor(Math.random() * (G.def.enc.rate || 14));
-function gChestAt(x, y) { return (G.def.chests || []).find(c => c.x === x && c.y === y); }
+function gChestAt(x, y) { return (G.chests || []).find(c => c.x === x && c.y === y); }
 function gNpcAt(x, y) { return G.npcs.find(n => n.x === x && n.y === y); }
 function gBlocked(x, y) {
   const m = G.map; if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true;
@@ -2693,7 +3203,7 @@ function gDraw(t) {
   c.drawImage(G.ground, -Math.round(cx), -Math.round(cy));
   const sprites = [];
   for (const p of (G.def.props || [])) sprites.push({ y: p.y, draw: () => { const im = GIMG.etc[p.sprite]; if (im) c.drawImage(im, (Math.floor(t / 160) % 3) * 32, 32, 32, 32, p.x * TS - cx, p.y * TS - cy, TS, TS); } });
-  for (const ch of (G.def.chests || [])) sprites.push({ y: ch.y, draw: () => { const im = GIMG.etc.chest; if (im) c.drawImage(im, (ch.eq ? 2 : 0) * 32, (G.st.chests[ch.id] ? 2 : 0) * 32, 32, 32, ch.x * TS - cx, ch.y * TS - cy, TS, TS); } });
+  for (const ch of (G.chests || [])) sprites.push({ y: ch.y, draw: () => { const im = GIMG.etc.chest; if (im) c.drawImage(im, (ch.eq ? 2 : 0) * 32, (G.st.chests[ch.id] ? 2 : 0) * 32, 32, 32, ch.x * TS - cx, ch.y * TS - cy, TS, TS); } });
   for (const n of G.npcs) sprites.push({ y: n.y, draw: () => gDrawChar(c, n.sprite, n.dir, 1, n.x * TS - cx, n.y * TS - cy) });
   const frame = G.moving ? [0, 1, 2, 1][Math.floor(t / 110) % 4] : 1;
   sprites.push({ y: fy, draw: () => gDrawChar(c, "ren", G.st.dir, frame, fx * TS - cx, fy * TS - cy) });
@@ -2714,13 +3224,13 @@ function gLoop(t) {
 function gTryMove(dname, t) {
   const [dx, dy, d] = GDIR[dname]; G.st.dir = d;
   const nx = G.px + dx, ny = G.py + dy, m = G.map;
-  if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) { const ev = (G.def.events || []).find(e => (e.top && ny < 0) || (e.bottom && ny >= m.h)); if (ev) gRunEvent(ev); return; }
+  if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) { const ev = G.events.find(e => (e.top && ny < 0) || (e.bottom && ny >= m.h) || (e.left && nx < 0) || (e.right && nx >= m.w)); if (ev) gRunEvent(ev); return; }
   if (gBlocked(nx, ny)) return;
   G.moving = { fx: G.px, fy: G.py, tx: nx, ty: ny, t0: t, dur: 150 };
 }
 function gOnStep() {
   G.st.steps++;
-  const evs = (G.def.events || []).filter(e => (e.x === G.px && e.y === G.py) || (e.rowLE != null && G.py <= e.rowLE && !(e.once && G.st.flags[e.once])));
+  const evs = G.events.filter(e => (e.x === G.px && e.y === G.py) || (e.rowLE != null && G.py <= e.rowLE && !(e.once && G.st.flags[e.once])) || (e.ax != null && Math.abs(e.ax - G.px) + Math.abs(e.ay - G.py) <= (e.r || 0) && !(e.once && G.st.flags[e.once])));
   for (const ev of evs) { gRunEvent(ev); return; }
   if (G.def.enc && --G.encLeft <= 0) { G.encLeft = gEncSteps(); const grp = GAREAS[G.def.enc.area]; gBattle(grp[Math.floor(Math.random() * grp.length)], null); }
 }
@@ -2728,7 +3238,7 @@ function gRunEvent(ev) {
   if (ev.need && !G.st.flags[ev.need]) { if (ev.block) gTalk(GLINES[ev.block]); G.held = null; return; }
   if (ev.scene) { if (ev.once) G.st.flags[ev.once] = 1; G.held = null; return gScene(ev.scene); }
   if (ev.door === "inn") return gInn();
-  if (ev.door === "armory" || ev.door === "itemshop") return gShop(ev.door);
+  if (ev.door && GSHOPS[ev.door]) return gShop(ev.door);
   if (ev.look) return gTalk(GLINES[ev.look]);
   if (ev.to) { G.held = null; return gWarp(...ev.to); }
 }
@@ -2737,7 +3247,7 @@ function gWarp(map, x, y, dir) {
   const step = t => { const k = (t - t0) / 220; if (k < 1) { G.fade = k; requestAnimationFrame(step); return; } gEnterMap(map, x, y, dir); const t1 = performance.now(); const back = t2 => { const k2 = (t2 - t1) / 220; G.fade = Math.max(0, 1 - k2); if (k2 < 1) requestAnimationFrame(back); else { G.fade = 0; G.busy = false; gSave(true); gAfterWarp(); } }; requestAnimationFrame(back); };
   requestAnimationFrame(step);
 }
-function gAfterWarp() { if (G.pendingScene) { const s = G.pendingScene; G.pendingScene = null; gScene(s); } }
+function gAfterWarp() { if (G.pendingScene) { const s = G.pendingScene; G.pendingScene = null; gScene(s); } else if (G.pendingTalk) { const n = G.pendingTalk; G.pendingTalk = null; gTalk(n); } }
 function gInteract() {
   if (G.mode !== "walk" || G.moving || G.busy) return;
   const [dx, dy] = Object.values(GDIR).find(v => v[2] === G.st.dir), tx = G.px + dx, ty = G.py + dy;
@@ -2745,7 +3255,7 @@ function gInteract() {
   if (npc) { npc.dir = [3, 2, 1, 0][G.st.dir]; if (npc.talk && !G.st.flags["seen_" + npc.talk]) return gScene(npc.talk); return gTalk(GLINES[npc.lines] || [{ who: null, en: "...", ja: "……" }]); }
   const ch = gChestAt(tx, ty);
   if (ch) return gOpenChest(ch);
-  const ev = (G.def.events || []).find(e => e.x === tx && e.y === ty && e.look);
+  const ev = G.events.find(e => e.x === tx && e.y === ty && e.look);
   if (ev) return gTalk(GLINES[ev.look]);
 }
 function gOpenChest(ch) {
@@ -2789,15 +3299,31 @@ function gTalkNext() {
   if (m.battle) { const key = GBOSS_OF[m.battle.name]; T.i++; return gBattle([key], () => { gTalkResolve(); G.mode = "talk"; gRenderPanel(); gOver(); }); }
   sfx("tap"); gRenderPanel();
 }
+function gRefreshNpcs() { G.npcs = G.npcs.filter(n => !(n.hideIf && G.st.flags[n.hideIf])); }
 function gSceneDone(id) {
   const f = G.st.flags;
+  const D = typeof GDONE2 !== "undefined" && GDONE2[id];
+  if (D) {
+    if (D.flag) f[D.flag] = 1;
+    if (D.join && !G.st.party.some(h => h.id === D.join)) G.st.party.push(gHero(D.join, Math.max(...G.st.party.map(h => h.lv))));
+    if (D.clear) gMarkClear(D.clear);
+    gRefreshNpcs(); gSave(true);
+    if (D.ending) { G.pendingScene = "ep_all"; return gWarp("station", 7, 5, 0); }
+    if (D.msg) return gTalk([{ who: null, en: D.msg[0], ja: D.msg[1] }]);
+    return;
+  }
+  if (id === "ep_all") {
+    f.ending = 1; gMarkClear("ep"); for (const h of G.st.party) { const s = gStats(h); h.hp = s.hp; h.mp = s.mp; }
+    G.pendingTalk = [{ who: null, en: "Thank you for playing. You can keep exploring Aster.", ja: "クリアおめでとう！　このあとも、王都から各地を歩いて、レベル上げや図鑑のモンスター集めができる。" }];
+    return gWarp("capital", 12, 15, 0);
+  }
   if (id === "p0_station") { G.pendingScene = null; return gWarp("train", 1, 4, 2); }
   if (id === "p0_train") { gMarkClear("p0"); G.pendingScene = "c1_intro"; return gWarp("village", 12, 15, 3); }
   if (id === "c1_intro") { f.lina_joined = 1; const lv = G.st.party[0].lv; G.st.party.push(gHero("lina", lv)); G.st.safe = ["village", 12, 15]; G.npcs = G.npcs.filter(n => n.id !== "lina"); gSave(true); return gTalk([{ who: null, en: "Lina joined the party!", ja: "リナが仲間になった！　まずは青い屋根の家にいるブラム長老をたずねよう。宿屋・武器屋・道具屋もある。" }]); }
   if (id === "c1_cellar") return gScene("c1_night");
   if (id === "c1_night") { f.c1_done = 1; gMarkClear("c1"); gSave(true); return gTalk([{ who: null, en: "The road to the north is now open.", ja: "第1章クリア！　北の森へ行けるようになった。森には魔物が出る。武器や防具をそろえて、レベルを上げながら進もう。" }]); }
   if (id === "c2_forest") { gSave(true); return; }
-  if (id === "c2_knight") { f.c2_done = 1; gMarkClear("c2"); G.npcs = G.npcs.filter(n => n.id !== "knight"); gSave(true); return gTalk([{ who: null, en: "To be continued...", ja: "第2章クリア！　第3章は準備中。森や遺跡でレベル上げや、図鑑のモンスター集めができる。" }]); }
+  if (id === "c2_knight") { f.c2_done = 1; gMarkClear("c2"); G.npcs = G.npcs.filter(n => n.id !== "knight"); gSave(true); return gTalk([{ who: null, en: "The gate behind the knight is open.", ja: "第2章クリア！　騎士が守っていた奥の門から、水晶の洞窟へ進める。" }]); }
 }
 function gMarkClear(id) { G.cleared = G.cleared || []; if (!G.cleared.includes(id)) { G.cleared.push(id); setTimeout(() => { sfx("done"); toast("章クリア！小判＋" + RPG_CLEAR_KOBAN); }, 200); } }
 
@@ -2829,10 +3355,10 @@ function gResolve() {
           const tgts = sk.kind === "healall" ? gAlive() : [P[a.t] && P[a.t].hp > 0 ? P[a.t] : h];
           for (const tg of tgts) { const st = gStats(tg), amt = Math.round(s.mag * sk.pow + 8); tg.hp = Math.min(st.hp, tg.hp + amt); msgs.push({ en: `${nm} cast ${skn}. ${GHEROES[tg.id].name} recovered ${amt} HP.`, ja: `${GHEROES[h.id].ja}の${sk.ja}！${GHEROES[tg.id].ja}のHPが${amt}回復した。`, heal: 1 }); }
         } else {
-          const tgts = (sk.kind === "magall") ? B.foes.filter(f => f.alive) : [pickFoe()];
-          const pw = sk.kind === "atk" ? s.atk : s.mag;
+          const tgts = (sk.kind === "magall" || sk.kind === "atkall") ? B.foes.filter(f => f.alive) : [pickFoe()];
+          const phys = sk.kind === "atk" || sk.kind === "atkall", pw = phys ? s.atk : s.mag;
           msgs.push({ en: `${nm} used ${skn}!`, ja: `${GHEROES[h.id].ja}の${sk.ja}！`, fx: "magic" });
-          for (const f of tgts) { const d = gDmg(pw, sk.kind === "atk" ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
+          for (const f of tgts) { const d = gDmg(pw, phys ? f.d.def : f.d.def * 0.5, sk.pow); f.hp -= d; msgs.push({ en: `${d} damage to ${f.d.name}.`, ja: `${f.d.ja}に${d}のダメージ。`, hit: f.i, fx: "crit" }); if (f.hp <= 0) { f.alive = false; msgs.push({ en: `${f.d.name} was defeated!`, ja: `${f.d.ja}をたおした！`, down: f.i }); } }
         }
       } else if (a.type === "item") {
         const it = GITEMS[a.it], tg = P[a.t] || h; if (!(G.st.bag[a.it] > 0)) continue; G.st.bag[a.it]--;
@@ -2918,7 +3444,8 @@ function gPartyBar() {
   return `<div class="g-party">${G.st.party.map(h => { const s = gStats(h); return `<div class="${h.hp <= 0 ? "ko" : h.hp < s.hp / 4 ? "low" : ""}"><b>${GHEROES[h.id].name}<small>Lv${h.lv}</small></b><span>HP ${h.hp}/${s.hp}</span><span>MP ${h.mp}/${s.mp}</span></div>`; }).join("")}</div>`;
 }
 function gTextBox(n, ja) {
-  const c = gCast(n.who), m = rpgMark(n.en);
+  let c = gCast(n.who); const m = rpgMark(n.en);
+  if (n.who === "ren" && G.st.flags.ren_coat && typeof RPG_FACE !== "undefined" && RPG_FACE.rentravel_neutral) c = { ...c, face: "rentravel" };
   return `<div class="g-win g-say" data-g="next" role="button" tabindex="0">
     <div class="g-head">${c ? `<span class="g-name">${esc(ja ? c.ja : c.name)}</span>` : "<span></span>"}<button type="button" class="g-tr${ja ? " on" : ""}" data-g="tr">訳</button></div>
     <div class="g-line">${rpgFace(c, n.face)}<p>${ja ? esc(n.ja) : m.html}</p></div>${ja && m.found.length ? `<div class="rpg-gloss">${m.found.map(w => `<span><b>${esc(w[0])}</b>${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""}<i class="g-more">▼</i></div>`;
@@ -3075,7 +3602,7 @@ function gOpen(fresh) {
   G.lastSave = saved ? JSON.parse(JSON.stringify(saved)) : null;
   gEnterMap(G.st.map, G.st.x, G.st.y, G.st.dir); gRenderPanel(); gOver();
   requestAnimationFrame(gLoop);
-  if (!saved) setTimeout(() => gScene("p0_station"), 300);
+  if (!saved) setTimeout(() => gScene("p0_station"), 300); else if (G.pendingScene) setTimeout(gAfterWarp, 300);
 }
 function gClose() {
   if (G) { if (G.mode === "battle") { if (!confirm("戦闘中にとじると、この戦闘はなかったことになる。とじる？")) return; } gSave(true); G.open = false; }
