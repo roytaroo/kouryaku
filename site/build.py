@@ -17,7 +17,7 @@ SITE = pathlib.Path(__file__).resolve().parent
 ROOT = SITE.parent
 PRIVATE = ROOT / "minecraft" / "private"
 OUT = PRIVATE / "site_out" / "index.html"
-JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg_story2", "rpg", "game_data", "game_data2", "rpg_story3", "rpg_story4", "mon_lines", "game", "main"]
+JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg_story2", "rpg", "game_data", "game_data2", "rpg_story3", "rpg_story4", "rpg_story5", "mon_lines", "game", "main"]
 PART12_MAX = 1500
 
 
