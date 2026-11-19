@@ -455,7 +455,10 @@ function gClick(e) {
   }
   // お店・宿屋
   if (k === "leave") { G.mode = "walk"; G.shop = null; G.menu = null; return gRenderPanel(); }
-  if (k === "inn") { if (st.gold < GINN_PRICE) return toast("お金が足りない"); st.gold -= GINN_PRICE; for (const h of st.party) { const s = gStats(h); h.hp = s.hp; h.mp = s.mp; } st.safe = [st.map, G.px, G.py]; sfx("done"); G.mode = "walk"; gRenderPanel(); gSave(true); return gTalk([{ who: null, en: "The party rested and recovered fully.", ja: "ぐっすり休んで、HPとMPがすべて回復した。（セーブした）" }]); }
+  if (k === "inn") { if (st.gold < GINN_PRICE) return toast("お金が足りない"); st.gold -= GINN_PRICE; for (const h of st.party) { const s = gStats(h); h.hp = s.hp; h.mp = s.mp; } st.safe = [st.map, G.px, G.py]; sfx("done"); G.mode = "walk"; gRenderPanel(); gSave(true); const rest = [{ who: null, en: "The party rested and recovered fully.", ja: "ぐっすり休んで、HPとMPがすべて回復した。（セーブした）" }];
+    const it = typeof GINNTALK !== "undefined" && GINNTALK.find(x => st.flags[x.need] && !st.flags[x.not] && !st.flags["seen_" + x.id]);
+    if (it) { st.flags["seen_" + it.id] = 1; return gTalk([...it.nodes, ...rest]); }
+    return gTalk(rest); }
   if (k === "buy") { const e = GEQUIP[v], it = GITEMS[v], price = (e || it).price; if (st.gold < price) return; st.gold -= price; if (e) st.gear[v] = (st.gear[v] || 0) + 1; else st.bag[v] = (st.bag[v] || 0) + 1; sfx("coin"); toast(((e || it).ja) + "を買った" + (e ? "（メニューのそうびで装備）" : "")); gSave(true); return gRenderPanel(); }
   // メニュー
   if (k === "tab") { G.menu.tab = v; return gRenderPanel(); }
