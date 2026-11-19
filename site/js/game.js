@@ -59,7 +59,7 @@ function gEnterMap(id, x, y, dir) {
   if (GIMG.tiles.complete) draw(); else GIMG.tiles.onload = draw;
   G.ground = cv;
   const spot = a => (m.spots && m.spots[a]) || [1, 1], cs = (m.spots && m.spots.chest) || [];
-  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf])).map(n => n.at ? { ...n, x: spot(n.at)[0], y: spot(n.at)[1] } : { ...n });
+  G.npcs = (def.npcs || []).filter(n => !(n.hideIf && G.st.flags[n.hideIf]) && !(n.showIf && !G.st.flags[n.showIf])).map(n => n.at ? { ...n, x: spot(n.at)[0], y: spot(n.at)[1] } : { ...n });
   G.chests = (def.chests || []).map(c => c.at != null ? (cs[c.at] ? { ...c, x: cs[c.at][0], y: cs[c.at][1] } : null) : c).filter(Boolean);
   G.events = (def.events || []).map(e => e.at ? { ...e, ax: spot(e.at)[0], ay: spot(e.at)[1] } : e);
   if (def.intro && !G.st.flags["seen_" + def.intro] && !G.pendingScene) G.pendingScene = def.intro;
@@ -188,6 +188,8 @@ function gSceneDone(id) {
   const D = typeof GDONE2 !== "undefined" && GDONE2[id];
   if (D) {
     if (D.flag) f[D.flag] = 1;
+    if (D.give) for (const k of D.give) G.st.gear[k] = (G.st.gear[k] || 0) + 1;
+    if (D.after) { const r = D.after(f); if (r) { gRefreshNpcs(); gSave(true); return gTalk([{ who: null, en: r[0], ja: r[1] }]); } }
     if (D.join && !G.st.party.some(h => h.id === D.join)) G.st.party.push(gHero(D.join, Math.max(...G.st.party.map(h => h.lv))));
     if (D.clear) gMarkClear(D.clear);
     gRefreshNpcs(); gSave(true);
