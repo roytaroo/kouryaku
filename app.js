@@ -1248,7 +1248,7 @@ function pickQuiz(i) {
 }
 function renderLearn() {
   document.querySelectorAll("#learnSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === learnTab)));
-  for (const t of ["words", "cloze", "grammar", "other", "story"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
+  for (const t of ["words", "cloze", "grammar", "other"]) $("lt-" + t).hidden = !(t === learnTab || (t === "words" && (learnTab === "kobun" || learnTab === "seikei")) || (t === "other" && learnTab === "seikei"));
   if (learnTab === "seikei") renderQuiz();
   if (learnTab === "words" || learnTab === "kobun" || learnTab === "seikei") {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
@@ -1266,7 +1266,7 @@ function renderLearn() {
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
   if (learnTab === "grammar") { renderGrammar(); renderGQ(); }
-  if (learnTab === "story") renderRPG();
+
 }
 function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };
@@ -2394,7 +2394,7 @@ RPG_CHAPTERS.push(
    戦い：問題に答えて敵のHPを削る。間違えるとハートが減る。答えたあとに短い解説。
    進み具合は game/rpg（story・章・何番目・フラグ・クリアした章・倒した敵）。 */
 const RPG_STORY = "aster", RPG_HP = 5, RPG_CLEAR_KOBAN = 50, RPG_WIN_KOBAN = 5;
-let rpgJa = false, rpgB = null, rpgMenu = false, rpgMode = "story", rpgX = null;
+let rpgNewOk = false, rpgJa = false, rpgB = null, rpgMenu = false, rpgMode = "story", rpgX = null;
 const RPG_EX_KOBAN = 3, RPG_EX_DAILY = 5;
 function rpgState() {
   let s = JSON.parse(JSON.stringify(S.rpg || {}));
@@ -2500,7 +2500,7 @@ function rpgGameHtml(st) {
   const where = g && GMAPS[g.map] ? GMAPS[g.map].ja : "";
   return `<div class="rpg-top"><span class="rpg-ch">Aster Ⅰ</span><span class="rpg-prog">王道RPG・物語は英語</span></div>` + rpgScene("cg_train") + `<div class="rpg-box">
     <p class="rpg-text">十字ボタンで歩いて、町の人と話し、魔物とコマンドで戦う。物語の会話はすべて英語。「訳」でいつでも日本語に。</p>
-    ${g ? `<p class="note" style="margin:0">つづき：${esc(where)}　レンLv${lead ? lead.lv : 1}　${g.gold}G</p><button type="button" class="big-btn" data-r="gplay">つづきから</button><button type="button" class="btn" data-r="gnew">はじめから</button>` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
+    ${g ? `<p class="note" style="margin:0">つづき：${esc(where)}　レンLv${lead ? lead.lv : 1}　${g.gold}G</p><button type="button" class="big-btn" data-r="gplay">つづきから</button>${rpgNewOk ? `<p class="note" style="margin:0;color:var(--seal)">はじめからにすると、今の冒険のデータ（レベル・装備・進み具合）は消える。本当にいい？</p><div class="row"><button type="button" class="btn" data-r="gnew" style="border-color:var(--seal);color:var(--seal)">消してはじめから</button><button type="button" class="btn ghost" data-r="gnewcancel">やめる</button></div>` : `<button type="button" class="btn" data-r="gnew">はじめから</button>`}` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
     <button type="button" class="btn ghost sm" data-r="novel">物語だけ読む（ノベル版）</button></div>`;
 }
 function rpgStoryHtml(st) {
@@ -2618,7 +2618,8 @@ function bindRPG() {
     if (r === "pick") { const k = Number(b.dataset.k); if (k === st.ch) { rpgMenu = false; return renderRPG(); } st.ch = k; st.i = 0; return rpgGo(st); }
     if (r === "next") return rpgNext();
     if (r === "gplay") return gOpen(false);
-    if (r === "gnew") { if (S.rpg && S.rpg.game && !confirm("はじめからにすると、今の冒険のデータは消える。いい？")) return; return gOpen(true); }
+    if (r === "gnew") { if (S.rpg && S.rpg.game && !rpgNewOk) { rpgNewOk = true; box.dataset.v = ""; renderRPG(); return; } rpgNewOk = false; return gOpen(true); }
+    if (r === "gnewcancel") { rpgNewOk = false; box.dataset.v = ""; return renderRPG(); }
     if (r === "novel") { rpgMode = "novel"; return renderRPG(); }
     if (r === "nextch") { st.ch++; st.i = 0; return rpgGo(st); }
     if (r === "explore") return rpgStartExplore();
@@ -4243,7 +4244,7 @@ function gTalkResolve() {
     else if (n.go) T.i = at(n.go);
     else break;
   }
-  const n = T.nodes[T.i]; if (n && n.bg) T.cg = n.bg.startsWith("cg_") ? n.bg : null;
+  const n = T.nodes[T.i]; if (n && n.bg && typeof RPG_BG !== "undefined" && RPG_BG[n.bg]) T.cg = n.bg;
 }
 function gTalkNext() {
   const T = G.talk, n = T.nodes[T.i];
@@ -4430,6 +4431,7 @@ function gRenderPanel() {
   else if (G.mode === "shop") h = gShopPanel();
   else if (G.mode === "menu") h = gMenuPanel();
   P.innerHTML = h;
+  if (G.mode !== "battle") gOver();
 }
 function gBattlePanel() {
   const B = G.B; let h = gPartyBar();
@@ -4574,12 +4576,12 @@ function gOpen(fresh) {
   if (!saved) setTimeout(() => gScene("p0_station"), 300); else if (G.pendingScene) setTimeout(gAfterWarp, 300);
 }
 function gClose() {
-  if (G) { if (G.mode === "battle") { if (!confirm("戦闘中にとじると、この戦闘はなかったことになる。とじる？")) return; } gSave(true); G.open = false; }
+  if (G) { if (G.mode === "battle") { if (!G.closeOk) { G.closeOk = true; toast("戦闘中。もう一度 ✕ を押すと、この戦闘はなかったことにしてとじる"); setTimeout(() => { if (G) G.closeOk = false; }, 3000); return; } } gSave(true); G.open = false; }
   const d = document.getElementById("game"); if (d) d.hidden = true; document.body.classList.remove("g-lock"); G = null; renderRPG();
 }
 
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
-const VIEWS = ["home", "timer", "learn", "yokai", "record"];
+const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
 let currentView = "home";
 function go(v) {
   if (!VIEWS.includes(v)) v = "home";
@@ -4602,6 +4604,7 @@ function render() {
   if (currentView === "learn") renderLearn();
   if (currentView === "yokai") renderYokai();
   if (currentView === "record") renderRecord();
+  if (currentView === "rpg") renderRPG();
 }
 let rq = 0;
 function schedule() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; render(); migrate(); checkUnlocks(); }); }

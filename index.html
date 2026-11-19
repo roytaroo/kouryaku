@@ -229,7 +229,7 @@ details.box summary{cursor:pointer;font-weight:700}
 
 /* ---- 下のタブ ---- */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
-.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
+.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);height:var(--tabh)}
 .tabs button{border:0;background:transparent;display:grid;place-items:center;gap:0;padding:8px 0 6px;color:var(--muted);font-size:11px;font-weight:700}
 .tabs button svg{width:24px;height:24px}
 .tabs button[aria-current="page"]{color:var(--ink)}
@@ -606,6 +606,7 @@ body.g-lock{overflow:hidden}
 .g-grid button small{display:block;font-size:11px;font-weight:400;color:#aab}
 .g-log{position:relative;min-height:96px}
 .g-log .rpg-gloss span{background:#0b0d12;color:#aab}.g-log .rpg-gloss b{color:#fff}
+.g-lock .toast{z-index:95;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
 
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -742,7 +743,7 @@ body.g-lock{overflow:hidden}
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="story">物語</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
       <div class="eyebrow" id="wEyebrow"></div>
@@ -770,9 +771,6 @@ body.g-lock{overflow:hidden}
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
       <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
-  </div>
-  <div id="lt-story" class="view" hidden>
-    <div class="rpg" id="rpgBox"></div>
   </div>
   <div id="lt-other" class="view" hidden>
     <div class="card">
@@ -824,6 +822,11 @@ body.g-lock{overflow:hidden}
     </div>
     <div class="card"><div class="eyebrow">使った券</div><ul class="list" id="tixHist"></ul></div>
   </div>
+</section>
+
+<!-- ===== 冒険（RPG） ===== -->
+<section class="view" id="v-rpg" hidden>
+  <div class="rpg" id="rpgBox"></div>
 </section>
 
 <!-- ===== 記録 ===== -->
@@ -880,6 +883,7 @@ body.g-lock{overflow:hidden}
   <button type="button" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>タイマー</button>
   <button type="button" data-v="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h6a2 2 0 012 2v13a2 2 0 00-2-2H4zM20 5h-6a2 2 0 00-2 2v13a2 2 0 012-2h6z"/></svg>勉強</button>
   <button type="button" data-v="yokai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 21V10a6 6 0 0112 0v11l-2-2-2 2-2-2-2 2-2-2z"/><circle cx="10" cy="10" r="1" fill="currentColor"/><circle cx="14" cy="10" r="1" fill="currentColor"/></svg>お化け</button>
+  <button type="button" data-v="rpg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M14.5 3.5l6 6-9 9-3-3"/><path d="M8.5 15.5l-4 4M6 13l5 5M3 21l2-2"/></svg>冒険</button>
   <button type="button" data-v="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>記録</button>
 </div></nav>
 
@@ -899,7 +903,7 @@ body.g-lock{overflow:hidden}
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795092288"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795105655"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
