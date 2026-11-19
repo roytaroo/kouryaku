@@ -2403,6 +2403,7 @@ function gMapNew(w, h, base) { const m = { w, h, cells: [], solid: [] }; for (le
 function gPut(m, x, y, t, solid) { if (x < 0 || y < 0 || x >= m.w || y >= m.h) return; const i = y * m.w + x; m.cells[i].push(t); if (solid != null) m.solid[i] = solid; }
 function gSet(m, x, y, t, solid) { if (x < 0 || y < 0 || x >= m.w || y >= m.h) return; const i = y * m.w + x; m.cells[i] = [t]; m.solid[i] = !!solid; }
 function gRect(m, x, y, w, h, t, solid, put) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) (put ? gPut : gSet)(m, i, j, t, solid); }
+function gBlock(m, x, y, rows) { rows.forEach((r, j) => r.forEach((tl, i) => gPut(m, x + i, y + j, tl, true))); }
 function gTree(m, x, y) { gPut(m, x, y, TILE.treeTL, true); gPut(m, x + 1, y, TILE.treeTR, true); gPut(m, x, y + 1, TILE.treeBL, true); gPut(m, x + 1, y + 1, TILE.treeBR, true); }
 function gHouse(m, x, y, w, roof, wall, doorX, sign) {
   gRect(m, x, y, w, 2, roof, true, true);
@@ -2420,9 +2421,9 @@ const GMAPS = {
     gRect(m, 0, 0, 16, 2, TILE.stoneWall, true);
     gRect(m, 11, 2, 1, 9, TILE.yellowLine, false);
     gRect(m, 12, 0, 4, 11, TILE.gravel, true);
-    for (let y = 0; y < 11; y++) { gPut(m, 13, y, y % 2 ? TILE.railB : TILE.railA); gPut(m, 14, y, y % 2 ? TILE.railB : TILE.railA); }
+    for (let y = 0; y < 11; y++) gPut(m, 13, y, y % 2 ? TILE.railB : TILE.railA);
     gPut(m, 2, 2, TILE.vendTop, true); gPut(m, 2, 3, TILE.vendBot, true); gPut(m, 4, 2, TILE.vendTop, true); gPut(m, 4, 3, TILE.vendBot, true);
-    gRect(m, 6, 6, 3, 1, TILE.sofa, true, true);
+    gPut(m, 6, 6, TILE.sofa, true); gPut(m, 7, 6, TILE.sofa2, true); gPut(m, 6, 8, TILE.sofa, true); gPut(m, 7, 8, TILE.sofa2, true);
     gRect(m, 0, 2, 1, 9, TILE.stoneWall, true); gRect(m, 0, 10, 12, 1, TILE.stoneWall, true);
     return m;
   }, npcs: [], events: [{ x: 3, y: 4, look: "vend" }] },
@@ -2441,7 +2442,7 @@ const GMAPS = {
     gRect(m, 2, 11, 22, 2, TILE.cobble); gRect(m, 12, 2, 2, 18, TILE.cobble);
     TILE.fountain.forEach((t, i) => gPut(m, 11 + (i % 3), 9 + Math.floor(i / 3), t, true));
     gRect(m, 10, 8, 5, 1, TILE.cobble); gRect(m, 10, 12, 5, 1, TILE.cobble); gRect(m, 10, 8, 1, 5, TILE.cobble); gRect(m, 14, 8, 1, 5, TILE.cobble);
-    TILE.fountain.forEach((t, i) => gSet(m, 11 + (i % 3), 9 + Math.floor(i / 3), t, true));
+    TILE.fountain.forEach((t, i) => { gSet(m, 11 + (i % 3), 9 + Math.floor(i / 3), TILE.cobble, true); gPut(m, 11 + (i % 3), 9 + Math.floor(i / 3), t); });
     gHouse(m, 3, 3, 6, TILE.roofBlue, TILE.stoneWall, 5, null);        // 長老の家
     gHouse(m, 16, 3, 6, TILE.roofRed, TILE.woodWall, 18, TILE.signInn); // 宿屋
     gHouse(m, 3, 14, 6, TILE.roofOrange, TILE.brickWall, 5, TILE.signSword); // 武器・防具屋
@@ -2470,8 +2471,8 @@ const GMAPS = {
     const m = gMapNew(10, 8, TILE.stoneGray);
     gRect(m, 0, 0, 10, 2, TILE.wallGray, true); gRect(m, 0, 2, 1, 6, TILE.wallGray, true); gRect(m, 9, 2, 1, 6, TILE.wallGray, true);
     gRect(m, 1, 7, 8, 1, TILE.wallGray, true); gSet(m, 4, 7, TILE.stairs, false);
-    for (const x of [1, 2]) { gPut(m, x, 2, TILE.barrelTop, true); gPut(m, x, 3, TILE.barrelBot, true); }
-    gPut(m, 8, 2, TILE.crate, true); gPut(m, 7, 2, TILE.crate, true);
+    gBlock(m, 1, 2, [[T(111, 4), T(111, 5)], [T(112, 4), T(112, 5)]]);
+    gBlock(m, 7, 5, [[T(111, 6), T(111, 7)], [T(112, 6), T(112, 7)]]);
     gPut(m, 7, 0, TILE.shelfTop); gPut(m, 7, 1, TILE.shelfBot);
     return m;
   }, npcs: [{ id: "elder", sprite: "elder", x: 5, y: 3, dir: 0, talk: "c1_cellar", lines: "elder_after" }],
@@ -2479,32 +2480,35 @@ const GMAPS = {
   events: [{ x: 4, y: 7, to: ["village", 5, 7, 0] }] },
   forest: { name: "Whispering Forest", ja: "ささやきの森", bg: "forest", enc: { rate: 16, area: "forest" }, build() {
     const W = 18, H = 30, m = gMapNew(W, H, TILE.grassDark);
-    const path = (x, y) => { const cx = 8 + Math.round(Math.sin(y / 4.2) * 3.5); return x >= cx - 1 && x <= cx + 1; };
-    const clear = (x, y) => (y >= 12 && y <= 16 && x >= 3 && x <= 14) || (y >= 22 && y <= 24 && x >= 11 && x <= 15);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      if (path(x, y) || clear(x, y)) { if (path(x, y)) gSet(m, x, y, TILE.dirt, false); continue; }
-      const v = (x * 7 + y * 3) % 3;
-      if (y % 2 === 0) gSet(m, x, y, TILE.grassDark, true), gPut(m, x, y, TILE.bigCanopy[v]); else gSet(m, x, y, TILE.grassDark, true), gPut(m, x, y, TILE.bigTrunk[(x * 7 + (y - 1) * 3) % 3]);
+    const cxAt = y => 8 + Math.round(Math.sin(y / 4.2) * 3.5);
+    const walk = (x, y) => (x >= cxAt(y) - 1 && x <= cxAt(y) + 1) || (y >= 12 && y <= 16 && x >= 3 && x <= 14) || (y >= 22 && y <= 24 && x >= 6 && x <= 15);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (x >= cxAt(y) - 1 && x <= cxAt(y) + 1) gSet(m, x, y, TILE.dirt);
+    const used = new Set(), key = (x, y) => x + "," + y;
+    for (let y = 0; y < H - 1; y += 2) for (let x = (y / 2) % 2; x < W - 1; x += 2) {
+      if ([[0, 0], [1, 0], [0, 1], [1, 1]].some(([a, b]) => walk(x + a, y + b))) continue;
+      const v = (x + y) % 4 === 0 ? 0 : 2; gPut(m, x, y, T(1, v), true); gPut(m, x + 1, y, T(1, v + 1), true); gPut(m, x, y + 1, T(2, v), true); gPut(m, x + 1, y + 1, T(2, v + 1), true);
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([a, b]) => used.add(key(x + a, y + b)));
     }
-    for (let y = 0; y < H; y++) { gSet(m, 0, y, TILE.grassDark, true); gPut(m, 0, y, y % 2 ? TILE.bigTrunk[0] : TILE.bigCanopy[0]); gSet(m, W - 1, y, TILE.grassDark, true); gPut(m, W - 1, y, y % 2 ? TILE.bigTrunk[1] : TILE.bigCanopy[1]); }
-    for (const [x, y, t] of [[4, 13, TILE.flowerW], [6, 15, TILE.tuft], [12, 14, TILE.flowerB], [13, 16, TILE.tuft2], [5, 12, TILE.tuft2], [12, 23, TILE.flowerW], [14, 22, TILE.tuft]]) gPut(m, x, y, t);
-    gPut(m, 4, 16, TILE.rock, true); gPut(m, 14, 12, TILE.bush2, true);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!walk(x, y) && !used.has(key(x, y))) gPut(m, x, y, (x + y) % 3 ? TILE.bush2 : TILE.bush, true);
+    for (const [x, y] of [[11, 15], [13, 13]]) gPut(m, x, y, TILE.bush, true);
+    for (const [x, y, tl] of [[4, 13, TILE.flowerW], [6, 15, TILE.tuft], [12, 15, TILE.flowerB], [13, 16, TILE.tuft2], [5, 12, TILE.tuft2], [12, 23, TILE.flowerW], [14, 22, TILE.tuft], [4, 16, TILE.flowerP]]) gPut(m, x, y, tl);
     return m;
   }, npcs: [], chests: [{ id: "f1", x: 14, y: 23, item: "herb", n: 3 }, { id: "f2", x: 3, y: 14, gold: 40 }],
   events: [{ rowLE: 16, scene: "c2_forest", once: "c2_forest_seen" }, { bottom: true, to: ["village", 12, 1, 0] }, { top: true, to: ["ruins", 7, 14, 3] }] },
   ruins: { name: "Shrine Ruins", ja: "ほこらの遺跡", bg: "ruins", enc: { rate: 14, area: "ruins" }, build() {
     const m = gMapNew(16, 16, TILE.grassDull);
-    gRect(m, 4, 2, 8, 13, TILE.cobbleGray);
-    gRect(m, 0, 0, 16, 1, TILE.wallGray, true); gRect(m, 0, 1, 7, 1, TILE.wallGray, true); gRect(m, 9, 1, 7, 1, TILE.wallGray, true);
-    gSet(m, 7, 1, TILE.archTop, true); gSet(m, 8, 1, TILE.archTop, true); gSet(m, 7, 0, TILE.wallDark, true); gSet(m, 8, 0, TILE.wallDark, true);
+    gRect(m, 4, 3, 8, 12, TILE.cobbleGray);
+    gRect(m, 0, 0, 16, 3, TILE.wallGray, true);
+    gSet(m, 7, 1, TILE.archTop, true); gSet(m, 7, 2, TILE.archBot, true); gSet(m, 8, 1, TILE.wallDark, true); gSet(m, 8, 2, TILE.wallDark, true);
     for (const [x, y] of [[4, 4], [11, 4], [4, 9], [11, 9]]) { gPut(m, x, y, TILE.pillarTop, true); gPut(m, x, y + 1, TILE.pillarBot, true); }
-    for (const [x, y] of [[1, 5], [2, 5], [13, 7], [14, 7], [1, 11], [14, 12]]) gSet(m, x, y, TILE.wallGray, true);
-    gPut(m, 6, 2, TILE.gargTop, true); gPut(m, 6, 3, TILE.gargBot, true); gPut(m, 9, 2, TILE.gargTop, true); gPut(m, 9, 3, TILE.gargBot, true);
-    for (const [x, y, t] of [[2, 8, TILE.tuft], [13, 10, TILE.flowerW], [1, 14, TILE.tuft2], [14, 3, TILE.bush2]]) gPut(m, x, y, t, t === TILE.bush2);
-    gRect(m, 0, 15, 7, 1, TILE.wallGray, true); gRect(m, 9, 15, 7, 1, TILE.wallGray, true);
+    gSet(m, 0, 3, TILE.wallGray, true); gSet(m, 1, 3, TILE.wallGray, true); gSet(m, 0, 4, TILE.wallGray, true); gSet(m, 15, 3, TILE.wallGray, true); gSet(m, 14, 3, TILE.wallGray, true);
+    gRect(m, 0, 15, 6, 1, TILE.wallGray, true); gRect(m, 10, 15, 6, 1, TILE.wallGray, true); gSet(m, 0, 14, TILE.wallGray, true); gSet(m, 15, 14, TILE.wallGray, true);
+    gTree(m, 0, 7); gTree(m, 14, 9); gTree(m, 1, 11);
+    for (const [x, y] of [[3, 7], [12, 12], [5, 13], [10, 3], [2, 4]]) gPut(m, x, y, TILE.rock, true);
+    for (const [x, y, tl] of [[2, 9, TILE.tuft], [13, 6, TILE.flowerW], [3, 14, TILE.tuft2], [6, 7, TILE.tuft2], [9, 12, TILE.tuft], [13, 13, TILE.flowerP]]) gPut(m, x, y, tl);
     return m;
   }, npcs: [{ id: "knight", sprite: "knight", x: 7, y: 3, dir: 0, talk: "c2_knight", hideIf: "c2_done" }],
-  chests: [{ id: "r1", x: 1, y: 13, eq: "ironsword" }, { id: "r2", x: 14, y: 2, item: "water", n: 2 }],
+  chests: [{ id: "r1", x: 2, y: 13, eq: "ironsword" }, { id: "r2", x: 13, y: 4, item: "water", n: 2 }],
   events: [{ bottom: true, to: ["forest", 8, 1, 0] }] }
 };
 
