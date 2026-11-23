@@ -615,6 +615,8 @@ button,[role="button"],.tabs,.seg,.chips,.chip,.wallet,.g-ctrl,.g-pad,.g-ab,.g-g
 .g-say p,.g-log p{-webkit-user-select:none;user-select:none}
 img{-webkit-user-drag:none}
 
+.bodyform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
 .gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
@@ -859,7 +861,14 @@ img{-webkit-user-drag:none}
       <button class="btn pri" type="submit">記録</button></form>
     <div id="scoreChart"></div><ul class="list" id="scoreList"></ul></div>
   <div class="card"><div class="head"><div><div class="eyebrow">直近28日</div><h2>体づくり</h2></div><span class="note">緑＝筋トレ　下線＝有酸素</span></div><div id="fitRec" style="display:grid;gap:12px"></div>
-    <div class="row"><label class="note">今日の体重 <input class="field num" id="wtIn" type="number" step="0.1" min="30" max="200" inputmode="decimal" style="width:6em"> kg</label><button class="btn pri sm" type="button" id="wtSave">記録</button><span class="note">週1回、朝に測れば十分</span></div></div>
+    <div class="bodyform">
+      <label class="note">体重 <input class="field num" id="wtIn" type="number" step="0.1" min="30" max="200" inputmode="decimal" style="width:5.5em"> kg</label>
+      <label class="note">体脂肪率 <input class="field num" id="bfIn" type="number" step="0.1" min="3" max="60" inputmode="decimal" style="width:5em"> %</label>
+      <select class="field" id="bfSrc" aria-label="測った機械"><option value="home">家庭用</option><option value="inbody">InBody</option></select>
+      <button class="btn pri sm" type="button" id="wtSave">記録</button>
+    </div>
+    <div class="note">週1回、朝・トイレのあと・何も飲む前に、同じ条件で測る。家庭用は数%ずれるので、1回の数字より流れを見る。体脂肪率は空欄でもいい。</div>
+    <div id="bodyChart"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">直近14日</div><h2>気分と体力</h2></div><span class="note"><span style="color:var(--lantern)">●</span> 気分　<span style="color:var(--sky)">●</span> 体力</span></div><div id="moodChart"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">実績</div><h2>バッジ</h2></div><span class="note dot" id="badgeSum"></span></div><div class="badges" id="badges"></div></div>
   <details class="box"><summary>休憩に出す言葉</summary>
@@ -910,7 +919,7 @@ img{-webkit-user-drag:none}
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795106429"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795417976"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
