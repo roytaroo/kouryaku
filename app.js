@@ -504,7 +504,7 @@ function renderTasks() {
   if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
   const ac = allClear(k);
   $("clearStamp").hidden = !ac;
-  $("taskSum").textContent = list.filter(t => t.count >= t.goal).length + " / " + list.length + " 達成" + (ac ? "　全クリア！小判＋20・券＋15" : "");
+  $("taskSum").textContent = "今日のノルマを全部見る（" + list.filter(t => t.count >= t.goal).length + " / " + list.length + "）" + (ac ? "　全クリア！" : "");
   const tm = minOf(k), tg = targetFor(modeOf(k));
   $("homeTime").textContent = hrs(tm) + "h / " + trimH(tg) + "h"; $("homeTimeBar").style.width = clamp(100 * tm / tg, 0, 100) + "%"; $("homeTimeBar").className = tm >= tg ? "ok" : "";
   $("homeStreak").textContent = "連続 " + streakNow() + "日"; $("homeMode").textContent = modeOf(k) === "refresh" ? "リフレッシュ日" : "通常日";
@@ -536,14 +536,28 @@ const HOW = {
 function nextTask() { return tasksOf(dayKey()).find(t => t.count < t.goal) || null; }
 function renderNext() {
   const k = dayKey(), list = tasksOf(k), t = nextTask(), done = list.filter(x => x.count >= x.goal).length;
-  $("nextCount").textContent = done + " / " + list.length + " 終わった";
+  $("nextCount").textContent = done + " / " + list.length + " クリア";
+  $("nextDots").innerHTML = list.map(x => `<i class="${x.count >= x.goal ? "ok" : t && x.id === t.id ? "now" : ""}"></i>`).join("");
   $("nextGuide").hidden = econ().totalMin > 0;
-  const running = S.timer && S.timer.running;
-  if (!t) { $("nextName").textContent = "今日のノルマは全部終わった"; $("nextHow").textContent = "あとはタイマーで勉強時間を積むだけ。目標は " + trimH(targetFor(modeOf(k))) + "時間。"; $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = "en"; return; }
-  $("nextName").textContent = t.name + "（あと " + (t.goal - t.count) + t.unit + "）";
-  $("nextHow").textContent = HOW[t.id] || "下のボタンでタイマーが動く。終わったらノルマで「＋1」。";
-  if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; }
-  else { $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en"; }
+  const running = S.timer && S.timer.running, ctl = $("nextCtl");
+  if (!t) {
+    $("nextStep").textContent = "今日のノルマ";
+    $("nextName").textContent = "全部クリア！おつかれさま"; $("nextProg").hidden = true; ctl.innerHTML = ""; ctl.dataset.v = "";
+    $("nextHow").textContent = "あとはタイマーで勉強時間を積むだけ。目標は " + trimH(targetFor(modeOf(k))) + "時間。";
+    $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = "en"; return;
+  }
+  $("nextStep").textContent = "次はこれ（" + (list.findIndex(x => x.id === t.id) + 1) + "つ目）";
+  $("nextName").textContent = t.name;
+  $("nextProg").hidden = t.goal <= 1;
+  $("nextNum").textContent = t.count + " / " + t.goal + t.unit; $("nextBar").style.width = clamp(100 * t.count / t.goal, 0, 100) + "%";
+  $("nextHow").textContent = HOW[t.id] || "下のボタンでタイマーが動く。終わったら「終わった！次へ」。";
+  if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; ctl.innerHTML = ""; ctl.dataset.v = ""; }
+  else {
+    $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en";
+    const h = `<button type="button" class="done-btn" data-nt="${t.id}" data-nv="${t.goal}">終わった！次へ</button>` +
+      (t.goal > 1 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="1">＋1</button>` + (t.goal >= 10 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="10">＋10</button>` : "") : "");
+    if (ctl.dataset.v !== h) { ctl.innerHTML = h; ctl.dataset.v = h; }
+  }
 }
 function renderHome() { renderCountdown(); renderNext(); renderBuddy(); renderPassMini(); renderPhase(); renderTasks(); renderFit(); renderDayNotes(); renderActiveTicket("homeTicket"); }
 
@@ -570,6 +584,16 @@ function bindHome() {
   let rT = 0;
   $("reviewText").addEventListener("input", () => { clearTimeout(rT); rT = setTimeout(() => { if (ready()) patchDay(dayKey(), d => { d.review = $("reviewText").value.trim(); }); }, 700); });
   for (const [id, key] of [["moodBtns", "mood"], ["energyBtns", "energy"]]) $(id).addEventListener("click", e => { const b = e.target.closest("button"); if (!b || !ready()) return; patchDay(dayKey(), d => { d[key] = Number(b.dataset.v); }); sfx("tap"); });
+  $("nextCtl").addEventListener("click", e => {
+    const b = e.target.closest("button[data-nt]"); if (!b || !ready()) return;
+    const k = dayKey(), id = b.dataset.nt, before = allClear(k);
+    patchDay(k, d => { d.tasks = d.tasks || {}; d.tasks[id] = b.dataset.nv ? Math.max(Number(b.dataset.nv), d.tasks[id] || 0) : (d.tasks[id] || 0) + Number(b.dataset.nd); }).then(() => {
+      const t = tasksOf(k).find(x => x.id === id), nx = nextTask();
+      if (!before && allClear(k)) { sfx("done"); confetti(); toast("今日のノルマ全クリア！小判＋20・券＋15"); pickLine(true); }
+      else if (t && t.count >= t.goal) { sfx("done"); toast("クリア！ 次は「" + (nx ? nx.name : "") + "」"); }
+      else sfx("tap");
+    });
+  });
   $("nextBtn").onclick = e => {
     const b = e.currentTarget, kind = b.dataset.k || "";
     if (kind.startsWith("learn:")) { learnTab = kind.slice(6); return go("learn"); }

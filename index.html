@@ -425,6 +425,19 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
 .guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
 .guide b{color:var(--ink)}
+.steps{display:flex;gap:5px;margin:2px 0 4px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.steps i.ok{background:var(--lantern)}
+.steps i.now{background:color-mix(in srgb,var(--lantern) 45%,var(--line))}
+.nextprog{display:flex;align-items:center;gap:10px}
+.nextprog .num{font-weight:800;font-size:15px;white-space:nowrap}
+.nextprog .bar-p{flex:1;margin:0}
+.nextctl{display:flex;gap:8px;flex-wrap:wrap}
+.nextctl:empty{display:none}
+.nextctl .done-btn{flex:1 1 100%;padding:13px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);font-weight:800;font-size:15px}
+.nextctl .sm{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700}
+.alltasks>summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted);padding:6px 0}
+.alltasks[open]>summary{margin-bottom:6px}
 
 /* 筋トレ */
 .task[data-s="fit"] .nm small::before{display:none}
@@ -649,25 +662,28 @@ img{-webkit-user-drag:none}
   <div id="homeTicket" class="active-ticket" hidden></div>
 
   <div class="card next" id="nextCard">
-    <div class="head"><div class="eyebrow">今やること</div><span class="note dot" id="nextCount"></span></div>
+    <div class="head"><div class="eyebrow" id="nextStep">次はこれ</div><span class="note dot" id="nextCount"></span></div>
+    <div class="steps" id="nextDots"></div>
     <h2 id="nextName"></h2>
+    <div class="nextprog" id="nextProg" hidden><span class="num" id="nextNum"></span><div class="bar-p"><i id="nextBar"></i></div></div>
     <p class="nexthow" id="nextHow"></p>
     <button class="big-btn" type="button" id="nextBtn">始める</button>
+    <div class="nextctl" id="nextCtl"></div>
     <ol class="guide" id="nextGuide" hidden>
-      <li><b>上のボタンを押す</b>だけでいい。何をやるかはアプリが順番に出す。</li>
+      <li><b>上のボタンを押す</b>だけでいい。1つ終わったら、次にやることが出てくる。</li>
       <li>勉強している間は<b>タイマー</b>が時間を計る。時間がたまると相棒が育つ。</li>
-      <li>授業や問題集が終わったら、下の<b>今日のノルマ</b>で「＋1」を押す。単語はアプリの中で自動で数える。</li>
+      <li>問題集や過去問が終わったら<b>「終わった！次へ」</b>を押す。単語はアプリの中で自動で数える。</li>
     </ol>
   </div>
 
   <div class="card" style="position:relative">
-    <div class="head"><div><div class="eyebrow">今日のノルマ（全部）</div><h2 id="homeTime">0.0h / 10h</h2></div>
+    <div class="head"><div><div class="eyebrow">今日の勉強時間</div><h2 id="homeTime">0.0h / 10h</h2></div>
       <div class="row"><span class="chip" id="homeStreak" style="padding:3px 10px">連続 0日</span><button class="chip" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ" style="padding:3px 10px">通常日</button></div></div>
     <div class="bar-p"><i id="homeTimeBar"></i></div>
     <div class="phase"><b id="phName"></b><span class="note" id="phTip"></span><span class="note dot" id="phDays"></span></div>
     <span class="stamp" id="clearStamp" hidden>全クリ</span>
+    <details class="alltasks"><summary id="taskSum">今日のノルマを全部見る</summary>
     <ul class="tasks" id="taskList"></ul>
-    <div class="note" id="taskSum"></div>
     <details><summary class="note" style="cursor:pointer;font-weight:700">＋ 自分でタスクを足す</summary>
       <form id="addTask" class="row" style="margin-top:8px">
         <input class="field" id="atName" placeholder="例：音読" style="flex:1 1 9em" maxlength="40">
@@ -675,6 +691,7 @@ img{-webkit-user-drag:none}
         <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
         <button class="btn pri" type="submit">足す</button>
       </form></details>
+    </details>
   </div>
 
   <div class="card" id="fitCard">
@@ -919,7 +936,7 @@ img{-webkit-user-drag:none}
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795418995"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795469408"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
