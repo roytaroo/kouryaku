@@ -410,6 +410,19 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
 .guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
 .guide b{color:var(--ink)}
+.steps{display:flex;gap:5px;margin:2px 0 4px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.steps i.ok{background:var(--lantern)}
+.steps i.now{background:color-mix(in srgb,var(--lantern) 45%,var(--line))}
+.nextprog{display:flex;align-items:center;gap:10px}
+.nextprog .num{font-weight:800;font-size:15px;white-space:nowrap}
+.nextprog .bar-p{flex:1;margin:0}
+.nextctl{display:flex;gap:8px;flex-wrap:wrap}
+.nextctl:empty{display:none}
+.nextctl .done-btn{flex:1 1 100%;padding:13px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);font-weight:800;font-size:15px}
+.nextctl .sm{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700}
+.alltasks>summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted);padding:6px 0}
+.alltasks[open]>summary{margin-bottom:6px}
 
 /* 筋トレ */
 .task[data-s="fit"] .nm small::before{display:none}
