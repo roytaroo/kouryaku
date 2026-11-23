@@ -75,15 +75,19 @@ function renderFitRecord() {
   const k = dayKey(), cells = [];
   for (let i = 27; i >= 0; i--) { const d = addDays(k, -i); cells.push(`<i class="${fitOk(d) ? "on" : ""}${cardioOk(d) ? " cd" : ""}" title="${labelDay(d)}"></i>`); }
   let sess = 0, pday = 0, cmin = 0, snackOk = 0, snackN = 0; const ws = [];
-  for (const d of Object.keys(S.days).sort()) { const f = fitOf(d); if (fitOk(d)) sess++; if (postureOk(d)) pday++; cmin += cardioMin(d); if (f.snack != null) { snackN++; if (f.snack) snackOk++; } if (f.weight) ws.push([d, f.weight]); }
+  for (const d of Object.keys(S.days).sort()) { const f = fitOf(d); if (fitOk(d)) sess++; if (postureOk(d)) pday++; cmin += cardioMin(d); if (f.snack != null) { snackN++; if (f.snack) snackOk++; } if (f.weight) ws.push([d, f.weight, f.bf, f.bfSrc]); }
   const last = ws[ws.length - 1], first = ws[0];
   const diff = last && first && last !== first ? (last[1] - first[1]).toFixed(1) : null;
   $("fitRec").innerHTML = `<div class="fitgrid">${cells.join("")}</div>
     <dl class="stats" style="margin:0">
     <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>姿勢リセット</dt><dd>${pday}<small>日</small></dd></div>
     <div><dt>間食${SNACK_KCAL}kcal以内</dt><dd>${snackOk}<small>/${snackN}日</small></dd></div>
-    <div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div></dl>`;
+    <div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div>
+    ${bodyStats(ws)}</dl>`;
+  renderBodyChart(ws);
   if (document.activeElement !== $("wtIn")) $("wtIn").value = fitOf(k).weight || "";
+  if (document.activeElement !== $("bfIn")) $("bfIn").value = fitOf(k).bf || "";
+  if (fitOf(k).bfSrc) $("bfSrc").value = fitOf(k).bfSrc;
 }
 function bindFit() {
   const award = (k, wasS, wasC) => {
@@ -120,6 +124,31 @@ function bindFit() {
   $("wtSave").onclick = () => {
     if (!ready()) return; const w = Math.round(Number($("wtIn").value) * 10) / 10;
     if (!(w > 30 && w < 200)) return toast("体重をkgで入れて。");
-    patchDay(dayKey(), d => { d.fit = d.fit || {}; d.fit.weight = w; }); toast("体重を記録した。");
+    const raw = $("bfIn").value.trim(), bf = raw === "" ? null : Math.round(Number(raw) * 10) / 10;
+    if (bf != null && !(bf >= 3 && bf <= 60)) return toast("体脂肪率は3〜60の%で入れて。");
+    patchDay(dayKey(), d => { d.fit = d.fit || {}; d.fit.weight = w; if (bf != null) { d.fit.bf = bf; d.fit.bfSrc = $("bfSrc").value; } else { delete d.fit.bf; delete d.fit.bfSrc; } });
+    toast(bf != null ? "体重と体脂肪率を記録した。" : "体重を記録した。");
   };
+}
+
+/* ---- 体脂肪率：脂肪量と除脂肪量（筋肉・骨・水分など）を計算して、流れを見る ---- */
+function bodyStats(ws) {
+  const b = ws.filter(x => x[2] != null); if (!b.length) return "";
+  const last = b[b.length - 1], first = b[0], fat = w => w[1] * w[2] / 100, lean = w => w[1] - fat(w);
+  const d = (a, c) => { const v = (a - c).toFixed(1); return v > 0 ? "+" + v : v; };
+  const ch = b.length > 1 ? `（最初から 脂肪${d(fat(last), fat(first))}kg・除脂肪${d(lean(last), lean(first))}kg）` : "";
+  return `<div><dt>体脂肪率（${last[3] === "inbody" ? "InBody" : "家庭用"}）</dt><dd>${last[2]}<small>%</small></dd></div>
+    <div><dt>脂肪量／除脂肪量</dt><dd>${fat(last).toFixed(1)}<small>kg／</small>${lean(last).toFixed(1)}<small>kg</small></dd></div>
+    ${ch ? `<div style="grid-column:1/-1"><dt>変化</dt><dd style="font-size:14px">${ch}</dd></div>` : ""}`;
+}
+function renderBodyChart(ws) {
+  const el = $("bodyChart"); if (!el) return;
+  const pts = ws.slice(-16); if (pts.length < 2) { el.innerHTML = ""; return; }
+  const W = 320, H = 120, P = 22, n = pts.length, X = i => P + (W - 2 * P) * i / (n - 1);
+  const line = (vals, lo, hi, color) => { const ok = vals.map((v, i) => v == null ? null : [X(i), H - P - (H - 2 * P) * (v - lo) / Math.max(0.1, hi - lo)]).filter(Boolean); return ok.length > 1 ? `<polyline points="${ok.map(p => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>` + ok.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"/>`).join("") : ""; };
+  const wv = pts.map(p => p[1]), bv = pts.map(p => p[2] == null ? null : p[2]), bb = bv.filter(v => v != null);
+  const wlo = Math.min(...wv) - 0.5, whi = Math.max(...wv) + 0.5, blo = bb.length ? Math.min(...bb) - 1 : 0, bhi = bb.length ? Math.max(...bb) + 1 : 1;
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="体重と体脂肪率の変化">${line(wv, wlo, whi, "var(--lantern)")}${line(bv, blo, bhi, "var(--seal)")}
+    <text x="${P}" y="12" font-size="10" fill="var(--muted)">${labelDay(pts[0][0])}</text><text x="${W - P}" y="12" font-size="10" fill="var(--muted)" text-anchor="end">${labelDay(pts[n - 1][0])}</text></svg>
+    <div class="note"><span style="color:var(--lantern)">●</span> 体重　<span style="color:var(--seal)">●</span> 体脂肪率</div>`;
 }

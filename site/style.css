@@ -599,3 +599,5 @@ button,[role="button"],.tabs,.seg,.chips,.chip,.wallet,.g-ctrl,.g-pad,.g-ab,.g-g
 .game p,.game .g-msgja{-webkit-user-select:text;user-select:text}
 .g-say p,.g-log p{-webkit-user-select:none;user-select:none}
 img{-webkit-user-drag:none}
+
+.bodyform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
