@@ -9,6 +9,17 @@
   const say = t => { gMsg.textContent = t; };
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  /* アプリに戻ってきたとき、新しい版が出ていたら自動で読み込み直す（iPhone は閉じても裏で開いたままのことがある） */
+  let lastChk = Date.now();
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || Date.now() - lastChk < 60000) return;
+    lastChk = Date.now();
+    try {
+      const t = await (await fetch("index.html?t=" + Date.now(), { cache: "no-store" })).text();
+      const m = t.match(/"ver": ?"([^"]+)"/);
+      if (m && m[1] !== String(CFG.ver) && !document.activeElement.matches("input,textarea")) location.reload();
+    } catch (e) {}
+  });
 
   const sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
 
