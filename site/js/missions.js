@@ -24,7 +24,7 @@ function misStats() {
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, x) => a + (x[0] || 0), 0);
   const gram = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   return {
-    h: e.totalMin / 60, maxDay: maxDay / 60, goalDays, best, streak: streakNow(), pomos: e.pomos, clears: e.clears, early, reviews,
+    h: e.totalMin / 60, maxDay: maxDay / 60, goalDays, best, streak: Math.max(best, streakNow()), pomos: e.pomos, clears: e.clears, early, reviews,
     wFast: fastSum(S.words), wKnown: known(S.words, 3), wMaster: known(S.words, 5),
     kFast: fastSum(S.kobun), kKnown: known(S.kobun, 3), sFast: fastSum(S.seikei), quizOk,
     cloze: S.cloze.correct || 0, gram, scores: (S.scores || []).length, bests: e.bests,
@@ -71,20 +71,25 @@ const MIS_DEF = [
 const MISSIONS = MIS_DEF.flatMap(([cat, key, steps, name, unit, mul]) => steps.map((n, i) => ({
   id: key + "_" + n, cat, key, n, name: name(n), unit, koban: Math.round((10 + i * 15) * mul / 5) * 5
 })));
+const MIS_BY_ID = Object.fromEntries(MISSIONS.map(m => [m.id, m]));
 function misState() {
   if (misCache && Date.now() - misAt < 1500) return misCache;
   let st; misBusy = true; try { st = misStats(); } catch (e) { st = {}; } finally { misBusy = false; }
-  misCache = { st, done: new Set(MISSIONS.filter(m => (st[m.key] || 0) >= m.n).map(m => m.id)) }; misAt = Date.now();
+  // 一度達成したものは S.game.mis に残すので、連続が切れたり冒険をはじめからにしても消えない
+  const kept = (S.game && S.game.mis) || [];
+  misCache = { st, done: new Set([...kept.filter(id => MIS_BY_ID[id]), ...MISSIONS.filter(m => (st[m.key] || 0) >= m.n).map(m => m.id)]) }; misAt = Date.now();
   return misCache;
 }
 function missionKoban() { if (misBusy) return 0; const d = misState().done; return MISSIONS.reduce((a, m) => a + (d.has(m.id) ? m.koban : 0), 0); }
 
 /* ---- 達成ポップ（右上・右からニョキっと） ---- */
 const MIS_SEEN = "kr-mis-seen";
-let misQueue = [], misShowing = false;
+let misQueue = [], misShowing = false, misSaving = false;
 function missionCheck() {
   if (typeof allLoaded === "function" && !allLoaded()) return;
   const d = misState().done; let seen;
+  const kept = new Set((S.game && S.game.mis) || []), add = [...d].filter(id => !kept.has(id));
+  if (add.length && backend && !misSaving) { misSaving = true; patchDoc("game", v => { v.mis = [...new Set([...(v.mis || []), ...add])]; }).catch(() => {}).finally(() => { misSaving = false; }); }
   try { seen = JSON.parse(localStorage.getItem(MIS_SEEN) || "null"); } catch (e) { seen = null; }
   if (!Array.isArray(seen)) { try { localStorage.setItem(MIS_SEEN, JSON.stringify([...d])); } catch (e) {} return; } // 初回は今までの分を黙って記録
   const s = new Set(seen), fresh = MISSIONS.filter(m => d.has(m.id) && !s.has(m.id));
