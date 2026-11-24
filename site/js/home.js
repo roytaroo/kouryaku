@@ -70,10 +70,10 @@ function renderTasks() {
   if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
   const ac = allClear(k);
   $("clearStamp").hidden = !ac;
-  $("taskSum").textContent = "今日のノルマを全部見る（" + list.filter(t => t.count >= t.goal).length + " / " + list.length + "）" + (ac ? "　全クリア！" : "");
+  $("taskSum").textContent = "今日のノルマ一覧" + (ac ? "　全クリア！" : "");
   const tm = minOf(k), tg = targetFor(modeOf(k));
-  $("homeTime").textContent = hrs(tm) + "h / " + trimH(tg) + "h"; $("homeTimeBar").style.width = clamp(100 * tm / tg, 0, 100) + "%"; $("homeTimeBar").className = tm >= tg ? "ok" : "";
-  $("homeStreak").textContent = "連続 " + streakNow() + "日"; $("homeMode").textContent = modeOf(k) === "refresh" ? "リフレッシュ日" : "通常日";
+  $("homeTime").textContent = hrs(tm); $("homeTarget").textContent = "/ " + trimH(tg) + "時間"; $("homeClear").textContent = list.filter(t => t.count >= t.goal).length + "/" + list.length; $("homeTimeBar").style.width = clamp(100 * tm / tg, 0, 100) + "%"; $("homeTimeBar").className = tm >= tg ? "ok" : "";
+  $("homeStreak").textContent = streakNow(); $("homeMode").textContent = modeOf(k) === "refresh" ? "リフレッシュ日" : "通常日";
 }
 function renderDayNotes() {
   const k = dayKey(), d = S.days[k] || {}, hour = new Date().getHours();

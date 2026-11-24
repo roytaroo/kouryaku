@@ -97,7 +97,7 @@ function misNext() {
   if (misShowing || !misQueue.length) return;
   misShowing = true; const m = misQueue.shift();
   const el = document.createElement("div"); el.className = "mpop"; el.setAttribute("role", "status");
-  el.innerHTML = `<span class="mpop-ic">★</span><span class="mpop-tx"><small>ミッション達成</small><b>${esc(m.name)}</b></span><span class="mpop-rw"><i class="koban"></i>+${m.koban}</span>`;
+  el.innerHTML = `<span class="mpop-ic"><svg><use href="#i-star"/></svg></span><span class="mpop-tx"><small>ミッション達成</small><b>${esc(m.name)}</b></span><span class="mpop-rw"><i class="koban"></i>+${m.koban}</span>`;
   el.onclick = () => { go("record"); misTab = m.cat; misOpen = true; renderMissions(); };
   document.body.appendChild(el); sfx("coin");
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
@@ -115,7 +115,7 @@ function renderMissions() {
   const keys = [...new Set(list.map(m => m.key))];
   const next = keys.map(k => list.find(m => m.key === k && !done.has(m.id))).filter(Boolean), got = list.filter(m => done.has(m.id));
   const row = m => { const v = st[m.key] || 0, ok = done.has(m.id), pct = clamp(100 * v / m.n, 0, 100);
-    return `<li class="mis${ok ? " ok" : ""}"><span class="mis-ic">${ok ? "★" : "☆"}</span><div><b>${esc(m.name)}</b>${ok ? "" : `<div class="bar-p"><i style="width:${pct}%"></i></div><small>${Math.floor(v * 10) / 10} / ${m.n}${esc(m.unit)}</small>`}</div><span class="mis-rw"><i class="koban"></i>${m.koban}</span></li>`; };
+    return `<li class="mis${ok ? " ok" : ""}"><span class="mis-ic"><svg><use href="#i-${ok ? "check" : "star"}"/></svg></span><div><b>${esc(m.name)}</b>${ok ? "" : `<div class="bar-p"><i style="width:${pct}%"></i></div><small>${Math.floor(v * 10) / 10} / ${m.n}${esc(m.unit)}</small>`}</div><span class="mis-rw"><i class="koban"></i>${m.koban}</span></li>`; };
   const h = `<div class="mischips">${chips}</div><ul class="mislist">${next.map(row).join("") || '<li class="mis-sep">この部門は全部達成！</li>'}</ul>` +
     (got.length ? `<details class="misgot"><summary>達成したミッション ${got.length}</summary><ul class="mislist">${got.slice().reverse().map(row).join("")}</ul></details>` : "") +
     `<div class="note" style="text-align:center;margin-top:6px">この部門 ${got.length} / ${list.length}</div>`;
