@@ -116,7 +116,7 @@ function badgeList() {
     ["自己ベスト", "過去問・模試で自己ベスト", e.bests >= 1], ["百鬼夜行", "お化け25体", own >= 25], ["妖怪博士", "お化け50体", own >= 50]
   ];
 }
-function renderBadges() { const b = badgeList(); $("badgeSum").textContent = b.filter(x => x[2]).length + " / " + b.length; $("badges").innerHTML = b.map(([n, d, g]) => `<div class="badge${g ? " got" : ""}"><b>${g ? "★ " : "☆ "}${n}</b><span>${d}</span></div>`).join(""); }
+function renderBadges() { renderMissions(); if (!$("badges")) return; const b = badgeList(); $("badgeSum").textContent = b.filter(x => x[2]).length + " / " + b.length; $("badges").innerHTML = b.map(([n, d, g]) => `<div class="badge${g ? " got" : ""}"><b>${g ? "★ " : "☆ "}${n}</b><span>${d}</span></div>`).join(""); }
 /* ---- 言葉・設定・バックアップ ---- */
 function renderQuotes() { $("quoteList").innerHTML = (S.quotes || []).length ? S.quotes.map(q => `<li><span>${esc(q.text)}${q.by ? `<span class="note">　— ${esc(q.by)}</span>` : ""}</span><button class="btn ghost sm" type="button" data-q="${q.id}">消す</button></li>`).join("") : '<li><span class="note">休憩中に出す、自分の好きな言葉を足せる。</span></li>'; }
 function fillSettings() {

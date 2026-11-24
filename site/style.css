@@ -647,3 +647,39 @@ details.fold .tasks{gap:8px}
 details.fold>summary>div{min-width:0}
 details.fold>summary h2{font-size:17px;white-space:nowrap}
 details.fold>summary .chip{font-size:11px;white-space:nowrap}
+
+/* ===== ミッション ===== */
+.mischips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 -2px 8px;scrollbar-width:none}
+.mischips::-webkit-scrollbar{display:none}
+.mischips button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;color:var(--ink);display:flex;gap:5px;align-items:baseline}
+.mischips button small{font-size:10px;color:var(--muted);font-weight:700}
+.mischips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mischips button[aria-pressed="true"] small{color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.mislist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mis{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--surface2)}
+.mis b{font-size:14px;display:block;line-height:1.4}
+.mis small{font-size:11px;color:var(--muted);font-weight:700}
+.mis .bar-p{height:5px;margin:5px 0 3px}
+.mis-ic{font-size:16px;color:var(--muted);text-align:center}
+.mis.ok{background:transparent;border:1px solid var(--line)}
+.mis.ok .mis-ic{color:var(--koban)}
+.mis.ok b{color:var(--muted);font-weight:600}
+.mis-rw{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800;color:var(--koban)}
+.mis-rw .koban,.mpop .koban{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--koban)}
+.mis-sep{font-size:11px;font-weight:700;color:var(--muted);padding:6px 2px 0}
+.mpop{position:fixed;top:calc(env(safe-area-inset-top,0px) + 62px);right:10px;z-index:130;display:flex;align-items:center;gap:10px;max-width:min(330px,calc(100vw - 20px));
+  padding:10px 12px 10px 10px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.16);
+  transform:translateX(calc(100% + 24px));transition:transform .45s cubic-bezier(.2,1.35,.4,1);cursor:pointer}
+.mpop.in{transform:translateX(0)}
+.mpop.out{transform:translateX(calc(100% + 24px));transition:transform .35s ease-in}
+.mpop-ic{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--koban);color:#fff;font-size:17px;animation:mpopSpin .6s .25s both}
+.mpop-tx{display:grid;min-width:0}
+.mpop-tx small{font-size:10px;font-weight:800;color:var(--lantern);letter-spacing:.06em}
+.mpop-tx b{font-size:13px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpop-rw{flex:0 0 auto;display:flex;align-items:center;gap:4px;font-weight:800;font-size:13px;color:var(--koban)}
+@keyframes mpopSpin{from{transform:scale(.4) rotate(-90deg)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){.mpop,.mpop.out{transition:none}.mpop-ic{animation:none}}
+.misgot{margin-top:8px}
+.misgot>summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);padding:6px 2px}
+.misgot .mislist{margin-top:4px}
+.mis .bar-p{background:var(--line)}
