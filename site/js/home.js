@@ -5,10 +5,10 @@ function renderCountdown() {
   if (!n) { $("cdName").textContent = "次の試験日が未設定"; $("cdD").textContent = "--"; $("cdHms").textContent = "--:--:--"; return; }
   let ms = n.at - Date.now(); const D = Math.floor(ms / 864e5); ms -= D * 864e5;
   const H = Math.floor(ms / 36e5); ms -= H * 36e5; const M = Math.floor(ms / 6e4); ms -= M * 6e4;
-  $("cdName").textContent = n.label; $("cdD").textContent = D; $("cdHms").textContent = pad(H) + ":" + pad(M) + ":" + pad(Math.floor(ms / 1000));
+  $("cdName").textContent = n.label.replace(/（.*?）/g, ""); $("cdD").textContent = D; $("cdHms").textContent = pad(H) + ":" + pad(M) + ":" + pad(Math.floor(ms / 1000));
   const avg = (6 * targetFor("normal") + targetFor("refresh")) / 7;
   $("cdSub").textContent = labelDay(n.key) + " " + n.at.getHours() + ":" + pad(n.at.getMinutes()) + " 開始。今の時間割なら、それまでに勉強できるのは約" + Math.round(avg * (n.at - Date.now()) / 864e5 / 60) + "時間。";
-  const others = ex.slice(1, 4).map(e => `<span><b>D-${Math.ceil((e.at - Date.now()) / 864e5)}</b>${esc(e.label.replace(/（.*?）/g, ""))}</span>`).join("");
+  const others = ex.slice(1, 3).map(e => `<span><b>D-${Math.ceil((e.at - Date.now()) / 864e5)}</b>${esc(e.label.replace(/（.*?）/g, ""))}</span>`).join("");
   if ($("cdOthers").dataset.v !== others) { $("cdOthers").innerHTML = others; $("cdOthers").dataset.v = others; }
 }
 
@@ -85,19 +85,19 @@ function renderDayNotes() {
 }
 /* 今やること：ノルマのうち、まだ終わっていない最初の1つと、そのやり方 */
 const HOW = {
-  words: "英単語の意味を思い出して答える。アプリの中でできて、数も自動で数える。",
-  lecture: "スタディサプリで授業を見る。下のボタンでタイマーが動くから、見終わったらノルマで「＋1」。",
-  gq: "文法の問題を解く。問題集でも、勉強タブの「文法」の確認問題でもいい。終わった数をノルマで足す。",
-  reading: "英語長文を1題、時間を計って解く。下のボタンでタイマーが動く。",
-  past: "過去問か本番形式の問題を、本番と同じ時間で解く。",
-  kobun: "古文単語の意味を思い出して答える。アプリの中でできる。",
-  seikei: "政経の一問一答。アプリの中でできる。",
-  pastja: "国語の過去問を、本番と同じ時間で解く。漢字・知識→古文→現代文の順。迷ったら印をつけて飛ばす。",
-  jodo: "古文の助動詞を表で確認する。意味と接続、「で」「ぬ」「なり」の見分けまで。",
-  kanji: "漢字の問題集で20問。書けなかった字は3回書いて、次の日にもう一度。",
-  fix: "今週間違えた問題だけ解き直す。勉強タブの「文法」の確認問題でもいい。",
-  bag: "受験票・時計・鉛筆・消しゴム・お金をかばんに入れる。",
-  exam: "がんばって！ 終わったら「＋1」。"
+  words: "見た瞬間に意味が浮かぶまで。数は自動で数える。",
+  lecture: "授業を1講見る。",
+  gq: "問題集か、勉強タブの「文法」で。",
+  reading: "時間を計って1題。",
+  past: "本番と同じ時間で解いて、答え合わせまで。",
+  kobun: "見た瞬間に意味が浮かぶまで。",
+  seikei: "一問一答。",
+  pastja: "漢字・知識 → 古文 → 現代文の順。迷ったら飛ばす。",
+  jodo: "意味と接続、「で」「ぬ」「なり」の見分け。",
+  kanji: "書けなかった字は3回書く。",
+  fix: "今週間違えた問題だけ。",
+  bag: "受験票・時計・鉛筆・消しゴム・お金。",
+  exam: "いってらっしゃい。"
 };
 function nextTask() { return tasksOf(dayKey()).find(t => t.count < t.goal) || null; }
 function renderNext() {
@@ -108,20 +108,21 @@ function renderNext() {
   const running = S.timer && S.timer.running, ctl = $("nextCtl");
   if (!t) {
     $("nextStep").textContent = "今日のノルマ";
-    $("nextName").textContent = "全部クリア！おつかれさま"; $("nextProg").hidden = true; ctl.innerHTML = ""; ctl.dataset.v = "";
-    $("nextHow").textContent = "あとはタイマーで勉強時間を積むだけ。目標は " + trimH(targetFor(modeOf(k))) + "時間。";
+    $("nextName").textContent = "全部クリア！"; $("nextProg").hidden = true; ctl.innerHTML = ""; ctl.dataset.v = ""; $("nextBtn").className = "big-btn";
+    $("nextHow").textContent = "あとは時間を積むだけ。目標 " + trimH(targetFor(modeOf(k))) + "時間。";
     $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = "en"; return;
   }
-  $("nextStep").textContent = "次はこれ（" + (list.findIndex(x => x.id === t.id) + 1) + "つ目）";
+  $("nextStep").textContent = "次はこれ";
   $("nextName").textContent = t.name;
   $("nextProg").hidden = t.goal <= 1;
   $("nextNum").textContent = t.count + " / " + t.goal + t.unit; $("nextBar").style.width = clamp(100 * t.count / t.goal, 0, 100) + "%";
-  $("nextHow").textContent = HOW[t.id] || "下のボタンでタイマーが動く。終わったら「終わった！次へ」。";
+  $("nextHow").textContent = HOW[t.id] || "";
+  $("nextBtn").className = t.auto ? "big-btn" : "btn ghost timer-btn";
   if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; ctl.innerHTML = ""; ctl.dataset.v = ""; }
   else {
-    $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en";
-    const h = `<button type="button" class="done-btn" data-nt="${t.id}" data-nv="${t.goal}">終わった！次へ</button>` +
-      (t.goal > 1 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="1">＋1</button>` + (t.goal >= 10 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="10">＋10</button>` : "") : "");
+    $("nextBtn").textContent = running ? "タイマー中" : "タイマー"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en";
+    const h = (t.goal >= 10 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="10">＋10</button>` : "") +
+      `<button type="button" class="done-btn" data-nt="${t.id}" data-nv="${t.goal}">終わった</button>`;
     if (ctl.dataset.v !== h) { ctl.innerHTML = h; ctl.dataset.v = h; }
   }
 }

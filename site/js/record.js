@@ -6,10 +6,8 @@ function renderStats() {
   const left = Math.max(0, goal * 60 - e.totalMin), dl = Math.max(1, daysBetween(k, S.settings.deadline) + 1), av = avgRecent(7);
   const reach = av > 0 ? addDays(k, Math.ceil(left / av)) : null;
   $("stats").innerHTML = [
-    ["累計", hrs(e.totalMin) + "<small>h / " + goal + "h</small>"], ["レベル", "Lv." + L.lv + "<small> 次まで" + L.toNext.toFixed(1) + "h</small>"],
-    ["必要ペース", (left / dl / 60).toFixed(1) + "<small>h/日（" + dl + "日で）</small>"], ["直近7日の平均", hrs(av) + "<small>h/日</small>"],
-    ["このペースだと " + goal + "h に", reach ? (reach <= S.settings.deadline ? "" : "<span style='color:var(--seal)'>") + labelDay(reach) + (reach <= S.settings.deadline ? "" : "</span>") + "<small>" + (reach <= S.settings.deadline ? " 間に合う" : " 遅い") + "</small>" : "—"],
-    ["連続達成", streakNow() + "<small>日</small>"], ["ノルマ全クリア", e.clears + "<small>日</small>"], ["ポモドーロ", e.pomos + "<small>セット</small>"]
+    ["累計", hrs(e.totalMin) + "<small>h / " + goal + "h</small>"], ["必要ペース", (left / dl / 60).toFixed(1) + "<small>h/日</small>"],
+    ["直近7日", hrs(av) + "<small>h/日</small>"], ["連続", streakNow() + "<small>日</small>"]
   ].map(([t, v]) => `<div><dt>${t}</dt><dd>${v}</dd></div>`).join("");
 }
 /** 直近30日の棒グラフ（目標を線で） */
@@ -44,7 +42,7 @@ function renderForecast() {
   for (const e of parseExams(S.settings.exams)) if (e.key >= st && e.key <= dl) s += `<line x1="${x(e.key)}" x2="${x(e.key)}" y1="${pt}" y2="${H - pb}" stroke="var(--muted)" opacity=".35"/>`;
   s += `<text x="${x(st)}" y="${H - 6}" font-size="10" fill="var(--muted)">${labelDay(st)}</text><text x="${W - 6}" y="${H - 6}" font-size="10" text-anchor="end" fill="var(--muted)">${labelDay(dl)}</text></svg>`;
   $("forecast").innerHTML = s;
-  $("fcNote").textContent = "今のペース（" + hrs(av) + "h/日）だと最終日に約" + Math.round(proj / 60) + "時間。目標" + goal / 60 + "時間まで" + (proj >= goal ? "届く。" : "あと" + Math.round((goal - proj) / 60) + "時間足りない。");
+  $("fcNote").textContent = "このままだと約" + Math.round(proj / 60) + "時間。" + (proj >= goal ? "届く。" : "あと" + Math.round((goal - proj) / 60) + "時間足りない。");
 }
 function renderHeat() {
   const st = S.settings.startDate, dl = S.settings.deadline, k = dayKey();
@@ -68,7 +66,7 @@ function renderHeat() {
 const SKIND = { past: "過去問", mock: "模試", drill: "本番形式の演習" };
 function renderScores() {
   const list = [...(S.scores || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  $("scoreList").innerHTML = list.length ? list.map(s => `<li><span>${esc(labelDay(s.date))} ${SKIND[s.kind] || ""}　${esc(s.name || "")}${s.best ? ' <span class="rar r3">自己ベスト</span>' : ""}</span><span class="row" style="flex-wrap:nowrap"><b class="num dot">${s.score}/${s.max}</b><button class="btn ghost sm" type="button" data-del="${s.id}">消す</button></span></li>`).join("") : '<li><span class="note">まだ記録なし。過去問や模試の点を入れると、自己ベスト更新で小判＋40。</span></li>';
+  $("scoreList").innerHTML = list.length ? list.map(s => `<li><span>${esc(labelDay(s.date))} ${SKIND[s.kind] || ""}　${esc(s.name || "")}${s.best ? ' <span class="rar r3">自己ベスト</span>' : ""}</span><span class="row" style="flex-wrap:nowrap"><b class="num dot">${s.score}/${s.max}</b><button class="btn ghost sm" type="button" data-del="${s.id}">消す</button></span></li>`).join("") : '<li><span class="note">まだ記録なし</span></li>';
   const asc = [...(S.scores || [])].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   if (asc.length < 2) { $("scoreChart").innerHTML = ""; return; }
   const W = 600, H = 140, p = 18, x = i => p + (W - 2 * p) * i / (asc.length - 1), y = r => p + (H - 2 * p) * (1 - r);

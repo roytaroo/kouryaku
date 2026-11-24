@@ -87,15 +87,17 @@ function evolve(id) {
 }
 
 /* ---- 画面 ---- */
+let passAll = false;
 function renderPass() {
   const t = passTier(), h = econ().totalMin / 60, nextH = tierHours(t + 1), prevH = tierHours(t), un = unclaimed();
   $("passTier").textContent = t;
   $("passNext").textContent = "次の段まで " + Math.max(0, nextH - h).toFixed(1) + "時間（累計 " + h.toFixed(1) + "h）";
   $("passBar").style.width = clamp(100 * (h - prevH) / (nextH - prevH), 0, 100) + "%";
   $("passClaimAll").hidden = !un.length; $("passClaimAll").textContent = "まとめて受け取る（" + un.length + "）";
-  const last = Math.max(PASS.length, t + 3);
+  const last = Math.max(PASS.length, t + 3), firstUn = un.length ? Math.min(...un) : t + 1;
+  const from = passAll ? 1 : Math.max(1, Math.min(firstUn, t) - 1), to = passAll ? last : Math.min(last, t + 5);
   let html = "";
-  for (let i = 1; i <= last; i++) {
+  for (let i = from; i <= to; i++) {
     const r = rewardOf(i), reached = i <= t, got = claimedTier(i), cur = i === t + 1;
     const st = got ? "got" : reached ? "ready" : cur ? "next" : "lock";
     html += `<li class="tier ${st}${r.k === "yokai" ? " big" : ""}" data-tier="${i}">
@@ -104,6 +106,7 @@ function renderPass() {
       ${st === "ready" ? `<button class="btn pri sm" type="button" data-claim="${i}">受け取る</button>` : st === "got" ? `<span class="note">受取済</span>` : ""}</div></li>`;
     if (cur) html += `<li class="here"><span>いまここ</span></li>`;
   }
+  if (to < last || passAll) html += `<li class="here"><button class="btn ghost sm" type="button" data-passall="1">${passAll ? "近くだけ見る" : "全部見る（" + last + "段）"}</button></li>`;
   const el = $("passTrack"); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
   // 道の灯り：いまの段まで光らせる
   requestAnimationFrame(() => { const at = el.querySelector(".here") || el.querySelector(".tier.got:last-of-type"); el.style.setProperty("--lit", (at ? at.offsetTop + 12 : 0) + "px"); });
@@ -118,7 +121,7 @@ function renderPassMini() {
   $("pmClaim").hidden = !un; $("pmClaim").textContent = "受け取れる報酬 " + un;
 }
 function bindPass() {
-  $("passTrack").addEventListener("click", e => { const b = e.target.closest("[data-claim]"); if (b) claimTiers([Number(b.dataset.claim)]); });
+  $("passTrack").addEventListener("click", e => { if (e.target.closest("[data-passall]")) { passAll = !passAll; return renderPass(); } const b = e.target.closest("[data-claim]"); if (b) claimTiers([Number(b.dataset.claim)]); });
   $("passClaimAll").onclick = () => claimTiers(unclaimed());
   $("pmClaim").onclick = () => { yokaiTab = "pass"; go("yokai"); setTimeout(scrollPassToNow, 50); };
   $("passMini").addEventListener("click", e => { if (!e.target.closest("#pmClaim")) { yokaiTab = "pass"; go("yokai"); setTimeout(scrollPassToNow, 50); } });

@@ -616,3 +616,34 @@ button,[role="button"],.tabs,.seg,.chips,.chip,.wallet,.g-ctrl,.g-pad,.g-ab,.g-g
 img{-webkit-user-drag:none}
 
 .bodyform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* ===== 洗練（11/24）：余白を詰め、1画面で迷わない ===== */
+.hero{padding:14px 16px;gap:6px}
+.cd .D{font-size:clamp(52px,15vw,72px)}
+.cd .hms{font-size:clamp(18px,5vw,22px)}
+.next h2{font-size:22px;letter-spacing:.01em}
+.nexthow{font-size:13px}
+.nextact{display:flex;gap:8px;align-items:stretch}
+.nextact .big-btn{flex:1}
+.nextact .timer-btn{flex:0 0 auto;padding:0 16px;border-radius:12px;font-size:14px}
+.nextact .nextctl{flex:1;display:flex;gap:8px;flex-wrap:nowrap}
+.nextact .nextctl:empty{display:none}
+.nextctl .done-btn{flex:1;padding:14px;border-radius:12px;border:0;background:var(--lantern);color:var(--ontint);font-weight:800;font-size:16px}
+.nextctl .sm{flex:0 0 auto;padding:0 14px;border-radius:12px}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px 0;transition:transform .2s;flex:0 0 auto}
+details.fold[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+details.fold[open]>summary{margin-bottom:8px}
+details.fold>summary .chip{margin-left:auto}
+details.fold .tasks{gap:8px}
+.task[data-s="fit"] .nm small{font-size:11px}
+#homeTicket:empty{display:none}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stats4>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.stats4 dt{font-size:11px}
+.stats4 dd{font-size:20px;margin:2px 0 0}
+.stats4 dd small{display:block;font-size:10px}
+details.fold>summary>div{min-width:0}
+details.fold>summary h2{font-size:17px;white-space:nowrap}
+details.fold>summary .chip{font-size:11px;white-space:nowrap}

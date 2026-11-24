@@ -42,7 +42,7 @@ function renderFit() {
   const sW = wk.filter(fitOk).length, cW = wk.filter(cardioOk).length;
   // 筋トレは2日続けない（前の日にやっていたら今日は休み）
   const rest = fitOk(addDays(k, -1)) && !fitHas(k);
-  $("fitHead").textContent = fitOk(k) ? "筋トレ完了" : rest ? "今日は筋トレを休む日" : sW >= FIT_WEEK ? "今週の筋トレは達成" : "今日の筋トレ（15分）";
+  $("fitHead").textContent = fitOk(k) ? "筋トレ完了" : rest ? "今日は筋トレを休む日" : sW >= FIT_WEEK ? "今週の筋トレは達成" : "今日の筋トレ";
   $("fitWeek").textContent = "筋トレ " + sW + "/" + FIT_WEEK + "・有酸素 " + cW + "/" + CARDIO_WEEK;
   $("fitPhase").innerHTML = "<b>" + esc(mo.name) + "</b><span class=\"note\">" + esc(mo.tip) + "</span>";
   const sets = f.sets || {};
@@ -50,14 +50,14 @@ function renderFit() {
     const n = sets[x.id] || 0, done = n >= x.sets;
     const dots = Array.from({ length: x.sets }, (_, i) => `<button type="button" class="setb${i < n ? " on" : ""}" data-f="${x.id}" data-i="${i}" aria-label="${x.name} ${i + 1}セット目">${i + 1}</button>`).join("");
     return `<li class="task${done ? " done" : ""}" data-s="fit"><span class="nm">${x.name}<small>${x.how}</small></span>
-      <span class="ct num">${r[x.id]}<small>${x.unit}×${x.sets}</small></span><div class="ctl sets">${dots}<span class="note">終わったセットを押す</span></div></li>`;
+      <span class="ct num">${r[x.id]}<small>${x.unit}×${x.sets}</small></span><div class="ctl sets">${dots}</div></li>`;
   }).join("");
   const ul = $("fitList"); if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
   const hide = rest && !fitHas(k) && !fitShow;
   $("fitList").hidden = hide;
-  $("fitNote").textContent = fitOk(k) ? "小判＋" + FIT_KOBAN + "。明日は筋トレを休んで、歩くか泳ぐ日に。"
-    : rest ? "筋肉は休んでいる間に育つ。今日は有酸素だけでいい。（やるなら下のボタン）"
-    : "あと" + st.toNext + "回やりきると、1セットの回数が上がる。";
+  $("fitNote").textContent = fitOk(k) ? "明日は休み。"
+    : rest ? "今日は有酸素だけでいい。"
+    : "あと" + st.toNext + "回で回数アップ";
   $("fitForce").hidden = !hide;
   const q = f.posture || {}, pn = POSTURE.filter(x => q[x.id]).length;
   $("postureSum").textContent = pn + " / " + POSTURE.length + (pn === POSTURE.length ? "　できた" : "");
@@ -80,9 +80,7 @@ function renderFitRecord() {
   const diff = last && first && last !== first ? (last[1] - first[1]).toFixed(1) : null;
   $("fitRec").innerHTML = `<div class="fitgrid">${cells.join("")}</div>
     <dl class="stats" style="margin:0">
-    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>姿勢リセット</dt><dd>${pday}<small>日</small></dd></div>
-    <div><dt>間食${SNACK_KCAL}kcal以内</dt><dd>${snackOk}<small>/${snackN}日</small></dd></div>
-    <div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div>
+    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div>
     ${bodyStats(ws)}</dl>`;
   renderBodyChart(ws);
   if (document.activeElement !== $("wtIn")) $("wtIn").value = fitOf(k).weight || "";

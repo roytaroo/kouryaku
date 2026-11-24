@@ -238,7 +238,7 @@ function renderLearn() {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
     const days = Math.ceil(D.items.length / D.per);
     $("wEyebrow").textContent = D.title + "　1日" + D.per + D.unit + "×" + days + "日";
-    $("wRule").innerHTML = esc(D.rule) + "<b>" + limitOf(dk) / 1000 + "秒以内</b>に答えが浮かばなければ失敗。全部を即答できるまで終わらない。覚えるのはAnki、ここは追い討ち。";
+    $("wRule").innerHTML = "<b>" + limitOf(dk) / 1000 + "秒</b>で浮かばなければもう一度。";
     $("wGo").textContent = "今日の" + D.per + D.unit + "を始める";
     $("wTitle").textContent = (i + 1) + "日目の" + D.per + D.unit + "　No." + (set[0] ? set[0].id : "") + "〜" + (set[set.length - 1] ? set[set.length - 1].id : "");
     $("wProg").textContent = "今日即答できた " + n + " / " + set.length; $("wBar").style.width = (100 * n / Math.max(1, set.length)) + "%"; $("wBar").className = n >= set.length ? "ok" : "";
