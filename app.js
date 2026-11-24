@@ -439,10 +439,10 @@ function renderCountdown() {
   if (!n) { $("cdName").textContent = "次の試験日が未設定"; $("cdD").textContent = "--"; $("cdHms").textContent = "--:--:--"; return; }
   let ms = n.at - Date.now(); const D = Math.floor(ms / 864e5); ms -= D * 864e5;
   const H = Math.floor(ms / 36e5); ms -= H * 36e5; const M = Math.floor(ms / 6e4); ms -= M * 6e4;
-  $("cdName").textContent = n.label; $("cdD").textContent = D; $("cdHms").textContent = pad(H) + ":" + pad(M) + ":" + pad(Math.floor(ms / 1000));
+  $("cdName").textContent = n.label.replace(/（.*?）/g, ""); $("cdD").textContent = D; $("cdHms").textContent = pad(H) + ":" + pad(M) + ":" + pad(Math.floor(ms / 1000));
   const avg = (6 * targetFor("normal") + targetFor("refresh")) / 7;
   $("cdSub").textContent = labelDay(n.key) + " " + n.at.getHours() + ":" + pad(n.at.getMinutes()) + " 開始。今の時間割なら、それまでに勉強できるのは約" + Math.round(avg * (n.at - Date.now()) / 864e5 / 60) + "時間。";
-  const others = ex.slice(1, 4).map(e => `<span><b>D-${Math.ceil((e.at - Date.now()) / 864e5)}</b>${esc(e.label.replace(/（.*?）/g, ""))}</span>`).join("");
+  const others = ex.slice(1, 3).map(e => `<span><b>D-${Math.ceil((e.at - Date.now()) / 864e5)}</b>${esc(e.label.replace(/（.*?）/g, ""))}</span>`).join("");
   if ($("cdOthers").dataset.v !== others) { $("cdOthers").innerHTML = others; $("cdOthers").dataset.v = others; }
 }
 
@@ -519,19 +519,19 @@ function renderDayNotes() {
 }
 /* 今やること：ノルマのうち、まだ終わっていない最初の1つと、そのやり方 */
 const HOW = {
-  words: "英単語の意味を思い出して答える。アプリの中でできて、数も自動で数える。",
-  lecture: "スタディサプリで授業を見る。下のボタンでタイマーが動くから、見終わったらノルマで「＋1」。",
-  gq: "文法の問題を解く。問題集でも、勉強タブの「文法」の確認問題でもいい。終わった数をノルマで足す。",
-  reading: "英語長文を1題、時間を計って解く。下のボタンでタイマーが動く。",
-  past: "過去問か本番形式の問題を、本番と同じ時間で解く。",
-  kobun: "古文単語の意味を思い出して答える。アプリの中でできる。",
-  seikei: "政経の一問一答。アプリの中でできる。",
-  pastja: "国語の過去問を、本番と同じ時間で解く。漢字・知識→古文→現代文の順。迷ったら印をつけて飛ばす。",
-  jodo: "古文の助動詞を表で確認する。意味と接続、「で」「ぬ」「なり」の見分けまで。",
-  kanji: "漢字の問題集で20問。書けなかった字は3回書いて、次の日にもう一度。",
-  fix: "今週間違えた問題だけ解き直す。勉強タブの「文法」の確認問題でもいい。",
-  bag: "受験票・時計・鉛筆・消しゴム・お金をかばんに入れる。",
-  exam: "がんばって！ 終わったら「＋1」。"
+  words: "見た瞬間に意味が浮かぶまで。数は自動で数える。",
+  lecture: "授業を1講見る。",
+  gq: "問題集か、勉強タブの「文法」で。",
+  reading: "時間を計って1題。",
+  past: "本番と同じ時間で解いて、答え合わせまで。",
+  kobun: "見た瞬間に意味が浮かぶまで。",
+  seikei: "一問一答。",
+  pastja: "漢字・知識 → 古文 → 現代文の順。迷ったら飛ばす。",
+  jodo: "意味と接続、「で」「ぬ」「なり」の見分け。",
+  kanji: "書けなかった字は3回書く。",
+  fix: "今週間違えた問題だけ。",
+  bag: "受験票・時計・鉛筆・消しゴム・お金。",
+  exam: "いってらっしゃい。"
 };
 function nextTask() { return tasksOf(dayKey()).find(t => t.count < t.goal) || null; }
 function renderNext() {
@@ -542,20 +542,21 @@ function renderNext() {
   const running = S.timer && S.timer.running, ctl = $("nextCtl");
   if (!t) {
     $("nextStep").textContent = "今日のノルマ";
-    $("nextName").textContent = "全部クリア！おつかれさま"; $("nextProg").hidden = true; ctl.innerHTML = ""; ctl.dataset.v = "";
-    $("nextHow").textContent = "あとはタイマーで勉強時間を積むだけ。目標は " + trimH(targetFor(modeOf(k))) + "時間。";
+    $("nextName").textContent = "全部クリア！"; $("nextProg").hidden = true; ctl.innerHTML = ""; ctl.dataset.v = ""; $("nextBtn").className = "big-btn";
+    $("nextHow").textContent = "あとは時間を積むだけ。目標 " + trimH(targetFor(modeOf(k))) + "時間。";
     $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = "en"; return;
   }
-  $("nextStep").textContent = "次はこれ（" + (list.findIndex(x => x.id === t.id) + 1) + "つ目）";
+  $("nextStep").textContent = "次はこれ";
   $("nextName").textContent = t.name;
   $("nextProg").hidden = t.goal <= 1;
   $("nextNum").textContent = t.count + " / " + t.goal + t.unit; $("nextBar").style.width = clamp(100 * t.count / t.goal, 0, 100) + "%";
-  $("nextHow").textContent = HOW[t.id] || "下のボタンでタイマーが動く。終わったら「終わった！次へ」。";
+  $("nextHow").textContent = HOW[t.id] || "";
+  $("nextBtn").className = t.auto ? "big-btn" : "btn ghost timer-btn";
   if (t.auto) { $("nextBtn").textContent = { words: "英単語を始める", kobun: "古文単語を始める", seikei: "政経を始める" }[t.auto] || "始める"; $("nextBtn").dataset.k = "learn:" + t.auto; ctl.innerHTML = ""; ctl.dataset.v = ""; }
   else {
-    $("nextBtn").textContent = running ? "タイマーを見る" : "タイマーを始める（" + (SUBJ[t.subj] || "英語") + "）"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en";
-    const h = `<button type="button" class="done-btn" data-nt="${t.id}" data-nv="${t.goal}">終わった！次へ</button>` +
-      (t.goal > 1 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="1">＋1</button>` + (t.goal >= 10 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="10">＋10</button>` : "") : "");
+    $("nextBtn").textContent = running ? "タイマー中" : "タイマー"; $("nextBtn").dataset.k = "timer"; $("nextBtn").dataset.s = t.subj || "en";
+    const h = (t.goal >= 10 ? `<button type="button" class="sm" data-nt="${t.id}" data-nd="10">＋10</button>` : "") +
+      `<button type="button" class="done-btn" data-nt="${t.id}" data-nv="${t.goal}">終わった</button>`;
     if (ctl.dataset.v !== h) { ctl.innerHTML = h; ctl.dataset.v = h; }
   }
 }
@@ -1310,7 +1311,7 @@ function renderLearn() {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
     const days = Math.ceil(D.items.length / D.per);
     $("wEyebrow").textContent = D.title + "　1日" + D.per + D.unit + "×" + days + "日";
-    $("wRule").innerHTML = esc(D.rule) + "<b>" + limitOf(dk) / 1000 + "秒以内</b>に答えが浮かばなければ失敗。全部を即答できるまで終わらない。覚えるのはAnki、ここは追い討ち。";
+    $("wRule").innerHTML = "<b>" + limitOf(dk) / 1000 + "秒</b>で浮かばなければもう一度。";
     $("wGo").textContent = "今日の" + D.per + D.unit + "を始める";
     $("wTitle").textContent = (i + 1) + "日目の" + D.per + D.unit + "　No." + (set[0] ? set[0].id : "") + "〜" + (set[set.length - 1] ? set[set.length - 1].id : "");
     $("wProg").textContent = "今日即答できた " + n + " / " + set.length; $("wBar").style.width = (100 * n / Math.max(1, set.length)) + "%"; $("wBar").className = n >= set.length ? "ok" : "";
@@ -1658,15 +1659,17 @@ function evolve(id) {
 }
 
 /* ---- 画面 ---- */
+let passAll = false;
 function renderPass() {
   const t = passTier(), h = econ().totalMin / 60, nextH = tierHours(t + 1), prevH = tierHours(t), un = unclaimed();
   $("passTier").textContent = t;
   $("passNext").textContent = "次の段まで " + Math.max(0, nextH - h).toFixed(1) + "時間（累計 " + h.toFixed(1) + "h）";
   $("passBar").style.width = clamp(100 * (h - prevH) / (nextH - prevH), 0, 100) + "%";
   $("passClaimAll").hidden = !un.length; $("passClaimAll").textContent = "まとめて受け取る（" + un.length + "）";
-  const last = Math.max(PASS.length, t + 3);
+  const last = Math.max(PASS.length, t + 3), firstUn = un.length ? Math.min(...un) : t + 1;
+  const from = passAll ? 1 : Math.max(1, Math.min(firstUn, t) - 1), to = passAll ? last : Math.min(last, t + 5);
   let html = "";
-  for (let i = 1; i <= last; i++) {
+  for (let i = from; i <= to; i++) {
     const r = rewardOf(i), reached = i <= t, got = claimedTier(i), cur = i === t + 1;
     const st = got ? "got" : reached ? "ready" : cur ? "next" : "lock";
     html += `<li class="tier ${st}${r.k === "yokai" ? " big" : ""}" data-tier="${i}">
@@ -1675,6 +1678,7 @@ function renderPass() {
       ${st === "ready" ? `<button class="btn pri sm" type="button" data-claim="${i}">受け取る</button>` : st === "got" ? `<span class="note">受取済</span>` : ""}</div></li>`;
     if (cur) html += `<li class="here"><span>いまここ</span></li>`;
   }
+  if (to < last || passAll) html += `<li class="here"><button class="btn ghost sm" type="button" data-passall="1">${passAll ? "近くだけ見る" : "全部見る（" + last + "段）"}</button></li>`;
   const el = $("passTrack"); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
   // 道の灯り：いまの段まで光らせる
   requestAnimationFrame(() => { const at = el.querySelector(".here") || el.querySelector(".tier.got:last-of-type"); el.style.setProperty("--lit", (at ? at.offsetTop + 12 : 0) + "px"); });
@@ -1689,7 +1693,7 @@ function renderPassMini() {
   $("pmClaim").hidden = !un; $("pmClaim").textContent = "受け取れる報酬 " + un;
 }
 function bindPass() {
-  $("passTrack").addEventListener("click", e => { const b = e.target.closest("[data-claim]"); if (b) claimTiers([Number(b.dataset.claim)]); });
+  $("passTrack").addEventListener("click", e => { if (e.target.closest("[data-passall]")) { passAll = !passAll; return renderPass(); } const b = e.target.closest("[data-claim]"); if (b) claimTiers([Number(b.dataset.claim)]); });
   $("passClaimAll").onclick = () => claimTiers(unclaimed());
   $("pmClaim").onclick = () => { yokaiTab = "pass"; go("yokai"); setTimeout(scrollPassToNow, 50); };
   $("passMini").addEventListener("click", e => { if (!e.target.closest("#pmClaim")) { yokaiTab = "pass"; go("yokai"); setTimeout(scrollPassToNow, 50); } });
@@ -1703,10 +1707,8 @@ function renderStats() {
   const left = Math.max(0, goal * 60 - e.totalMin), dl = Math.max(1, daysBetween(k, S.settings.deadline) + 1), av = avgRecent(7);
   const reach = av > 0 ? addDays(k, Math.ceil(left / av)) : null;
   $("stats").innerHTML = [
-    ["累計", hrs(e.totalMin) + "<small>h / " + goal + "h</small>"], ["レベル", "Lv." + L.lv + "<small> 次まで" + L.toNext.toFixed(1) + "h</small>"],
-    ["必要ペース", (left / dl / 60).toFixed(1) + "<small>h/日（" + dl + "日で）</small>"], ["直近7日の平均", hrs(av) + "<small>h/日</small>"],
-    ["このペースだと " + goal + "h に", reach ? (reach <= S.settings.deadline ? "" : "<span style='color:var(--seal)'>") + labelDay(reach) + (reach <= S.settings.deadline ? "" : "</span>") + "<small>" + (reach <= S.settings.deadline ? " 間に合う" : " 遅い") + "</small>" : "—"],
-    ["連続達成", streakNow() + "<small>日</small>"], ["ノルマ全クリア", e.clears + "<small>日</small>"], ["ポモドーロ", e.pomos + "<small>セット</small>"]
+    ["累計", hrs(e.totalMin) + "<small>h / " + goal + "h</small>"], ["必要ペース", (left / dl / 60).toFixed(1) + "<small>h/日</small>"],
+    ["直近7日", hrs(av) + "<small>h/日</small>"], ["連続", streakNow() + "<small>日</small>"]
   ].map(([t, v]) => `<div><dt>${t}</dt><dd>${v}</dd></div>`).join("");
 }
 /** 直近30日の棒グラフ（目標を線で） */
@@ -1741,7 +1743,7 @@ function renderForecast() {
   for (const e of parseExams(S.settings.exams)) if (e.key >= st && e.key <= dl) s += `<line x1="${x(e.key)}" x2="${x(e.key)}" y1="${pt}" y2="${H - pb}" stroke="var(--muted)" opacity=".35"/>`;
   s += `<text x="${x(st)}" y="${H - 6}" font-size="10" fill="var(--muted)">${labelDay(st)}</text><text x="${W - 6}" y="${H - 6}" font-size="10" text-anchor="end" fill="var(--muted)">${labelDay(dl)}</text></svg>`;
   $("forecast").innerHTML = s;
-  $("fcNote").textContent = "今のペース（" + hrs(av) + "h/日）だと最終日に約" + Math.round(proj / 60) + "時間。目標" + goal / 60 + "時間まで" + (proj >= goal ? "届く。" : "あと" + Math.round((goal - proj) / 60) + "時間足りない。");
+  $("fcNote").textContent = "このままだと約" + Math.round(proj / 60) + "時間。" + (proj >= goal ? "届く。" : "あと" + Math.round((goal - proj) / 60) + "時間足りない。");
 }
 function renderHeat() {
   const st = S.settings.startDate, dl = S.settings.deadline, k = dayKey();
@@ -1765,7 +1767,7 @@ function renderHeat() {
 const SKIND = { past: "過去問", mock: "模試", drill: "本番形式の演習" };
 function renderScores() {
   const list = [...(S.scores || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  $("scoreList").innerHTML = list.length ? list.map(s => `<li><span>${esc(labelDay(s.date))} ${SKIND[s.kind] || ""}　${esc(s.name || "")}${s.best ? ' <span class="rar r3">自己ベスト</span>' : ""}</span><span class="row" style="flex-wrap:nowrap"><b class="num dot">${s.score}/${s.max}</b><button class="btn ghost sm" type="button" data-del="${s.id}">消す</button></span></li>`).join("") : '<li><span class="note">まだ記録なし。過去問や模試の点を入れると、自己ベスト更新で小判＋40。</span></li>';
+  $("scoreList").innerHTML = list.length ? list.map(s => `<li><span>${esc(labelDay(s.date))} ${SKIND[s.kind] || ""}　${esc(s.name || "")}${s.best ? ' <span class="rar r3">自己ベスト</span>' : ""}</span><span class="row" style="flex-wrap:nowrap"><b class="num dot">${s.score}/${s.max}</b><button class="btn ghost sm" type="button" data-del="${s.id}">消す</button></span></li>`).join("") : '<li><span class="note">まだ記録なし</span></li>';
   const asc = [...(S.scores || [])].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   if (asc.length < 2) { $("scoreChart").innerHTML = ""; return; }
   const W = 600, H = 140, p = 18, x = i => p + (W - 2 * p) * i / (asc.length - 1), y = r => p + (H - 2 * p) * (1 - r);
@@ -1893,7 +1895,7 @@ function renderFit() {
   const sW = wk.filter(fitOk).length, cW = wk.filter(cardioOk).length;
   // 筋トレは2日続けない（前の日にやっていたら今日は休み）
   const rest = fitOk(addDays(k, -1)) && !fitHas(k);
-  $("fitHead").textContent = fitOk(k) ? "筋トレ完了" : rest ? "今日は筋トレを休む日" : sW >= FIT_WEEK ? "今週の筋トレは達成" : "今日の筋トレ（15分）";
+  $("fitHead").textContent = fitOk(k) ? "筋トレ完了" : rest ? "今日は筋トレを休む日" : sW >= FIT_WEEK ? "今週の筋トレは達成" : "今日の筋トレ";
   $("fitWeek").textContent = "筋トレ " + sW + "/" + FIT_WEEK + "・有酸素 " + cW + "/" + CARDIO_WEEK;
   $("fitPhase").innerHTML = "<b>" + esc(mo.name) + "</b><span class=\"note\">" + esc(mo.tip) + "</span>";
   const sets = f.sets || {};
@@ -1901,14 +1903,14 @@ function renderFit() {
     const n = sets[x.id] || 0, done = n >= x.sets;
     const dots = Array.from({ length: x.sets }, (_, i) => `<button type="button" class="setb${i < n ? " on" : ""}" data-f="${x.id}" data-i="${i}" aria-label="${x.name} ${i + 1}セット目">${i + 1}</button>`).join("");
     return `<li class="task${done ? " done" : ""}" data-s="fit"><span class="nm">${x.name}<small>${x.how}</small></span>
-      <span class="ct num">${r[x.id]}<small>${x.unit}×${x.sets}</small></span><div class="ctl sets">${dots}<span class="note">終わったセットを押す</span></div></li>`;
+      <span class="ct num">${r[x.id]}<small>${x.unit}×${x.sets}</small></span><div class="ctl sets">${dots}</div></li>`;
   }).join("");
   const ul = $("fitList"); if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
   const hide = rest && !fitHas(k) && !fitShow;
   $("fitList").hidden = hide;
-  $("fitNote").textContent = fitOk(k) ? "小判＋" + FIT_KOBAN + "。明日は筋トレを休んで、歩くか泳ぐ日に。"
-    : rest ? "筋肉は休んでいる間に育つ。今日は有酸素だけでいい。（やるなら下のボタン）"
-    : "あと" + st.toNext + "回やりきると、1セットの回数が上がる。";
+  $("fitNote").textContent = fitOk(k) ? "明日は休み。"
+    : rest ? "今日は有酸素だけでいい。"
+    : "あと" + st.toNext + "回で回数アップ";
   $("fitForce").hidden = !hide;
   const q = f.posture || {}, pn = POSTURE.filter(x => q[x.id]).length;
   $("postureSum").textContent = pn + " / " + POSTURE.length + (pn === POSTURE.length ? "　できた" : "");
@@ -1931,9 +1933,7 @@ function renderFitRecord() {
   const diff = last && first && last !== first ? (last[1] - first[1]).toFixed(1) : null;
   $("fitRec").innerHTML = `<div class="fitgrid">${cells.join("")}</div>
     <dl class="stats" style="margin:0">
-    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>姿勢リセット</dt><dd>${pday}<small>日</small></dd></div>
-    <div><dt>間食${SNACK_KCAL}kcal以内</dt><dd>${snackOk}<small>/${snackN}日</small></dd></div>
-    <div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div>
+    <div><dt>筋トレ</dt><dd>${sess}<small>回</small></dd></div><div><dt>有酸素</dt><dd>${cmin}<small>分</small></dd></div><div><dt>体重</dt><dd>${last ? last[1] : "—"}<small>kg${diff != null ? "（" + (diff > 0 ? "+" : "") + diff + "）" : ""}</small></dd></div>
     ${bodyStats(ws)}</dl>`;
   renderBodyChart(ws);
   if (document.activeElement !== $("wtIn")) $("wtIn").value = fitOf(k).weight || "";
