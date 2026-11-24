@@ -400,6 +400,8 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .active-ticket{background:var(--ink);color:var(--bg)}
 .active-ticket .clock{font-family:var(--dot);color:var(--bg)}
 .flash .word{font-family:var(--body)}
+.flash .kana{margin-top:-2px;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.05em}
+.rpg-gloss small{color:var(--muted);font-size:.85em;margin-right:4px}
 .flash .word.small{font-weight:700}
 .chip .koban{background:var(--koban);border-radius:50%}
 .chip .ticket{background:var(--lantern)}

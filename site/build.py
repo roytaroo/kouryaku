@@ -26,7 +26,13 @@ def load_words():
     code = src.read_text(encoding="utf-8").replace("export const WORDS", "const WORDS", 1)
     code += "\nprocess.stdout.write(JSON.stringify(WORDS));"
     words = json.loads(subprocess.run(["node", "-"], input=code, capture_output=True, check=True, text=True).stdout)
-    return [w for w in words if int(w[2]) <= PART12_MAX]
+    kana_f = PRIVATE / "kana.json"  # 読み方（カタカナ）。番号 → 読み
+    kana = json.loads(kana_f.read_text(encoding="utf-8")) if kana_f.exists() else {}
+    out = [w for w in words if int(w[2]) <= PART12_MAX]
+    for w in out:
+        while len(w) < 5: w.append("")
+        w[5:] = [kana.get(w[2], "")]
+    return out
 
 
 def load_chars():

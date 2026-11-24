@@ -91,7 +91,7 @@ function rpgFace(c, face) {
 const rpgMonSrc = n => typeof RPG_MON !== "undefined" && RPG_MON[n] || "";
 const rpgItemSrc = n => typeof RPG_ITEM !== "undefined" && RPG_ITEM[n] || "";
 const rpgTr = () => `<button type="button" class="rpg-tr${rpgJa ? " on" : ""}" data-r="tr" aria-pressed="${rpgJa}">訳</button>`;
-function rpgGloss(found) { return rpgJa && found.length ? `<div class="rpg-gloss">${found.map(w => `<span><b>${esc(w[0])}</b>${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""; }
+function rpgGloss(found) { return rpgJa && found.length ? `<div class="rpg-gloss">${found.map(w => `<span><b>${esc(w[0])}</b>${w[5] ? `<small>${esc(w[5])}</small>` : ""}${esc(rpgShort(w[1]))}</span>`).join("")}</div>` : ""; }
 
 function renderRPG() {
   const box = $("rpgBox"); if (!box) return;

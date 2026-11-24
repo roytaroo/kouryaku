@@ -11,7 +11,7 @@ const circled = i => "①②③④⑤⑥⑦⑧⑨"[i] || "・";
 const DECKS = {
   en: {
     store: "words", per: 50, start: PLAN_START, unit: "語", title: "ターゲット1900 Part1〜2", rule: "英単語を見て",
-    items: TW.map(w => ({ id: w[2], q: esc(w[0]), a: esc(lines(w[1])), ex: w[3] ? esc(w[3].replace(/\{\{c1::(.*?)\}\}/, "$1")) + "<br>" + esc(w[4] || "") : "" }))
+    items: TW.map(w => ({ id: w[2], q: esc(w[0]), kana: w[5] || "", a: esc(lines(w[1])), ex: w[3] ? esc(w[3].replace(/\{\{c1::(.*?)\}\}/, "$1")) + "<br>" + esc(w[4] || "") : "" }))
   },
   ko: {
     store: "kobun", per: 30, mid: true, start: PLAN_START, unit: "語", title: "重要古文単語315", rule: "古語を見て",
@@ -88,7 +88,7 @@ function renderFlash() {
   const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
   let h = `<div class="qprog"><span>残り ${left}語</span><span>${sess.mode === "weak" ? "苦手の復習" : "今日の" + D.per + "語"}・即答 ${sess.cleared}/${sess.total}</span></div>`;
   const lim = limitOf(sess.deck);
-  h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>`;
+  h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>` + (w.kana ? `<div class="kana">${esc(w.kana)}</div>` : "");
   const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;
   if (sess.phase === "ask") {
     h += `<div class="limit go"><i style="animation-duration:${lim}ms"></i></div><div class="note">${D.small ? "読んで答えを思い浮かべて押せ" : "見た瞬間に意味を思い浮かべて押せ"}（${lim / 1000}秒）</div>
@@ -128,7 +128,7 @@ function renderCloze() {
   let h = `<div class="qprog"><span>${cz.n + 1} / ${cz.qs.length}</span><span>正解 ${cz.ok}</span></div><div class="cloze">${esc(p.pre)}<span class="blank">${cz.picked == null ? "？" : esc(p.hit)}</span>${esc(p.post)}</div><div class="note">${esc(q.w[4] || "")}</div><div class="choices">`;
   q.choices.forEach((c, i) => { const cls = cz.picked == null ? "" : i === q.ans ? "right" : i === cz.picked ? "wrong" : ""; h += `<button type="button" class="${cls}" data-c="${i}" ${cz.picked != null ? "disabled" : ""}>${esc(c[0])}</button>`; });
   h += `</div>`;
-  if (cz.picked != null) h += `<div class="mean" style="font-size:14px">${esc(q.w[0])}：${esc(lines(q.w[1]))}</div><button class="big-btn ink" type="button" data-cz="next">次へ</button>`;
+  if (cz.picked != null) h += `<div class="mean" style="font-size:14px">${esc(q.w[0])}${q.w[5] ? "（" + esc(q.w[5]) + "）" : ""}：${esc(lines(q.w[1]))}</div><button class="big-btn ink" type="button" data-cz="next">次へ</button>`;
   box.innerHTML = h;
 }
 function pickCloze(i) {
