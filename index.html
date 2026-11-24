@@ -869,6 +869,16 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .rpg-save{display:flex;gap:6px;flex-wrap:wrap}
 .rpg-save span{background:var(--surface2);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800}
 .linkbtn{border:0;background:none;color:var(--muted);font-weight:800;font-size:13px;padding:6px;justify-self:center;text-decoration:underline;text-underline-offset:3px}
+/* 単語のブロック（50語ずつ） */
+.blocks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.blocks button{position:relative;overflow:hidden;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 2px 6px;display:grid;line-height:1.15;color:var(--ink);isolation:isolate}
+.blocks button::before{content:"";position:absolute;inset:auto 0 0 0;height:var(--p);background:color-mix(in srgb,var(--good) 16%,transparent);z-index:-1}
+.blocks button b{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.blocks button small{font-size:10px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.blocks button.full{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.blocks button[aria-selected="true"]{border-color:var(--lantern);background:var(--lantern);color:#fff;box-shadow:0 2px 0 var(--press)}
+.blocks button[aria-selected="true"] small{color:rgba(255,255,255,.8)}
+.blocks button[aria-selected="true"]::before{display:none}
 
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -1016,9 +1026,10 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
       <h2 id="wTitle"></h2>
       <div class="bar-p"><i id="wBar"></i></div>
       <div class="note" id="wProg"></div>
-      <p style="margin:0;font-size:14px" id="wRule"></p>
-      <button class="big-btn" type="button" id="wGo">今日の50語を始める</button>
-      <div class="row"><button class="btn" type="button" id="wWeak">苦手だけ</button><select class="field" id="wDay" aria-label="何日目の50語か"></select></div>
+      <button class="big-btn" type="button" id="wGo">始める</button>
+      <p class="note" style="margin:0" id="wRule"></p>
+      <div class="blocks" id="wBlocks" role="listbox" aria-label="ブロック"></div>
+      <button class="btn" type="button" id="wWeak">苦手だけ復習</button>
       <div class="note" id="wStats"></div>
     </div>
     <div class="card flash" id="flash" hidden></div>
@@ -1173,7 +1184,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795528913"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795546011"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。

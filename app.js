@@ -1310,15 +1310,19 @@ function renderLearn() {
   if (learnTab === "words" || learnTab === "kobun" || learnTab === "seikei") {
     const dk = deckOfTab(), D = DECKS[dk], st = S[D.store], i = wSet[dk] ?? dayIdx(dk), set = setOf(dk, i), done = clearedToday(dk), n = set.filter(w => done.has(w.id)).length;
     const days = Math.ceil(D.items.length / D.per);
-    $("wEyebrow").textContent = D.title + "　1日" + D.per + D.unit + "×" + days + "日";
+    $("wEyebrow").textContent = D.title + "　" + D.per + D.unit + "ずつ " + days + "ブロック";
     $("wRule").innerHTML = "<b>" + limitOf(dk) / 1000 + "秒</b>で浮かばなければもう一度。";
-    $("wGo").textContent = "今日の" + D.per + D.unit + "を始める";
-    $("wTitle").textContent = (i + 1) + "日目の" + D.per + D.unit + "　No." + (set[0] ? set[0].id : "") + "〜" + (set[set.length - 1] ? set[set.length - 1].id : "");
-    $("wProg").textContent = "今日即答できた " + n + " / " + set.length; $("wBar").style.width = (100 * n / Math.max(1, set.length)) + "%"; $("wBar").className = n >= set.length ? "ok" : "";
+    $("wGo").textContent = "この" + D.per + D.unit + "を始める";
+    $("wTitle").textContent = "No." + (set[0] ? Number(set[0].id) : "") + "〜" + (set[set.length - 1] ? Number(set[set.length - 1].id) : "");
+    $("wProg").textContent = "今日即答 " + n + " / " + set.length; $("wBar").style.width = (100 * n / Math.max(1, set.length)) + "%"; $("wBar").className = n >= set.length ? "ok" : "";
     const known = Object.values(st.w || {}).filter(s => (s[0] || 0) >= 3).length, weak = Object.values(st.w || {}).filter(s => (s[2] || 0) > 0 && (s[0] || 0) < 3).length;
-    $("wStats").textContent = "定着（3回以上即答） " + known + D.unit + " ／ 苦手 " + weak + D.unit + " ／ 全" + D.items.length + D.unit;
-    const sel = $("wDay"); if (sel.dataset.deck !== dk) { sel.innerHTML = ""; sel.dataset.deck = dk; for (let d = 0; d < days; d++) sel.add(new Option((d + 1) + "日目（" + labelDay(addDays(D.start, d)) + "）", d)); }
-    sel.value = String(i);
+    $("wStats").textContent = "定着 " + known + " ／ 苦手 " + weak + " ／ 全" + D.items.length + D.unit;
+    let bh = "";
+    for (let d = 0; d < days; d++) {
+      const bs = setOf(dk, d), kn = bs.filter(w => ((st.w || {})[w.id] || [])[0] >= 3).length, pct = Math.round(100 * kn / Math.max(1, bs.length));
+      bh += `<button type="button" role="option" data-blk="${d}" aria-selected="${d === i}" class="${pct >= 100 ? "full" : ""}" style="--p:${pct}%"><b>${bs[0] ? Number(bs[0].id) : ""}</b><small>〜${bs.length ? Number(bs[bs.length - 1].id) : ""}</small></button>`;
+    }
+    const bl = $("wBlocks"); if (bl.dataset.v !== bh) { bl.innerHTML = bh; bl.dataset.v = bh; }
     $("wStartBox").hidden = !!sess && sess.deck === dk; renderFlash();
   }
   if (learnTab === "cloze") { $("czStart").hidden = !!cz; const c = S.cloze || {}; $("czStats").textContent = "これまで " + (c.correct || 0) + " / " + (c.total || 0) + " 問正解"; renderCloze(); }
@@ -1329,7 +1333,7 @@ function bindLearn() {
   $("learnSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; learnTab = b.dataset.t; renderLearn(); };
   $("wGo").onclick = () => { if (ready()) startWords(deckOfTab(), "day"); };
   $("wWeak").onclick = () => { if (ready()) startWords(deckOfTab(), "weak"); };
-  $("wDay").onchange = e => { wSet[deckOfTab()] = Number(e.target.value); renderLearn(); };
+  $("wBlocks").onclick = e => { const b = e.target.closest("[data-blk]"); if (!b) return; wSet[deckOfTab()] = Number(b.dataset.blk); renderLearn(); sfx("tap"); };
   $("flash").onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.a) answerWord(b.dataset.a === "yes");
