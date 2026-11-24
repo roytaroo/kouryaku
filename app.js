@@ -504,10 +504,10 @@ function renderTasks() {
   if (ul.dataset.v !== html) { ul.innerHTML = html; ul.dataset.v = html; }
   const ac = allClear(k);
   $("clearStamp").hidden = !ac;
-  $("taskSum").textContent = "今日のノルマを全部見る（" + list.filter(t => t.count >= t.goal).length + " / " + list.length + "）" + (ac ? "　全クリア！" : "");
+  $("taskSum").textContent = "今日のノルマ一覧" + (ac ? "　全クリア！" : "");
   const tm = minOf(k), tg = targetFor(modeOf(k));
-  $("homeTime").textContent = hrs(tm) + "h / " + trimH(tg) + "h"; $("homeTimeBar").style.width = clamp(100 * tm / tg, 0, 100) + "%"; $("homeTimeBar").className = tm >= tg ? "ok" : "";
-  $("homeStreak").textContent = "連続 " + streakNow() + "日"; $("homeMode").textContent = modeOf(k) === "refresh" ? "リフレッシュ日" : "通常日";
+  $("homeTime").textContent = hrs(tm); $("homeTarget").textContent = "/ " + trimH(tg) + "時間"; $("homeClear").textContent = list.filter(t => t.count >= t.goal).length + "/" + list.length; $("homeTimeBar").style.width = clamp(100 * tm / tg, 0, 100) + "%"; $("homeTimeBar").className = tm >= tg ? "ok" : "";
+  $("homeStreak").textContent = streakNow(); $("homeMode").textContent = modeOf(k) === "refresh" ? "リフレッシュ日" : "通常日";
 }
 function renderDayNotes() {
   const k = dayKey(), d = S.days[k] || {}, hour = new Date().getHours();
@@ -2583,10 +2583,9 @@ function renderRPG() {
 function rpgGameHtml(st) {
   const g = S.rpg && S.rpg.game, lead = g && g.party && g.party[0];
   const where = g && GMAPS[g.map] ? GMAPS[g.map].ja : "";
-  return `<div class="rpg-top"><span class="rpg-ch">Aster Ⅰ</span><span class="rpg-prog">王道RPG・物語は英語</span></div>` + rpgScene("cg_train") + `<div class="rpg-box">
-    <p class="rpg-text">十字ボタンで歩いて、町の人と話し、魔物とコマンドで戦う。物語の会話はすべて英語。「訳」でいつでも日本語に。</p>
-    ${g ? `<p class="note" style="margin:0">つづき：${esc(where)}　レンLv${lead ? lead.lv : 1}　${g.gold}G</p><button type="button" class="big-btn" data-r="gplay">つづきから</button>${rpgNewOk ? `<p class="note" style="margin:0;color:var(--seal)">はじめからにすると、今の冒険のデータ（レベル・装備・進み具合）は消える。本当にいい？</p><div class="row"><button type="button" class="btn" data-r="gnew" style="border-color:var(--seal);color:var(--seal)">消してはじめから</button><button type="button" class="btn ghost" data-r="gnewcancel">やめる</button></div>` : `<button type="button" class="btn" data-r="gnew">はじめから</button>`}` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
-    <button type="button" class="btn ghost sm" data-r="novel">物語だけ読む（ノベル版）</button></div>`;
+  return rpgScene("cg_train", `<div class="rpg-title"><b>Aster Ⅰ</b><span>王道RPG　物語はすべて英語</span></div>`, "rpg-cover") + `<div class="rpg-box rpg-start">
+    ${g ? `<div class="rpg-save"><span>${esc(where)}</span><span>レン Lv${lead ? lead.lv : 1}</span><span>${g.gold} G</span></div><button type="button" class="big-btn" data-r="gplay">つづきから</button>${rpgNewOk ? `<p class="note" style="margin:0;color:var(--seal)">はじめからにすると、今の冒険のデータ（レベル・装備・進み具合）は消える。本当にいい？</p><div class="row"><button type="button" class="btn" data-r="gnew" style="border-color:var(--seal);color:var(--seal)">消してはじめから</button><button type="button" class="btn ghost" data-r="gnewcancel">やめる</button></div>` : `<button type="button" class="btn" data-r="gnew">はじめから</button>`}` : `<button type="button" class="big-btn" data-r="gnew">冒険をはじめる</button>`}
+    <button type="button" class="linkbtn" data-r="novel">物語だけ読む</button></div>`;
 }
 function rpgStoryHtml(st) {
   const ch = RPG_CHAPTERS[st.ch] || RPG_CHAPTERS[0], ns = rpgNodes(st), n = ns[st.i], bg = rpgBg(st);
@@ -4764,7 +4763,7 @@ function misNext() {
   if (misShowing || !misQueue.length) return;
   misShowing = true; const m = misQueue.shift();
   const el = document.createElement("div"); el.className = "mpop"; el.setAttribute("role", "status");
-  el.innerHTML = `<span class="mpop-ic">★</span><span class="mpop-tx"><small>ミッション達成</small><b>${esc(m.name)}</b></span><span class="mpop-rw"><i class="koban"></i>+${m.koban}</span>`;
+  el.innerHTML = `<span class="mpop-ic"><svg><use href="#i-star"/></svg></span><span class="mpop-tx"><small>ミッション達成</small><b>${esc(m.name)}</b></span><span class="mpop-rw"><i class="koban"></i>+${m.koban}</span>`;
   el.onclick = () => { go("record"); misTab = m.cat; misOpen = true; renderMissions(); };
   document.body.appendChild(el); sfx("coin");
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
@@ -4782,7 +4781,7 @@ function renderMissions() {
   const keys = [...new Set(list.map(m => m.key))];
   const next = keys.map(k => list.find(m => m.key === k && !done.has(m.id))).filter(Boolean), got = list.filter(m => done.has(m.id));
   const row = m => { const v = st[m.key] || 0, ok = done.has(m.id), pct = clamp(100 * v / m.n, 0, 100);
-    return `<li class="mis${ok ? " ok" : ""}"><span class="mis-ic">${ok ? "★" : "☆"}</span><div><b>${esc(m.name)}</b>${ok ? "" : `<div class="bar-p"><i style="width:${pct}%"></i></div><small>${Math.floor(v * 10) / 10} / ${m.n}${esc(m.unit)}</small>`}</div><span class="mis-rw"><i class="koban"></i>${m.koban}</span></li>`; };
+    return `<li class="mis${ok ? " ok" : ""}"><span class="mis-ic"><svg><use href="#i-${ok ? "check" : "star"}"/></svg></span><div><b>${esc(m.name)}</b>${ok ? "" : `<div class="bar-p"><i style="width:${pct}%"></i></div><small>${Math.floor(v * 10) / 10} / ${m.n}${esc(m.unit)}</small>`}</div><span class="mis-rw"><i class="koban"></i>${m.koban}</span></li>`; };
   const h = `<div class="mischips">${chips}</div><ul class="mislist">${next.map(row).join("") || '<li class="mis-sep">この部門は全部達成！</li>'}</ul>` +
     (got.length ? `<details class="misgot"><summary>達成したミッション ${got.length}</summary><ul class="mislist">${got.slice().reverse().map(row).join("")}</ul></details>` : "") +
     `<div class="note" style="text-align:center;margin-top:6px">この部門 ${got.length} / ${list.length}</div>`;
