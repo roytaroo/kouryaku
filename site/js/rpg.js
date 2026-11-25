@@ -173,14 +173,15 @@ function rpgFightHtml(b, bg, st, firstWin) {
 
 /* ---- 探索：ターゲット1900の問題でモンスターと戦う ---- */
 const RPG_EX_BG = ["village", "ruins", "cave", "canal", "beach", "sea", "storm", "gate", "harbor", "cellar"];
-function rpgExQs() {
+function rpgExQs(onlyWeak, count) {
   const all = typeof TARGET_WORDS !== "undefined" ? TARGET_WORDS : [], seen = (S.words && S.words.w) || {};
   if (!all.length) return [];
   // 間違えたことのある単語を多めに、残りはこれまでに出た範囲から
   const weak = all.filter(w => seen[w[2]] && seen[w[2]][2] > 0), met = all.filter(w => seen[w[2]]);
-  const pool = () => { const r = Math.random(); const src = r < .45 && weak.length ? weak : r < .8 && met.length > 20 ? met : all; return src[Math.floor(Math.random() * src.length)]; };
+  if (onlyWeak && weak.length < 3) return [];
+  const pool = () => { if (onlyWeak) return weak[Math.floor(Math.random() * weak.length)]; const r = Math.random(); const src = r < .45 && weak.length ? weak : r < .8 && met.length > 20 ? met : all; return src[Math.floor(Math.random() * src.length)]; };
   const used = new Set(), qs = [];
-  while (qs.length < 5 && used.size < 60) {
+  while (qs.length < (count || 5) && used.size < 60) {
     const w = pool(); if (used.has(w[2])) continue; used.add(w[2]);
     const wrong = []; while (wrong.length < 3) { const x = all[Math.floor(Math.random() * all.length)]; if (x[0] !== w[0] && !wrong.includes(x)) wrong.push(x); }
     const opts = [w, ...wrong].sort(() => Math.random() - .5), a = opts.indexOf(w);
@@ -199,7 +200,8 @@ function rpgExploreHtml(st) {
   return `<div class="rpg-top"><span class="rpg-ch">探索</span><span class="rpg-prog">図鑑 ${got} / 110</span></div>` + rpgScene("ruins") + `<div class="rpg-box">
     <p class="rpg-text">ターゲット1900の単語で、野生のモンスターと戦う。間違えたことのある単語ほど出やすい。</p>
     <p class="note" style="margin:0">勝つと図鑑に登録。今日はあと${left}回まで小判＋${RPG_EX_KOBAN}（そのあとも遊べる）。ときどきアイテムを落とす。</p>
-    <button type="button" class="big-btn" data-r="explore">探索に出る</button></div>`;
+    <button type="button" class="big-btn" data-r="explore">探索に出る</button>
+    <button type="button" class="btn" data-r="wboss">苦手単語のボスと戦う</button></div>`;
 }
 const RPG_AREA_JA = { village: "村はずれ", ruins: "森の遺跡", cave: "水晶の洞窟", canal: "地下水路", beach: "浜辺", sea: "海の底", storm: "嵐の空", gate: "炎の門", harbor: "港の倉庫", cellar: "古い地下室" };
 function rpgStartExplore() {
@@ -232,6 +234,12 @@ function bindRPG() {
     if (r === "novel") { rpgMode = "novel"; return renderRPG(); }
     if (r === "nextch") { st.ch++; st.i = 0; return rpgGo(st); }
     if (r === "explore") return rpgStartExplore();
+    if (r === "wboss") { // 間違えたことのある単語だけで出てくる強いボス（10問）
+      const qs = rpgExQs(true, 10); if (!qs.length) return toast("苦手な単語がまだ少ない。単語の練習で間違えると出てくる。");
+      const mon = 1 + Math.floor(Math.random() * 110);
+      rpgX = rpgNewFight(qs, { name: "Lord of Forgotten Words", ja: "忘れ単語の主", mon, boss: true }); rpgX.ex = true; rpgX.bg = "night_hall"; rpgX.areaJa = "苦手単語の間";
+      rpgJa = false; sfx("tap"); return renderRPG();
+    }
     if (r === "opt") { const o = n.opts[Number(b.dataset.k)]; if (o.flag) st.flags[o.flag] = 1; st.i = rpgNodes(st).findIndex(x => x.label === o.go); sfx("ok"); return rpgGo(st); }
     if (r === "herb" && fight) { if (!ready() || !(st.items[1] > 0)) return; fight.php = Math.min(RPG_HP, fight.php + 1); st.items[1]--; sfx("coin"); toast("薬草でハートが1つ回復した"); const keep = rpgB; patchDoc("rpg", v => { v.items = st.items; }).then(() => { rpgB = keep; renderRPG(); }); return renderRPG(); }
     if (r === "ans" && fight && fight.res == null) {

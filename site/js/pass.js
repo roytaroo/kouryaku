@@ -35,7 +35,7 @@ function rewardIcon(r, big) {
   const cls = "ricon" + (big ? " big" : "");
   if (r.k === "koban") return `<span class="${cls} koban-i"><i></i></span>`;
   if (r.k === "ticket") return `<span class="${cls} ticket-i"><i></i></span>`;
-  if (r.k === "roll") return `<span class="${cls} roll-i">引</span>`;
+  if (r.k === "roll") return `<span class="${cls} roll-i"><i></i></span>`;
   if (r.k === "outfit") return `<span class="${cls} outfit-i"><img alt="" src="${gearIcon(r.id)}"></span>`;
   if (r.k === "yokai") { const y = YK[r.id]; return `<span class="${cls} yokai-i ${y ? RARITY[y.rarity].cls : ""}"><img alt="" src="${thumb(r.id)}"></span>`; }
   return "";
@@ -95,18 +95,16 @@ function renderPass() {
   $("passBar").style.width = clamp(100 * (h - prevH) / (nextH - prevH), 0, 100) + "%";
   $("passClaimAll").hidden = !un.length; $("passClaimAll").textContent = "まとめて受け取る（" + un.length + "）";
   const last = Math.max(PASS.length, t + 3), firstUn = un.length ? Math.min(...un) : t + 1;
-  const from = passAll ? 1 : Math.max(1, Math.min(firstUn, t) - 1), to = passAll ? last : Math.min(last, t + 5);
+  const from = 1, to = last;
   let html = "";
   for (let i = from; i <= to; i++) {
     const r = rewardOf(i), reached = i <= t, got = claimedTier(i), cur = i === t + 1;
     const st = got ? "got" : reached ? "ready" : cur ? "next" : "lock";
     html += `<li class="tier ${st}${r.k === "yokai" ? " big" : ""}" data-tier="${i}">
       <span class="node">${got ? "✓" : i}</span>
-      <div class="rcard">${rewardIcon(r, r.k === "yokai")}<div><small>${tierHours(i)}時間</small><b>${esc(rewardLabel(r))}</b>${cur ? `<div class="bar-p"><i style="width:${clamp(100 * (h - prevH) / (nextH - prevH), 0, 100)}%"></i></div>` : ""}</div>
+      <div class="rcard">${rewardIcon(r, r.k === "yokai")}<div><small>${tierHours(i)}時間${cur ? '<em class="here-b">いまここ</em>' : ""}</small><b>${esc(rewardLabel(r))}</b>${cur ? `<div class="bar-p"><i style="width:${clamp(100 * (h - prevH) / (nextH - prevH), 0, 100)}%"></i></div>` : ""}</div>
       ${st === "ready" ? `<button class="btn pri sm" type="button" data-claim="${i}">受け取る</button>` : st === "got" ? `<span class="note">受取済</span>` : ""}</div></li>`;
-    if (cur) html += `<li class="here"><span>いまここ</span></li>`;
   }
-  if (to < last || passAll) html += `<li class="here"><button class="btn ghost sm" type="button" data-passall="1">${passAll ? "近くだけ見る" : "全部見る（" + last + "段）"}</button></li>`;
   const el = $("passTrack"); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
   // 道の灯り：いまの段まで光らせる
   requestAnimationFrame(() => { const at = el.querySelector(".here") || el.querySelector(".tier.got:last-of-type"); el.style.setProperty("--lit", (at ? at.offsetTop + 12 : 0) + "px"); });

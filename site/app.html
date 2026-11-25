@@ -66,6 +66,8 @@
     </details><button class="modebtn" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ">通常日</button></div>
   </div>
 
+  <div class="card homemis" id="homeMis"></div>
+
   <details class="card fold" id="fitCard">
     <summary class="head"><div><div class="eyebrow">体づくり</div><h2 id="fitHead">今日の筋トレ</h2></div><span class="chip" id="fitWeek" style="padding:3px 10px"></span></summary>
     <div id="fitPhase" hidden></div>
@@ -86,7 +88,8 @@
     </div>
   </details>
 
-  <div class="card">
+  <div class="card ijin" id="ijinCard" role="button" tabindex="0" aria-label="偉人の言葉（押すと次へ）"></div>
+  <div class="card" id="buddyCard" hidden>
     <div class="buddy">
       <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
       <div style="display:grid;gap:8px;min-width:0">
@@ -136,7 +139,7 @@
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="miss">間違い</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
       <div class="eyebrow" id="wEyebrow"></div>
@@ -146,6 +149,7 @@
       <button class="big-btn" type="button" id="wGo">始める</button>
       <p class="note" style="margin:0" id="wRule"></p>
       <div class="blocks" id="wBlocks" role="listbox" aria-label="ブロック"></div>
+      <div class="quickrow" id="quickRow"><span>すきま時間</span><button type="button" data-qm="1">1分</button><button type="button" data-qm="3">3分</button><button type="button" data-qm="5">5分</button></div>
       <button class="btn" type="button" id="wWeak">苦手だけ復習</button>
       <div class="note" id="wStats"></div>
     </div>
@@ -162,10 +166,13 @@
   </div>
   <div id="lt-grammar" class="view" hidden>
     <div class="card flash" id="gqBox" hidden></div>
+    <div class="card"><div class="head"><div><div class="eyebrow">古文</div><h2>助動詞（全部）</h2></div><span class="note" id="gsum-kb"></span></div>
+      <p class="note" style="margin:0">意味・接続・識別を8問ずつ。間違えた問題は「間違い」タブにたまる。</p><ul class="units" id="units-kb"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
       <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
   </div>
+  <div id="lt-miss" class="view" hidden><div class="card" id="missBox"></div></div>
   <div id="lt-other" class="view" hidden>
     <div class="card">
       <div class="eyebrow">政経 演習（共通テスト形式）</div><h2>選択問題を10問</h2>
@@ -225,6 +232,7 @@
 <!-- ===== 記録 ===== -->
 <section class="view" id="v-record" hidden>
   <dl class="stats stats4" id="stats" style="margin:0"></dl>
+  <div class="card" id="weekCard"></div>
   <details class="card fold" id="misCard"><summary class="head"><div><div class="eyebrow">ミッション</div><h2 class="num" id="misSum">0</h2></div></summary><div id="misList"></div></details>
   <div class="card"><div class="head"><div><div class="eyebrow">直近30日</div><h2>毎日の勉強時間</h2></div><span class="note">線＝目標</span></div><div id="bars"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">予測</div><h2>目標時間に届くか</h2></div></div><div id="forecast"></div>
@@ -270,9 +278,11 @@
         <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
       <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setTts"> 英単語を読み上げる</label>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setAuto"> アプリを開いたらタイマーを自動で始める</label>
       <button class="btn pri" type="submit">保存</button>
     </form></details>
+  <button class="btn ghost" type="button" id="coinBreak" style="justify-self:center">小判の内訳を見る</button>
   <button class="btn ghost" type="button" id="backupBtn" style="justify-self:center">記録をファイルに書き出す</button>
 </section>
 </main>

@@ -38,16 +38,19 @@ function startWords(dk, mode) {
   const done = clearedToday(dk);
   let nums;
   if (mode === "weak") { const upto = (dayIdx(dk) + 1) * D.per; nums = D.items.slice(0, upto).filter(w => { const s = (st.w || {})[w.id]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w.id).slice(0, D.per); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
+  else if (mode === "quick") { const upto = Math.max(D.per, (Math.max(dayIdx(dk), wSet[dk] ?? 0) + 1) * D.per); nums = D.items.slice(0, upto).map(w => w.id); }
   else nums = setOf(dk, wSet[dk] ?? dayIdx(dk)).map(w => w.id).filter(n => !done.has(n));
   if (!nums.length) { toast("この" + D.per + "語は今日もう全部即答できた。"); return; }
   for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
   sess = { deck: dk, queue: nums, mode, total: nums.length, cleared: 0, tries: 0 };
+  if (mode === "quick") { sess.until = Date.now() + quickMin * 60000; sess.label = quickMin + "分モード"; }
   nextWord(); renderLearn();
 }
 let limitT = 0;
 function nextWord() {
   clearTimeout(limitT);
   if (!sess) return renderLearn();
+  if (sess.until && Date.now() >= sess.until) { const n = sess.cleared, t = sess.tries - 1; sess = null; sfx("done"); confetti(); toast("時間！ " + t + "問中 " + n + "語を即答"); renderLearn(); return; }
   if (!sess.queue.length) { const n = sess.cleared; sess = null; sfx("done"); confetti(); toast(n + "語、全部即答できた！"); renderLearn(); return; }
   sess.cur = sess.queue[0]; sess.phase = "ask"; sess.t0 = performance.now(); sess.tries++;
   renderFlash();
@@ -86,7 +89,9 @@ function renderFlash() {
   const box = $("flash"); if (!sess || deckOfTab() !== sess.deck) { box.hidden = true; return; }
   box.hidden = false;
   const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
-  let h = `<div class="qprog"><span>残り ${left}語</span><span>${sess.mode === "weak" ? "苦手の復習" : "今日の" + D.per + "語"}・即答 ${sess.cleared}/${sess.total}</span></div>`;
+  if (sess.phase === "ask" && sess.spoken !== sess.cur + ":" + sess.tries) { sess.spoken = sess.cur + ":" + sess.tries; if (sess.deck === "en") speakWord(w.q); }
+  const rest = sess.until ? Math.max(0, Math.ceil((sess.until - Date.now()) / 1000)) : 0;
+  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
   const lim = limitOf(sess.deck);
   h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>` + (w.kana ? `<div class="kana">${esc(w.kana)}</div>` : "");
   const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;
@@ -161,13 +166,18 @@ function renderGrammar() {
 }
 /* ---- 単元の確認問題（8問・4択）。終わると点数をそのまま記録 ---- */
 let gq = null;
-function startGQ(id) {
+function startGQ(id, keys) {
+  if (keys) { // 間違えた問題だけ（「間違い」タブから）
+    const qs = keys.map(k => { const [u, j] = k.split(":"), q = (GQ[u] || [])[Number(j)]; if (!q) return null; const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3], key: k }; }).filter(Boolean).sort(() => Math.random() - 0.5).slice(0, 10);
+    if (!qs.length) return toast("間違えた文法問題はない。");
+    gq = { id: "miss", review: true, qs, n: 0, ok: 0, picked: null }; learnTab = "grammar"; renderLearn(); $("gqBox").scrollIntoView({ block: "start", behavior: "smooth" }); return;
+  }
   const src = (typeof GQ !== "undefined" && GQ[id]) || [];
   if (!src.length) { toast("この単元の問題はまだない。"); return; }
-  const qs = src.map(q => { const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3] }; }).sort(() => Math.random() - 0.5);
+  const qs = src.map((q, j) => { const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3], key: id + ":" + j }; }).sort(() => Math.random() - 0.5);
   gq = { id, qs, n: 0, ok: 0, picked: null }; openUnit = ""; renderGQ(); $("gqBox").scrollIntoView({ block: "start", behavior: "smooth" });
 }
-function gqName(id) { return GRAMMAR[id.slice(0, 2)].units[Number(id.slice(2))]; }
+function gqName(id) { if (id === "miss") return "間違えた問題の復習"; return GRAMMAR[id.slice(0, 2)].units[Number(id.slice(2))]; }
 function renderGQ() {
   const box = $("gqBox"); if (!gq) { box.hidden = true; return; }
   box.hidden = false;
@@ -185,11 +195,13 @@ function renderGQ() {
 function pickGQ(i) {
   if (!gq || gq.picked != null) return;
   const q = gq.qs[gq.n]; gq.picked = i; if (i === q.ans) gq.ok++;
+  // 間違えた問題はノートに残し、復習で正解したら消す
+  if (q.key) patchDoc("grammar", v => { v.miss = v.miss || {}; if (i !== q.ans) v.miss[q.key] = (v.miss[q.key] || 0) + 1; else if (gq.review) delete v.miss[q.key]; }).catch(() => {});
   sfx(i === q.ans ? "ok" : "ng"); renderGQ();
 }
 function nextGQ() {
   gq.n++; gq.picked = null;
-  if (gq.n >= gq.qs.length) saveUnit(gq.id, gq.ok, gq.qs.length);
+  if (gq.n >= gq.qs.length && !gq.review) saveUnit(gq.id, gq.ok, gq.qs.length);
   renderGQ();
 }
 function saveUnit(id, ok, tot) {

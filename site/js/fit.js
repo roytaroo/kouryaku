@@ -146,7 +146,10 @@ function renderBodyChart(ws) {
   const line = (vals, lo, hi, color) => { const ok = vals.map((v, i) => v == null ? null : [X(i), H - P - (H - 2 * P) * (v - lo) / Math.max(0.1, hi - lo)]).filter(Boolean); return ok.length > 1 ? `<polyline points="${ok.map(p => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>` + ok.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"/>`).join("") : ""; };
   const wv = pts.map(p => p[1]), bv = pts.map(p => p[2] == null ? null : p[2]), bb = bv.filter(v => v != null);
   const wlo = Math.min(...wv) - 0.5, whi = Math.max(...wv) + 0.5, blo = bb.length ? Math.min(...bb) - 1 : 0, bhi = bb.length ? Math.max(...bb) + 1 : 1;
-  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="体重と体脂肪率の変化">${line(wv, wlo, whi, "var(--lantern)")}${line(bv, blo, bhi, "var(--seal)")}
+  // 7日平均：その日までの7日間に測った体重の平均（毎日の上下に振り回されないように）
+  const avg = pts.map(p => { const win = ws.filter(q => q[0] <= p[0] && daysBetween(q[0], p[0]) < 7); return win.reduce((a, q) => a + q[1], 0) / win.length; });
+  const avgLine = line(avg, wlo, whi, "var(--ink)").replace("<polyline ", '<polyline stroke-dasharray="4 4" opacity=".55" ');
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="体重と体脂肪率の変化">${line(wv, wlo, whi, "var(--lantern)")}${avgLine}${line(bv, blo, bhi, "var(--seal)")}
     <text x="${P}" y="12" font-size="10" fill="var(--muted)">${labelDay(pts[0][0])}</text><text x="${W - P}" y="12" font-size="10" fill="var(--muted)" text-anchor="end">${labelDay(pts[n - 1][0])}</text></svg>
-    <div class="note"><span style="color:var(--lantern)">●</span> 体重　<span style="color:var(--seal)">●</span> 体脂肪率</div>`;
+    <div class="note"><span style="color:var(--lantern)">●</span> 体重　<span style="opacity:.6">┅</span> 7日平均　<span style="color:var(--seal)">●</span> 体脂肪率</div>`;
 }

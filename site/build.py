@@ -17,7 +17,7 @@ SITE = pathlib.Path(__file__).resolve().parent
 ROOT = SITE.parent
 PRIVATE = ROOT / "minecraft" / "private"
 OUT = PRIVATE / "site_out" / "index.html"
-JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg_story2", "rpg", "game_data", "game_data2", "rpg_story3", "rpg_story4", "rpg_story5", "mon_lines", "rpg_story6", "rpg_side", "game", "missions", "autotime", "main"]
+JS = ["core", "voxel", "chars", "yokai_extra", "home", "timer", "grammar_q", "learn", "grammar_kobun", "yokai_ui", "pass", "record", "fit", "rpg_story", "rpg_story2", "rpg", "game_data", "game_data2", "rpg_story3", "rpg_story4", "rpg_story5", "mon_lines", "rpg_story6", "rpg_side", "game", "missions", "autotime", "extras", "main"]
 PART12_MAX = 1500
 
 
@@ -105,6 +105,7 @@ def main():
     js += "const RPG_BG = " + json.dumps(load_rpg_bg()) + ";\n"
     js += "const RPG_FACE = " + json.dumps(load_faces()) + ";\nconst RPG_FOE = " + json.dumps(load_faces("rpg_foe")) + ";\n"
     js += "const GAME_ART = " + json.dumps(load_game_art()) + ";\n"
+    js += "const IJIN_IMG = " + json.dumps(load_faces("ijin")) + ";\n"
     js += "const RPG_MON = " + json.dumps(load_pngs("rpg_mon")) + ";\nconst RPG_ITEM = " + json.dumps(load_pngs("rpg_item")) + ";\n"
     js += "const TARGET_WORDS = " + json.dumps(words, ensure_ascii=False, separators=(",", ":")) + ";\n"
     js += "\n".join((SITE / "js" / f"{n}.js").read_text(encoding="utf-8") for n in JS)

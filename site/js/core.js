@@ -125,7 +125,9 @@ function tasksOf(k) {
   for (const c of d.custom || []) list.push({ id: c.id, name: c.name, unit: c.unit || "", goal: c.goal || 1, count: cnt[c.id] || 0, custom: true });
   return list;
 }
-const allClear = k => { const t = tasksOf(k); return t.length > 0 && t.every(x => x.count >= x.goal); };
+// 一度全クリアした日は、あとでノルマの中身を変えても全クリアのまま（d.ac）
+const allClearNow = k => { const t = tasksOf(k); return t.length > 0 && t.every(x => x.count >= x.goal); };
+const allClear = k => !!(S.days[k] && S.days[k].ac) || allClearNow(k);
 
 /* ---------- 経済（記録から毎回計算するので、巻き戻らない） ---------- */
 function econ() {
@@ -143,9 +145,12 @@ function econ() {
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
-  const kobanEarn = fitKoban() + rpgKoban() + missionKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
+  // 小判の内訳（記録タブ・右上の小判を押すと見られる）
+  const parts = [["ミッション", missionKoban()], ["ノルマ全クリア", clears * 20], ["ポモドーロ", pomos * 5], ["即答した単語", fast], ["穴埋め・政経の正解", (S.cloze.correct || 0) + quizOk],
+    ["文法の合格", gramPass * 30], ["自己ベスト", bests * 40], ["体づくり", fitKoban()], ["冒険", rpgKoban()]];
+  const kobanEarn = parts.reduce((a, p) => a + p[1], 0);
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
-  return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
+  return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests, parts, kobanEarn, kobanSpent };
 }
 function scoreBests() {
   const by = {}; let n = 0;
