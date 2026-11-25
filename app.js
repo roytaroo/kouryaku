@@ -1827,13 +1827,13 @@ function renderQuotes() { $("quoteList").innerHTML = (S.quotes || []).length ? S
 function fillSettings() {
   const s = S.settings;
   for (const [id, key] of [["setExams", "exams"], ["setNormal", "normal"], ["setRefresh", "refresh"], ["setGoal", "goalHours"], ["setStart", "startDate"], ["setDeadline", "deadline"], ["setWords", "wordsPerDay"], ["setDow", "refreshDow"]]) if (document.activeElement !== $(id)) $(id).value = s[key] ?? "";
-  $("setSound").checked = s.sound !== false;
+  $("setSound").checked = s.sound !== false; $("setAuto").checked = s.autoTimer !== false;
   const n = sums(parseSchedule(s.normal)), r = sums(parseSchedule(s.refresh));
   $("setSum").textContent = "通常日 勉強" + trimH(n.study) + "h ／ リフレッシュ日 勉強" + trimH(r.study) + "h・ゲーム" + trimH(r.game) + "h";
 }
 function saveSettings(e) {
   e.preventDefault(); if (!ready()) return;
-  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked };
+  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked, autoTimer: $("setAuto").checked };
   backend.save("settings", v).then(() => { toast("設定を保存した。"); sfx("ok"); });
 }
 async function backup() {
@@ -4802,6 +4802,82 @@ function bindMissions() {
   box.addEventListener("click", e => { const b = e.target.closest("[data-mc]"); if (!b) return; misTab = b.dataset.mc; renderMissions(); sfx("tap"); });
 }
 
+/* ===== 勉強時間を自動で数える =====
+   1) タイマーが止まっているあいだも、勉強タブと冒険タブで操作していた時間は勉強時間に足す。
+      操作と操作の間が90秒以内ならその間を数える（それより空いたら、離れていたとみなす）。
+   2) アプリを開いたら、タイマーを自動で始める（設定で切れる）。
+      開いてすぐ（2分以内）にアプリを離れたら、確認だけとみなして記録しない。 */
+const AT_GAP = 90e3, AT_FIRST = 5e3;
+let atLast = 0, atSubj = "en", atAcc = 0, atT = 0;
+const timerWorking = () => { const t = S.timer || {}; return !!(t.running && (!t.phase || t.phase === "work") && !t.paused); };
+function atSubjNow() {
+  if (currentView === "learn") return learnTab === "kobun" ? "ja" : learnTab === "seikei" ? "se" : "en";
+  return "en";
+}
+function studyTick() {
+  if (timerWorking() || !backend || !allLoaded()) { atLast = 0; return; }
+  const now = Date.now(), subj = atSubjNow();
+  if (atLast && subj !== atSubj) atFlush();
+  atAcc += atLast && now - atLast < AT_GAP ? now - atLast : AT_FIRST;
+  atLast = now; atSubj = subj;
+  clearTimeout(atT); atT = setTimeout(() => { atFlush(); atLast = 0; }, AT_GAP);
+  if (atAcc >= 60e3) atFlush();
+}
+function atFlush() {
+  const min = Math.floor(atAcc / 6000) / 10; // 0.1分きざみ。端数は次に回す
+  if (min <= 0) return;
+  atAcc -= min * 60000;
+  commitStudy(dayKey(), min, atSubj, false).catch(() => {});
+}
+
+/* ---- 開いたら自動でタイマー ---- */
+let atAuto = null, atHiddenAt = 0;
+function autoTimerOn() { return S.settings.autoTimer !== false; }
+function nextSubj() { const t = typeof nextTask === "function" ? nextTask() : null; return (t && t.subj && t.subj !== "fit") ? t.subj : "en"; }
+async function autoStart() {
+  if (!autoTimerOn() || !backend || !allLoaded() || (S.timer && S.timer.running) || busy) return;
+  tSubj = nextSubj();
+  await timerStart();
+  atAuto = { at: Date.now(), touched: false };
+  toast("タイマーを自動で始めた（" + SUBJ[tSubj] + "）");
+}
+async function autoDiscard() {
+  // 開いてすぐ離れた：記録せずに止める
+  if (!atAuto || atAuto.touched || !S.timer || !S.timer.running || busy) return;
+  atAuto = null; busy = true;
+  try { await backend.save("timer", { running: false }); } finally { busy = false; }
+}
+function bindAutoTime() {
+  for (const id of ["v-learn", "v-rpg"]) { const el = $(id); if (el) el.addEventListener("pointerdown", studyTick, { capture: true, passive: true }); }
+  document.addEventListener("pointerdown", () => { if (atAuto) atAuto.touched = Date.now() - atAuto.at > 4000; }, { capture: true, passive: true });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      atFlush(); atLast = 0; atHiddenAt = Date.now();
+      if (atAuto && Date.now() - atAuto.at < 120e3) autoDiscard();
+    } else {
+      if (atHiddenAt && Date.now() - atHiddenAt > 60e3) autoStart();
+      atHiddenAt = 0;
+    }
+  });
+  // 起動時：読み込みが終わったら1回だけ
+  const once = setInterval(() => { if (backend && allLoaded()) { clearInterval(once); autoStart(); } }, 500);
+  setTimeout(() => clearInterval(once), 30000);
+  $("runbar").onclick = e => { if (e.target.closest("[data-rb=stop]")) { if (atAuto) atAuto = null; timerStop(); return; } go("timer"); };
+  setInterval(renderRunbar, 1000);
+}
+/* ---- どの画面でも見える「計測中」の帯 ---- */
+function renderRunbar() {
+  const t = S.timer || {}, el = $("runbar"); if (!el) return;
+  const show = !!t.running && currentView !== "timer";
+  el.hidden = !show; if (!show) return;
+  const v = timerView(); let clock;
+  if (v.phase === "legacy") { const s = Math.floor(v.el / 1000); clock = pad(Math.floor(s / 60)) + ":" + pad(s % 60); }
+  else { const s = Math.ceil((v.left || 0) / 1000); clock = pad(Math.floor(s / 60)) + ":" + pad(s % 60); }
+  const lab = t.phase === "break" ? "休憩中" : t.paused ? "一時停止" : "計測中・" + (SUBJ[t.subject] || "英語");
+  const h = `<span class="rb-dot${t.phase === "break" || t.paused ? " off" : ""}"></span><b>${lab}</b><span class="num rb-clock">${clock}</span><button type="button" data-rb="stop">止める</button>`;
+  if (el.dataset.v !== h) { el.innerHTML = h; el.dataset.v = h; }
+}
+
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
 const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
 let currentView = "home";
@@ -4869,7 +4945,7 @@ function bindMain() {
   window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   $("homeMode").onclick = () => { if (!ready()) return; const k = dayKey(), m = modeOf(k) === "refresh" ? "normal" : "refresh"; patchDay(k, d => { d.mode = m; }); toast(m === "refresh" ? "今日はリフレッシュ日。ゲームは2時間まで。" : "今日は通常日。"); };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
-  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit(); bindRPG(); bindMissions();
+  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit(); bindRPG(); bindMissions(); bindAutoTime();
 }
 
 async function boot() {

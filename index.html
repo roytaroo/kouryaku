@@ -879,6 +879,16 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .blocks button[aria-selected="true"]{border-color:var(--lantern);background:var(--lantern);color:#fff;box-shadow:0 2px 0 var(--press)}
 .blocks button[aria-selected="true"] small{color:rgba(255,255,255,.8)}
 .blocks button[aria-selected="true"]::before{display:none}
+/* 計測中の帯（どの画面でも） */
+.runbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:19;margin:8px auto 0;max-width:728px;width:calc(100% - 2*max(16px,env(safe-area-inset-left,0px)));
+  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:999px;background:var(--ink);color:var(--bg);box-shadow:0 8px 24px rgba(15,25,60,.18);cursor:pointer}
+.runbar b{font-size:13px;font-weight:800;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-dot{width:9px;height:9px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 0 0 rgba(255,77,94,.6);animation:rbPulse 1.6s infinite;flex:0 0 auto}
+.rb-dot.off{background:var(--muted);animation:none}
+.rb-clock{font-weight:800;font-size:15px;letter-spacing:.02em}
+.runbar button{border:0;border-radius:999px;background:color-mix(in srgb,var(--bg) 18%,transparent);color:var(--bg);font-weight:800;font-size:12px;padding:6px 12px}
+@keyframes rbPulse{0%{box-shadow:0 0 0 0 rgba(255,77,94,.55)}70%{box-shadow:0 0 0 8px rgba(255,77,94,0)}100%{box-shadow:0 0 0 0 rgba(255,77,94,0)}}
+@media (prefers-reduced-motion: reduce){.rb-dot{animation:none}}
 
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -905,6 +915,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     <span class="chip"><i class="lv" id="wLv">Lv.1</i></span>
   </div>
 </div></header>
+<div class="runbar" id="runbar" role="button" tabindex="0" hidden></div>
 
 <main>
 <!-- ===== ホーム ===== -->
@@ -1153,6 +1164,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
         <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
       <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setAuto"> アプリを開いたらタイマーを自動で始める</label>
       <button class="btn pri" type="submit">保存</button>
     </form></details>
   <button class="btn ghost" type="button" id="backupBtn" style="justify-self:center">記録をファイルに書き出す</button>
@@ -1184,7 +1196,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795546011"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795598278"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
