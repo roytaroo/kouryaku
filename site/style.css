@@ -864,3 +864,13 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .blocks button[aria-selected="true"]{border-color:var(--lantern);background:var(--lantern);color:#fff;box-shadow:0 2px 0 var(--press)}
 .blocks button[aria-selected="true"] small{color:rgba(255,255,255,.8)}
 .blocks button[aria-selected="true"]::before{display:none}
+/* 計測中の帯（どの画面でも） */
+.runbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:19;margin:8px auto 0;max-width:728px;width:calc(100% - 2*max(16px,env(safe-area-inset-left,0px)));
+  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:999px;background:var(--ink);color:var(--bg);box-shadow:0 8px 24px rgba(15,25,60,.18);cursor:pointer}
+.runbar b{font-size:13px;font-weight:800;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-dot{width:9px;height:9px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 0 0 rgba(255,77,94,.6);animation:rbPulse 1.6s infinite;flex:0 0 auto}
+.rb-dot.off{background:var(--muted);animation:none}
+.rb-clock{font-weight:800;font-size:15px;letter-spacing:.02em}
+.runbar button{border:0;border-radius:999px;background:color-mix(in srgb,var(--bg) 18%,transparent);color:var(--bg);font-weight:800;font-size:12px;padding:6px 12px}
+@keyframes rbPulse{0%{box-shadow:0 0 0 0 rgba(255,77,94,.55)}70%{box-shadow:0 0 0 8px rgba(255,77,94,0)}100%{box-shadow:0 0 0 0 rgba(255,77,94,0)}}
+@media (prefers-reduced-motion: reduce){.rb-dot{animation:none}}

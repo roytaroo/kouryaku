@@ -21,6 +21,7 @@
     <span class="chip"><i class="lv" id="wLv">Lv.1</i></span>
   </div>
 </div></header>
+<div class="runbar" id="runbar" role="button" tabindex="0" hidden></div>
 
 <main>
 <!-- ===== ホーム ===== -->
@@ -269,6 +270,7 @@
         <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
       <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setAuto"> アプリを開いたらタイマーを自動で始める</label>
       <button class="btn pri" type="submit">保存</button>
     </form></details>
   <button class="btn ghost" type="button" id="backupBtn" style="justify-self:center">記録をファイルに書き出す</button>

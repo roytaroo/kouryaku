@@ -122,13 +122,13 @@ function renderQuotes() { $("quoteList").innerHTML = (S.quotes || []).length ? S
 function fillSettings() {
   const s = S.settings;
   for (const [id, key] of [["setExams", "exams"], ["setNormal", "normal"], ["setRefresh", "refresh"], ["setGoal", "goalHours"], ["setStart", "startDate"], ["setDeadline", "deadline"], ["setWords", "wordsPerDay"], ["setDow", "refreshDow"]]) if (document.activeElement !== $(id)) $(id).value = s[key] ?? "";
-  $("setSound").checked = s.sound !== false;
+  $("setSound").checked = s.sound !== false; $("setAuto").checked = s.autoTimer !== false;
   const n = sums(parseSchedule(s.normal)), r = sums(parseSchedule(s.refresh));
   $("setSum").textContent = "通常日 勉強" + trimH(n.study) + "h ／ リフレッシュ日 勉強" + trimH(r.study) + "h・ゲーム" + trimH(r.game) + "h";
 }
 function saveSettings(e) {
   e.preventDefault(); if (!ready()) return;
-  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked };
+  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked, autoTimer: $("setAuto").checked };
   backend.save("settings", v).then(() => { toast("設定を保存した。"); sfx("ok"); });
 }
 async function backup() {
