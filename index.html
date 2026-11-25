@@ -422,7 +422,7 @@ input.field:focus,textarea.field:focus,select.field:focus{outline:0;border-color
 .chip .ticket{background:var(--lantern)}
 
 /* 今やること */
-.next{border-color:color-mix(in srgb,var(--lantern) 40%,var(--line))}
+.card.next{border-color:color-mix(in srgb,var(--lantern) 40%,var(--line))}
 .next h2{font-size:20px;line-height:1.4}
 .nexthow{margin:0;font-size:14px;color:var(--muted);line-height:1.7}
 .guide{margin:0;padding:12px 14px 12px 32px;background:var(--surface2);border-radius:12px;display:grid;gap:6px;font-size:13px;line-height:1.6}
@@ -781,7 +781,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .hero .exams span b{color:#ffe28a!important}
 
 /* 次はこれ */
-.next{border:0!important;box-shadow:var(--shadow),0 0 0 2px color-mix(in srgb,var(--lantern) 18%,transparent)}
+.card.next{border:0!important;box-shadow:var(--shadow),0 0 0 2px color-mix(in srgb,var(--lantern) 18%,transparent)}
 .next h2{font-size:23px;font-weight:900;line-height:1.35}
 .steps{gap:6px} .steps i{height:6px;background:var(--surface2)} .steps i.ok{background:var(--good)} .steps i.now{background:var(--lantern)}
 .nextact .timer-btn{border:2px solid var(--line);background:var(--surface);color:var(--ink);font-weight:800;box-shadow:0 4px 0 var(--line);border-radius:16px}
@@ -890,6 +890,83 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 @keyframes rbPulse{0%{box-shadow:0 0 0 0 rgba(255,77,94,.55)}70%{box-shadow:0 0 0 8px rgba(255,77,94,0)}100%{box-shadow:0 0 0 0 rgba(255,77,94,0)}}
 @media (prefers-reduced-motion: reduce){.rb-dot{animation:none}}
 
+/* 百鬼の道：いまここをカードの中に・ガチャ券はカプセルの絵 */
+.track .here{display:none}
+.tier.next .rcard{border:0;box-shadow:0 0 0 2px var(--lantern),var(--shadow)}
+.tier .rcard{border:0;box-shadow:var(--shadow);border-radius:16px}
+.here-b{font-style:normal;margin-left:8px;background:var(--lantern);color:#fff;border-radius:999px;padding:1px 8px;font-size:10px;font-weight:800;font-family:var(--body)}
+.tier.next .node{background:var(--lantern);color:#fff;border-color:var(--lantern)}
+.ricon.roll-i{background:var(--surface2)!important}
+.ricon.roll-i i{display:block;width:28px;height:28px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cdefs%3E%3ClinearGradient id=%22p%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%23B9A2FF%22/%3E%3Cstop offset=%221%22 stop-color=%22%237B5CFF%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform=%22rotate(-35 12 12)%22%3E%3Crect x=%226.5%22 y=%222.5%22 width=%2211%22 height=%2219%22 rx=%225.5%22 fill=%22%23FFF6E0%22 stroke=%22%235A4BB0%22 stroke-width=%221.3%22/%3E%3Cpath d=%22M6.5 12V8a5.5 5.5 0 0 1 11 0v4z%22 fill=%22url(%23p)%22 stroke=%22%235A4BB0%22 stroke-width=%221.3%22/%3E%3Cpath d=%22M12 14.6l.8 1.6 1.8.3-1.3 1.2.3 1.8-1.6-.9-1.6.9.3-1.8-1.3-1.2 1.8-.3z%22 fill=%22%23F0A915%22/%3E%3Cellipse cx=%229.6%22 cy=%226.4%22 rx=%221.1%22 ry=%222%22 fill=%22%23fff%22 opacity=%22.55%22/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+.ricon.big.roll-i i{width:44px;height:44px}
+
+/* 偉人の言葉 */
+.ijin{display:grid;grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:center;cursor:pointer}
+.ijin-ph{width:84px;height:84px;border-radius:50%;overflow:hidden;background:var(--surface2);display:grid;place-items:center;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--soft)}
+.ijin-ph img{width:100%;height:100%;object-fit:cover;filter:grayscale(.15) contrast(1.05)}
+.ijin-ph span{font-size:30px;font-weight:900;color:var(--muted)}
+.ijin-tx{display:grid;gap:4px;min-width:0}
+.ijin-tx p{margin:0;font-size:15px;font-weight:700;line-height:1.65;text-wrap:pretty}
+.ijin-tx p::before{content:"“";color:var(--lantern);font-size:22px;font-weight:900;line-height:0;margin-right:2px;vertical-align:-6px}
+.ijin-tx b{font-size:13px;font-weight:800}
+.ijin-tx small{font-size:11px;color:var(--muted);font-weight:700;margin-top:-4px}
+
+/* ホームのミッション */
+.homemis{gap:10px}
+.homemis .head{align-items:center}
+.hm-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer}
+.hm-row b{font-size:14px;font-weight:800;display:block;margin-bottom:4px}
+.hm-row .bar-p{height:7px}
+.sic.sm{width:32px;height:32px}.sic.sm svg{width:17px;height:17px}
+
+/* シート（下から） */
+.sheet{position:fixed;inset:0;z-index:140;background:rgba(10,14,30,.35);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .25s}
+.sheet.in{opacity:1}
+.sheet-in{width:100%;max-width:560px;max-height:82vh;overflow:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:18px max(18px,env(safe-area-inset-left,0px)) calc(22px + env(safe-area-inset-bottom,0px));display:grid;gap:10px;transform:translateY(30px);transition:transform .3s cubic-bezier(.2,1.2,.4,1)}
+.sheet.in .sheet-in{transform:none}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet-head b{font-size:18px;font-weight:900}
+.sheet-x{border:0;background:var(--surface2);width:34px;height:34px;border-radius:50%;font-weight:900;color:var(--muted)}
+.cs-total{display:flex;align-items:center;gap:10px;justify-content:center;padding:6px 0 4px}
+.cs-total .koban{width:36px!important;height:36px!important}
+.cs-total b{font-size:40px;font-weight:900}
+.cs-sec{font-size:12px;font-weight:800;color:var(--muted);margin-top:6px}
+.cs-row{display:flex;justify-content:space-between;padding:9px 12px;background:var(--surface2);border-radius:12px;font-size:14px;font-weight:700}
+.cs-row b{color:var(--good)} .cs-row b.neg{color:var(--seal)}
+.memo-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.memo-opts button{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 4px;font-weight:800;font-size:14px;box-shadow:0 3px 0 var(--line);color:var(--ink)}
+.memo-opts button:active{transform:translateY(2px);box-shadow:none}
+
+/* すきま時間モード */
+.quickrow{display:flex;align-items:center;gap:6px}
+.quickrow span{font-size:12px;font-weight:800;color:var(--muted);margin-right:auto}
+.quickrow button{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 14px;font-weight:900;box-shadow:0 3px 0 var(--line);color:var(--ink)}
+.quickrow button:active{transform:translateY(2px);box-shadow:none}
+
+/* 間違いノート */
+.mn-sec{display:grid;gap:6px;padding-top:6px}
+.mn-head{display:flex;align-items:center;gap:8px}
+.mn-head b{font-size:15px;font-weight:900}
+.mn-head .btn{margin-left:auto}
+.mn-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mn-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 12px;background:var(--surface2);border-radius:12px;font-size:13px}
+.mn-list li b{font-size:15px;font-weight:900}
+.mn-list li small{color:var(--muted);font-weight:700;font-size:11px}
+.mn-list li span{grid-column:1;color:var(--muted)}
+.mn-list li em{grid-column:2;grid-row:1/3;align-self:center;font-style:normal;font-weight:900;color:var(--seal)}
+
+/* 週のふり返り */
+.wk-diff{font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;background:var(--surface2)}
+.wk-diff.up{color:var(--good)} .wk-diff.down{color:var(--seal)}
+.wk-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:84px;align-items:end}
+.wk-days div{height:100%;display:grid;grid-template-rows:1fr auto;justify-items:center;gap:4px}
+.wk-days div i{width:100%;max-width:26px;align-self:end;border-radius:8px;background:linear-gradient(180deg,var(--lantern2),var(--lantern));min-height:4px}
+.wk-days div.fut i{background:var(--surface2)}
+.wk-days small{font-size:11px;font-weight:800;color:var(--muted)}
+.wk-split{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface2)}
+.wk-memo{display:flex;flex-wrap:wrap;gap:6px}
+.wk-memo span{background:var(--soft);color:var(--lantern);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800}
+
 /* ---- 全画面アプリ版：ログインと読み込みの画面 ---- */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
 .gate-in{width:min(100%,340px);display:grid;gap:14px;justify-items:center;text-align:center}
@@ -960,6 +1037,8 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </details><button class="modebtn" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ">通常日</button></div>
   </div>
 
+  <div class="card homemis" id="homeMis"></div>
+
   <details class="card fold" id="fitCard">
     <summary class="head"><div><div class="eyebrow">体づくり</div><h2 id="fitHead">今日の筋トレ</h2></div><span class="chip" id="fitWeek" style="padding:3px 10px"></span></summary>
     <div id="fitPhase" hidden></div>
@@ -980,7 +1059,8 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </div>
   </details>
 
-  <div class="card">
+  <div class="card ijin" id="ijinCard" role="button" tabindex="0" aria-label="偉人の言葉（押すと次へ）"></div>
+  <div class="card" id="buddyCard" hidden>
     <div class="buddy">
       <div class="buddy-fig"><canvas id="buddyCanvas" hidden></canvas><img id="buddyImg" class="bob" alt="相棒のお化け" hidden><div class="gears" id="buddyGear"></div></div>
       <div style="display:grid;gap:8px;min-width:0">
@@ -1030,7 +1110,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="miss">間違い</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
       <div class="eyebrow" id="wEyebrow"></div>
@@ -1040,6 +1120,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
       <button class="big-btn" type="button" id="wGo">始める</button>
       <p class="note" style="margin:0" id="wRule"></p>
       <div class="blocks" id="wBlocks" role="listbox" aria-label="ブロック"></div>
+      <div class="quickrow" id="quickRow"><span>すきま時間</span><button type="button" data-qm="1">1分</button><button type="button" data-qm="3">3分</button><button type="button" data-qm="5">5分</button></div>
       <button class="btn" type="button" id="wWeak">苦手だけ復習</button>
       <div class="note" id="wStats"></div>
     </div>
@@ -1056,10 +1137,13 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
   </div>
   <div id="lt-grammar" class="view" hidden>
     <div class="card flash" id="gqBox" hidden></div>
+    <div class="card"><div class="head"><div><div class="eyebrow">古文</div><h2>助動詞（全部）</h2></div><span class="note" id="gsum-kb"></span></div>
+      <p class="note" style="margin:0">意味・接続・識別を8問ずつ。間違えた問題は「間違い」タブにたまる。</p><ul class="units" id="units-kb"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
       <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
     <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
   </div>
+  <div id="lt-miss" class="view" hidden><div class="card" id="missBox"></div></div>
   <div id="lt-other" class="view" hidden>
     <div class="card">
       <div class="eyebrow">政経 演習（共通テスト形式）</div><h2>選択問題を10問</h2>
@@ -1119,6 +1203,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 <!-- ===== 記録 ===== -->
 <section class="view" id="v-record" hidden>
   <dl class="stats stats4" id="stats" style="margin:0"></dl>
+  <div class="card" id="weekCard"></div>
   <details class="card fold" id="misCard"><summary class="head"><div><div class="eyebrow">ミッション</div><h2 class="num" id="misSum">0</h2></div></summary><div id="misList"></div></details>
   <div class="card"><div class="head"><div><div class="eyebrow">直近30日</div><h2>毎日の勉強時間</h2></div><span class="note">線＝目標</span></div><div id="bars"></div></div>
   <div class="card"><div class="head"><div><div class="eyebrow">予測</div><h2>目標時間に届くか</h2></div></div><div id="forecast"></div>
@@ -1164,9 +1249,11 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
         <label>目標時間<input class="field num" id="setGoal" type="number" min="1" style="width:6em"></label></div>
       <div class="row"><label>数え始め<input class="field" id="setStart" type="date"></label><label>最終日<input class="field" id="setDeadline" type="date"></label></div>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setSound"> 音と振動を出す</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setTts"> 英単語を読み上げる</label>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setAuto"> アプリを開いたらタイマーを自動で始める</label>
       <button class="btn pri" type="submit">保存</button>
     </form></details>
+  <button class="btn ghost" type="button" id="coinBreak" style="justify-self:center">小判の内訳を見る</button>
   <button class="btn ghost" type="button" id="backupBtn" style="justify-self:center">記録をファイルに書き出す</button>
 </section>
 </main>
@@ -1196,7 +1283,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795598278"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795621291"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
@@ -1309,7 +1396,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     catch (e) { try { localStorage.removeItem(KEY_LS); } catch (x) {} console.warn(e); say("単語データを開けなかった。" + (e.message || "")); return; }
     let rows = await loadRows(uid);
     rows = await migrate(uid, rows, D.MIGRATE);
-    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG", "RPG_MON", "RPG_ITEM", "RPG_FACE", "RPG_FOE", "GAME_ART"]) window[n] = D[n];
+    for (const n of ["CHARS", "SEIKEI_QA", "SEIKEI_QUIZ", "KOBUN", "TARGET_WORDS", "RPG_BG", "RPG_MON", "RPG_ITEM", "RPG_FACE", "RPG_FOE", "GAME_ART", "IJIN_IMG"]) window[n] = D[n];
     const db = makeDb(uid, rows);
     window.claude = { use: async kind => kind === "db" ? db : kind === "downloads" ? downloads : null };
     const s = document.createElement("script"); s.src = "app.js?v=" + CFG.ver;

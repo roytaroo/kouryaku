@@ -125,7 +125,9 @@ function tasksOf(k) {
   for (const c of d.custom || []) list.push({ id: c.id, name: c.name, unit: c.unit || "", goal: c.goal || 1, count: cnt[c.id] || 0, custom: true });
   return list;
 }
-const allClear = k => { const t = tasksOf(k); return t.length > 0 && t.every(x => x.count >= x.goal); };
+// 一度全クリアした日は、あとでノルマの中身を変えても全クリアのまま（d.ac）
+const allClearNow = k => { const t = tasksOf(k); return t.length > 0 && t.every(x => x.count >= x.goal); };
+const allClear = k => !!(S.days[k] && S.days[k].ac) || allClearNow(k);
 
 /* ---------- 経済（記録から毎回計算するので、巻き戻らない） ---------- */
 function econ() {
@@ -143,9 +145,12 @@ function econ() {
   const gramPass = Object.values(S.grammar.units || {}).filter(u => u.passed).length;
   const bests = scoreBests();
   const quizOk = Object.values((S.seikei && S.seikei.quiz) || {}).reduce((a, r) => a + (r[0] || 0), 0);
-  const kobanEarn = fitKoban() + rpgKoban() + missionKoban() + pomos * 5 + fast + (S.cloze.correct || 0) + quizOk + clears * 20 + gramPass * 30 + bests * 40;
+  // 小判の内訳（記録タブ・右上の小判を押すと見られる）
+  const parts = [["ミッション", missionKoban()], ["ノルマ全クリア", clears * 20], ["ポモドーロ", pomos * 5], ["即答した単語", fast], ["穴埋め・政経の正解", (S.cloze.correct || 0) + quizOk],
+    ["文法の合格", gramPass * 30], ["自己ベスト", bests * 40], ["体づくり", fitKoban()], ["冒険", rpgKoban()]];
+  const kobanEarn = parts.reduce((a, p) => a + p[1], 0);
   const kobanSpent = (S.game.spend || []).reduce((a, x) => a + (x.cost || 0), 0);
-  return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests };
+  return { totalMin: tot, ticket: ticketEarn - ticketSpent, koban: kobanEarn - kobanSpent, clears, pomos, fast, gramPass, bests, parts, kobanEarn, kobanSpent };
 }
 function scoreBests() {
   const by = {}; let n = 0;
@@ -1111,16 +1116,19 @@ function startWords(dk, mode) {
   const done = clearedToday(dk);
   let nums;
   if (mode === "weak") { const upto = (dayIdx(dk) + 1) * D.per; nums = D.items.slice(0, upto).filter(w => { const s = (st.w || {})[w.id]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w.id).slice(0, D.per); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
+  else if (mode === "quick") { const upto = Math.max(D.per, (Math.max(dayIdx(dk), wSet[dk] ?? 0) + 1) * D.per); nums = D.items.slice(0, upto).map(w => w.id); }
   else nums = setOf(dk, wSet[dk] ?? dayIdx(dk)).map(w => w.id).filter(n => !done.has(n));
   if (!nums.length) { toast("この" + D.per + "語は今日もう全部即答できた。"); return; }
   for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
   sess = { deck: dk, queue: nums, mode, total: nums.length, cleared: 0, tries: 0 };
+  if (mode === "quick") { sess.until = Date.now() + quickMin * 60000; sess.label = quickMin + "分モード"; }
   nextWord(); renderLearn();
 }
 let limitT = 0;
 function nextWord() {
   clearTimeout(limitT);
   if (!sess) return renderLearn();
+  if (sess.until && Date.now() >= sess.until) { const n = sess.cleared, t = sess.tries - 1; sess = null; sfx("done"); confetti(); toast("時間！ " + t + "問中 " + n + "語を即答"); renderLearn(); return; }
   if (!sess.queue.length) { const n = sess.cleared; sess = null; sfx("done"); confetti(); toast(n + "語、全部即答できた！"); renderLearn(); return; }
   sess.cur = sess.queue[0]; sess.phase = "ask"; sess.t0 = performance.now(); sess.tries++;
   renderFlash();
@@ -1159,7 +1167,9 @@ function renderFlash() {
   const box = $("flash"); if (!sess || deckOfTab() !== sess.deck) { box.hidden = true; return; }
   box.hidden = false;
   const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
-  let h = `<div class="qprog"><span>残り ${left}語</span><span>${sess.mode === "weak" ? "苦手の復習" : "今日の" + D.per + "語"}・即答 ${sess.cleared}/${sess.total}</span></div>`;
+  if (sess.phase === "ask" && sess.spoken !== sess.cur + ":" + sess.tries) { sess.spoken = sess.cur + ":" + sess.tries; if (sess.deck === "en") speakWord(w.q); }
+  const rest = sess.until ? Math.max(0, Math.ceil((sess.until - Date.now()) / 1000)) : 0;
+  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
   const lim = limitOf(sess.deck);
   h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>` + (w.kana ? `<div class="kana">${esc(w.kana)}</div>` : "");
   const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;
@@ -1234,13 +1244,18 @@ function renderGrammar() {
 }
 /* ---- 単元の確認問題（8問・4択）。終わると点数をそのまま記録 ---- */
 let gq = null;
-function startGQ(id) {
+function startGQ(id, keys) {
+  if (keys) { // 間違えた問題だけ（「間違い」タブから）
+    const qs = keys.map(k => { const [u, j] = k.split(":"), q = (GQ[u] || [])[Number(j)]; if (!q) return null; const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3], key: k }; }).filter(Boolean).sort(() => Math.random() - 0.5).slice(0, 10);
+    if (!qs.length) return toast("間違えた文法問題はない。");
+    gq = { id: "miss", review: true, qs, n: 0, ok: 0, picked: null }; learnTab = "grammar"; renderLearn(); $("gqBox").scrollIntoView({ block: "start", behavior: "smooth" }); return;
+  }
   const src = (typeof GQ !== "undefined" && GQ[id]) || [];
   if (!src.length) { toast("この単元の問題はまだない。"); return; }
-  const qs = src.map(q => { const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3] }; }).sort(() => Math.random() - 0.5);
+  const qs = src.map((q, j) => { const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5); return { q: q[0], c: order.map(i => q[1][i]), ans: order.indexOf(q[2]), ex: q[3], key: id + ":" + j }; }).sort(() => Math.random() - 0.5);
   gq = { id, qs, n: 0, ok: 0, picked: null }; openUnit = ""; renderGQ(); $("gqBox").scrollIntoView({ block: "start", behavior: "smooth" });
 }
-function gqName(id) { return GRAMMAR[id.slice(0, 2)].units[Number(id.slice(2))]; }
+function gqName(id) { if (id === "miss") return "間違えた問題の復習"; return GRAMMAR[id.slice(0, 2)].units[Number(id.slice(2))]; }
 function renderGQ() {
   const box = $("gqBox"); if (!gq) { box.hidden = true; return; }
   box.hidden = false;
@@ -1258,11 +1273,13 @@ function renderGQ() {
 function pickGQ(i) {
   if (!gq || gq.picked != null) return;
   const q = gq.qs[gq.n]; gq.picked = i; if (i === q.ans) gq.ok++;
+  // 間違えた問題はノートに残し、復習で正解したら消す
+  if (q.key) patchDoc("grammar", v => { v.miss = v.miss || {}; if (i !== q.ans) v.miss[q.key] = (v.miss[q.key] || 0) + 1; else if (gq.review) delete v.miss[q.key]; }).catch(() => {});
   sfx(i === q.ans ? "ok" : "ng"); renderGQ();
 }
 function nextGQ() {
   gq.n++; gq.picked = null;
-  if (gq.n >= gq.qs.length) saveUnit(gq.id, gq.ok, gq.qs.length);
+  if (gq.n >= gq.qs.length && !gq.review) saveUnit(gq.id, gq.ok, gq.qs.length);
   renderGQ();
 }
 function saveUnit(id, ok, tot) {
@@ -1360,6 +1377,112 @@ function bindLearn() {
     $("units-" + g).addEventListener("submit", e => { e.preventDefault(); if (!ready()) return; const id = e.target.dataset.uf, ok = parseInt($("uo-" + id).value, 10), tot = parseInt($("ut-" + id).value, 10); if (!(tot > 0) || !(ok >= 0) || ok > tot) { toast("正解数と問題数を入れて。"); return; } openUnit = ""; saveUnit(id, ok, tot); });
   }
 }
+
+/* ===== 古文の助動詞（全部）：10単元 × 8問・4択 =====
+   形は GQ と同じ：[問題文, [選択肢4つ], 正解の番号, ひとこと解説]。【】が問われている部分。 */
+GRAMMAR.kb = { name: "古文 助動詞", units: ["る・らる", "す・さす・しむ", "ず・じ・まじ", "む・むず・けむ・らむ", "べし", "まし・めり・なり（伝聞推定）", "き・けり", "つ・ぬ・たり・り", "なり・たり（断定）・ごとし・まほし・たし", "識別（ぬ・ね・に・なり・る・らむ・で）"] };
+Object.assign(GQ, {
+  kb0: [
+    ["「物に襲は【るる】心地して」の意味は？", ["受身", "尊敬", "自発", "可能"], 0, "物に（〜によって）襲われる → 受身"],
+    ["「ふるさとのこと思ひ出で【らる】」の意味は？", ["受身", "尊敬", "自発", "可能"], 2, "思ふ・思ひ出づ・嘆く など心の動き＋る・らる → 自発（自然と〜される）"],
+    ["「冬はいかなる所にも住ま【る】」（徒然草）の意味は？", ["受身", "尊敬", "自発", "可能"], 3, "冬はどんな所にでも住むことができる → 可能"],
+    ["「恐ろしくて寝も寝【られ】ず」の意味は？", ["受身", "尊敬", "自発", "可能"], 3, "下に打消（ず）→ 可能（寝ることができない）"],
+    ["「仰せ【らる】」の意味は？", ["受身", "尊敬", "自発", "可能"], 1, "仰す（おっしゃる）＋らる → 尊敬。身分の高い人の動作"],
+    ["「る」が付くのは？", ["四段・ナ変・ラ変の未然形", "すべての動詞の連用形", "終止形", "それ以外の動詞の未然形"], 0, "る＝四段・ナ変・ラ変の未然形（a段）。らる＝それ以外の未然形"],
+    ["「る・らる」の意味の覚え方「うそじか」の「じ」は？", ["自発", "受身", "尊敬", "可能"], 0, "受身・尊敬・自発・可能"],
+    ["平安時代の「る・らる」が可能になるのは、たいていどんなとき？", ["下に打消があるとき", "主語が一人称のとき", "和歌の中", "下に「給ふ」があるとき"], 0, "「〜れず」「〜られず」の形で「〜できない」"]
+  ],
+  kb1: [
+    ["「妻の嫗にあづけて養は【す】」（竹取物語）の意味は？", ["使役", "尊敬", "受身", "自発"], 0, "嫗に（相手）養わせる → 使役"],
+    ["「帝、驚か【せ】給ふ」の「せ」の意味は？", ["使役", "尊敬", "受身", "完了"], 1, "す＋給ふ で、させる相手がいない → 尊敬（二重尊敬）"],
+    ["「御随身に弓を射【させ】給ふ」の意味は？", ["使役", "尊敬", "受身", "自発"], 0, "「御随身に」＝させる相手がいる → 使役"],
+    ["「す・さす・しむ」が尊敬になりやすいのは？", ["下に「給ふ」などがあり、させる相手がいないとき", "下に打消があるとき", "主語が一人称のとき", "和歌の中"], 0, "せ給ふ・させ給ふ は多くが尊敬"],
+    ["「す」が付くのは？", ["四段・ナ変・ラ変の未然形", "連用形", "終止形", "体言"], 0, "す＝四段・ナ変・ラ変の未然形。さす＝それ以外の未然形"],
+    ["「しむ」の意味は？", ["使役・尊敬", "受身・可能", "推量・意志", "完了・存続"], 0, "す・さす・しむ は 使役・尊敬"],
+    ["「人に歌を詠ま【せ】けり」の意味は？", ["使役", "尊敬", "受身", "打消"], 0, "人に詠ませた → 使役"],
+    ["「さす」が付くのは？", ["四段・ナ変・ラ変以外の動詞の未然形", "四段の已然形", "連体形", "終止形"], 0, "見る→見さす、受く→受けさす"]
+  ],
+  kb2: [
+    ["「京には見え【ぬ】鳥なれば」（伊勢物語）の「ぬ」は？", ["打消「ず」の連体形", "完了「ぬ」の終止形", "完了「ぬ」の連体形", "断定"], 0, "見え（未然形）＋ぬ → 打消。下に名詞「鳥」→ 連体形"],
+    ["「ず」の已然形（本活用）は？", ["ね", "ぬ", "ず", "ざら"], 0, "ず・ず・ず・ぬ・ね。「こそ〜ね」でよく出る"],
+    ["「じ」の意味は？", ["打消推量・打消意志", "推量・意志", "完了・存続", "希望"], 0, "じ＝「む」の打消。〜ないだろう・〜まい"],
+    ["「われはさらに行か【じ】」の意味は？", ["打消意志", "打消推量", "推量", "完了"], 0, "主語が一人称（われ）→ 打消意志（行くまい）"],
+    ["「まじ」の意味でないものは？", ["完了", "打消推量", "不可能推量", "禁止"], 0, "まじ＝「べし」の打消。打消推量・打消意志・不可能・打消当然・禁止"],
+    ["「まじ」が付くのは？", ["終止形（ラ変型には連体形）", "未然形", "連用形", "体言"], 0, "べし と同じ接続"],
+    ["「秋にはをさをさ劣る【まじけれ】」（徒然草）の意味は？", ["打消推量", "打消意志", "禁止", "完了"], 0, "（冬枯れの景色は）秋にはほとんど劣らないだろう → 打消推量"],
+    ["「じ」が付くのは？", ["未然形", "連用形", "終止形", "已然形"], 0, "む・じ は未然形に付く"]
+  ],
+  kb3: [
+    ["「香炉峰の雪いかなら【む】」（枕草子）の意味は？", ["推量", "意志", "適当", "仮定"], 0, "雪はどうだろう → 推量（主語が三人称）"],
+    ["「われこそ死な【め】」の意味は？", ["意志", "推量", "勧誘", "婉曲"], 0, "主語が一人称 → 意志（死のう）"],
+    ["主語が二人称のとき「む」は主に？", ["適当・勧誘", "意志", "推量", "婉曲"], 0, "「〜したほうがいい・〜しないか」。こそ〜め／なむや の形が多い"],
+    ["「思は【む】子を法師になしたらむこそ」（枕草子）の「む」は？", ["婉曲", "意志", "推量", "勧誘"], 0, "む＋名詞（子）→ 仮定・婉曲（〜ような）"],
+    ["「京や住み憂かり【けむ】」（伊勢物語）の意味は？", ["過去の原因推量", "現在推量", "意志", "推量"], 0, "けむ＝過去推量・過去の原因推量（〜たのだろうか）"],
+    ["「子泣く【らむ】」（山上憶良）の意味は？", ["現在推量", "過去推量", "意志", "完了"], 0, "今ごろ子どもが泣いているだろう → 現在推量"],
+    ["「らむ」が付くのは？", ["終止形（ラ変型には連体形）", "未然形", "連用形", "已然形"], 0, "らむ・べし・まじ・めり・なり（伝聞推定）は終止形"],
+    ["「むず」と同じ意味を持つ助動詞は？", ["む", "べし", "まし", "けむ"], 0, "むず＝「むとす」が縮まった形。意味は む と同じ"]
+  ],
+  kb4: [
+    ["「家の作りやうは、夏をむねとす【べし】」（徒然草）の意味は？", ["適当", "推量", "可能", "命令"], 0, "〜するのがよい → 適当"],
+    ["「羽なければ、空をも飛ぶ【べから】ず」（方丈記）の意味は？", ["可能", "当然", "意志", "推量"], 0, "下に打消 → 不可能（飛ぶことができない）"],
+    ["「べし」の意味の覚え方「スイカトメテ」の「ト」は？", ["当然", "推量", "適当", "命令"], 0, "推量・意志・可能・当然・命令・適当"],
+    ["「べし」が付くのは？", ["終止形（ラ変型には連体形）", "未然形", "連用形", "体言"], 0, "ラ変の「あり」には「あるべし」"],
+    ["主語が一人称の「べし」は主に？", ["意志", "推量", "命令", "適当"], 0, "〜しよう・〜するつもりだ"],
+    ["主語が三人称の「べし」は主に？", ["推量", "意志", "命令", "可能"], 0, "〜だろう・〜にちがいない"],
+    ["「べからず」の意味として合うものは？", ["〜できない・〜してはならない", "〜したい", "〜させる", "〜たそうだ"], 0, "不可能・禁止・打消当然"],
+    ["相手に向かって強く言う「べし」の意味は？", ["命令", "可能", "推量", "婉曲"], 0, "〜せよ"]
+  ],
+  kb5: [
+    ["「まし」の代表的な意味は？", ["反実仮想", "完了", "断定", "希望"], 0, "もし〜だったら…だろうに"],
+    ["「世の中に絶えて桜のなかりせば春の心はのどけから【まし】」の意味は？", ["反実仮想", "推量", "意志", "ためらい"], 0, "せば〜まし の形 → 反実仮想（在原業平）"],
+    ["「〜ましかば〜まし」の意味は？", ["もし〜ならば、〜だろうに", "〜してしまった", "〜にちがいない", "〜したい"], 0, "ましかば・せば・未然形＋ば → 〜まし"],
+    ["「めり」の意味は？", ["推定・婉曲", "伝聞・推定", "断定・存在", "過去・詠嘆"], 0, "目で見て「〜ようだ」"],
+    ["「なり（伝聞推定）」は何による推定？", ["耳（音・声）", "目", "におい", "夢"], 0, "音や声を聞いて「〜ようだ」、人から聞いて「〜そうだ」"],
+    ["「秋の野に人まつ虫の声す【なり】」の意味は？", ["推定", "断定", "存在", "伝聞"], 0, "虫の声が聞こえる → 聴覚による推定"],
+    ["「男もす【なる】日記といふものを」（土佐日記）の意味は？", ["伝聞", "断定", "存在", "推定"], 0, "終止形「す」＋なる。男も書くと聞いている → 伝聞"],
+    ["「めり・なり（伝聞推定）」が付くのは？", ["終止形（ラ変型には連体形）", "体言・連体形", "未然形", "連用形"], 0, "あるめり → あめり・あんめり のように撥音便になることも多い"]
+  ],
+  kb6: [
+    ["「き」の意味は？", ["過去（自分の体験）", "伝聞過去・詠嘆", "完了", "推量"], 0, "自分が見たり体験したりした過去"],
+    ["「けり」の意味は？", ["過去（伝聞）・詠嘆", "完了・強意", "推量", "存続"], 0, "人から聞いた過去・「〜だなあ」と気づく詠嘆"],
+    ["「今は昔、竹取の翁といふものあり【けり】」の意味は？", ["過去（伝聞）", "詠嘆", "完了", "推量"], 0, "物語の語り出し → 伝聞過去"],
+    ["「見渡せば花も紅葉もなかり【けり】」（藤原定家）の意味は？", ["詠嘆", "過去", "完了", "推量"], 0, "和歌の中の けり → 詠嘆（〜だなあ）"],
+    ["「き」の連体形は？", ["し", "しか", "せ", "き"], 0, "せ・○・き・し・しか"],
+    ["「き」の已然形は？", ["しか", "し", "せ", "けれ"], 0, "「こそ〜しか」でよく出る"],
+    ["「き」が付くのは？", ["連用形（カ変・サ変は特別）", "未然形", "終止形", "体言"], 0, "来し（こし）・せし のように カ変・サ変は未然形にも付く"],
+    ["和歌や会話文の中の「けり」は主に？", ["詠嘆", "伝聞過去", "完了", "推量"], 0, "今気づいた感動。「〜だったのだなあ」"]
+  ],
+  kb7: [
+    ["「つ・ぬ」の意味は？", ["完了・強意", "過去・詠嘆", "推量・意志", "打消"], 0, "〜た・〜てしまった。下に推量があると強意"],
+    ["「髪もいみじく長くなり【な】む」（更級日記）の「な」は？", ["強意", "完了", "打消", "断定"], 0, "な（ぬ の未然形）＋む → 強意（きっと〜だろう）"],
+    ["「秋来【ぬ】と目にはさやかに見えねども」の「ぬ」は？", ["完了", "打消", "断定", "強意"], 0, "来（連用形 き）＋ぬ → 完了（秋が来た）"],
+    ["完了の「たり」の意味は？", ["存続・完了", "断定", "過去", "推量"], 0, "〜ている・〜た"],
+    ["「り」が付くのは？", ["サ変の未然形・四段の已然形", "連用形", "終止形", "体言"], 0, "「サミシイ」：サ変未然・四段已然（e段）"],
+    ["「人々の書け【る】もの」の「る」は？", ["完了・存続の「り」", "受身の「る」", "自発の「る」", "動詞の一部"], 0, "書け（四段の已然形・e段）＋る → り の連体形"],
+    ["「つ・ぬ」が付くのは？", ["連用形", "未然形", "終止形", "已然形"], 0, "連用形＋ぬ は完了"],
+    ["「花咲き【ぬ】」の「ぬ」は？", ["完了", "打消", "断定", "推量"], 0, "咲き（連用形）＋ぬ → 完了。咲か（未然形）＋ぬ なら打消"]
+  ],
+  kb8: [
+    ["「なり（断定）」が付くのは？", ["体言・連体形", "終止形", "未然形", "連用形"], 0, "終止形に付く なり は伝聞推定"],
+    ["「月の都の人【なり】」（竹取物語）の意味は？", ["断定", "存在", "推定", "伝聞"], 0, "体言（人）＋なり → 断定（〜である）"],
+    ["「駿河【なる】宇津の山辺」（伊勢物語）の意味は？", ["存在", "断定", "伝聞", "推定"], 0, "場所＋なる＋名詞 → 存在（〜にある）"],
+    ["「たり（断定）」が付くのは？", ["体言", "連用形", "未然形", "已然形"], 0, "完了の たり は連用形に付く"],
+    ["「ごとし」の意味は？", ["比況（〜のようだ）", "希望", "断定", "推量"], 0, "例示（たとえば〜など）の意味もある"],
+    ["「まほし」の意味は？", ["希望", "推量", "比況", "完了"], 0, "〜したい"],
+    ["「たし」の意味は？", ["希望", "完了", "断定", "可能"], 0, "〜したい。中世以降によく使われる"],
+    ["「まほし」が付くのは？", ["未然形", "連用形", "終止形", "体言"], 0, "見まほし（見たい）"]
+  ],
+  kb9: [
+    ["「知ら【ぬ】人」の「ぬ」は？", ["打消", "完了", "断定", "動詞の一部"], 0, "知ら（未然形）＋ぬ → 打消「ず」"],
+    ["「色こそ見え【ね】」の「ね」は？", ["打消「ず」の已然形", "完了「ぬ」の命令形", "終助詞", "断定"], 0, "こそ の結びで已然形 → 打消"],
+    ["「静か【なり】」の「なり」は？", ["形容動詞の一部", "断定", "伝聞推定", "動詞"], 0, "「静かなり」で1語の形容動詞"],
+    ["「死【に】けり」の「に」は？", ["ナ変動詞の一部", "完了「ぬ」の連用形", "断定「なり」の連用形", "格助詞"], 0, "死ぬ・往ぬ はナ変動詞。死に＝連用形"],
+    ["「花咲き【に】けり」の「に」は？", ["完了「ぬ」の連用形", "断定「なり」の連用形", "格助詞", "ナ変動詞の一部"], 0, "連用形＋に＋けり・き → 完了"],
+    ["四段の已然形（e段）に付く「る」は？", ["完了・存続の「り」", "受身の「る」", "尊敬の「る」", "自発の「る」"], 0, "a段（未然形）に付けば る、e段に付けば り"],
+    ["「咲け【らむ】」の「らむ」は？", ["完了「り」の未然形＋推量「む」", "現在推量「らむ」", "動詞の一部", "打消"], 0, "現在推量の らむ は終止形（咲く）に付く"],
+    ["「物も言は【で】」の「で」は？", ["打消の接続助詞（〜ないで）", "断定", "格助詞", "完了"], 0, "未然形＋で → 〜ないで"]
+  ]
+});
 
 /* ===== お化け：図鑑・ガチャ・着せ替え・券 ===== */
 const GACHA_COST = 60, DUP_BACK = 20;
@@ -1611,7 +1734,7 @@ function rewardIcon(r, big) {
   const cls = "ricon" + (big ? " big" : "");
   if (r.k === "koban") return `<span class="${cls} koban-i"><i></i></span>`;
   if (r.k === "ticket") return `<span class="${cls} ticket-i"><i></i></span>`;
-  if (r.k === "roll") return `<span class="${cls} roll-i">引</span>`;
+  if (r.k === "roll") return `<span class="${cls} roll-i"><i></i></span>`;
   if (r.k === "outfit") return `<span class="${cls} outfit-i"><img alt="" src="${gearIcon(r.id)}"></span>`;
   if (r.k === "yokai") { const y = YK[r.id]; return `<span class="${cls} yokai-i ${y ? RARITY[y.rarity].cls : ""}"><img alt="" src="${thumb(r.id)}"></span>`; }
   return "";
@@ -1671,18 +1794,16 @@ function renderPass() {
   $("passBar").style.width = clamp(100 * (h - prevH) / (nextH - prevH), 0, 100) + "%";
   $("passClaimAll").hidden = !un.length; $("passClaimAll").textContent = "まとめて受け取る（" + un.length + "）";
   const last = Math.max(PASS.length, t + 3), firstUn = un.length ? Math.min(...un) : t + 1;
-  const from = passAll ? 1 : Math.max(1, Math.min(firstUn, t) - 1), to = passAll ? last : Math.min(last, t + 5);
+  const from = 1, to = last;
   let html = "";
   for (let i = from; i <= to; i++) {
     const r = rewardOf(i), reached = i <= t, got = claimedTier(i), cur = i === t + 1;
     const st = got ? "got" : reached ? "ready" : cur ? "next" : "lock";
     html += `<li class="tier ${st}${r.k === "yokai" ? " big" : ""}" data-tier="${i}">
       <span class="node">${got ? "✓" : i}</span>
-      <div class="rcard">${rewardIcon(r, r.k === "yokai")}<div><small>${tierHours(i)}時間</small><b>${esc(rewardLabel(r))}</b>${cur ? `<div class="bar-p"><i style="width:${clamp(100 * (h - prevH) / (nextH - prevH), 0, 100)}%"></i></div>` : ""}</div>
+      <div class="rcard">${rewardIcon(r, r.k === "yokai")}<div><small>${tierHours(i)}時間${cur ? '<em class="here-b">いまここ</em>' : ""}</small><b>${esc(rewardLabel(r))}</b>${cur ? `<div class="bar-p"><i style="width:${clamp(100 * (h - prevH) / (nextH - prevH), 0, 100)}%"></i></div>` : ""}</div>
       ${st === "ready" ? `<button class="btn pri sm" type="button" data-claim="${i}">受け取る</button>` : st === "got" ? `<span class="note">受取済</span>` : ""}</div></li>`;
-    if (cur) html += `<li class="here"><span>いまここ</span></li>`;
   }
-  if (to < last || passAll) html += `<li class="here"><button class="btn ghost sm" type="button" data-passall="1">${passAll ? "近くだけ見る" : "全部見る（" + last + "段）"}</button></li>`;
   const el = $("passTrack"); if (el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
   // 道の灯り：いまの段まで光らせる
   requestAnimationFrame(() => { const at = el.querySelector(".here") || el.querySelector(".tier.got:last-of-type"); el.style.setProperty("--lit", (at ? at.offsetTop + 12 : 0) + "px"); });
@@ -1827,13 +1948,13 @@ function renderQuotes() { $("quoteList").innerHTML = (S.quotes || []).length ? S
 function fillSettings() {
   const s = S.settings;
   for (const [id, key] of [["setExams", "exams"], ["setNormal", "normal"], ["setRefresh", "refresh"], ["setGoal", "goalHours"], ["setStart", "startDate"], ["setDeadline", "deadline"], ["setWords", "wordsPerDay"], ["setDow", "refreshDow"]]) if (document.activeElement !== $(id)) $(id).value = s[key] ?? "";
-  $("setSound").checked = s.sound !== false; $("setAuto").checked = s.autoTimer !== false;
+  $("setSound").checked = s.sound !== false; $("setAuto").checked = s.autoTimer !== false; $("setTts").checked = s.tts !== false;
   const n = sums(parseSchedule(s.normal)), r = sums(parseSchedule(s.refresh));
   $("setSum").textContent = "通常日 勉強" + trimH(n.study) + "h ／ リフレッシュ日 勉強" + trimH(r.study) + "h・ゲーム" + trimH(r.game) + "h";
 }
 function saveSettings(e) {
   e.preventDefault(); if (!ready()) return;
-  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked, autoTimer: $("setAuto").checked };
+  const v = { ...S.settings, exams: $("setExams").value, normal: $("setNormal").value, refresh: $("setRefresh").value, goalHours: Number($("setGoal").value) || 1100, startDate: $("setStart").value || DEFAULTS.startDate, deadline: $("setDeadline").value || DEFAULTS.deadline, wordsPerDay: clamp(Number($("setWords").value) || 50, 10, 200), refreshDow: Number($("setDow").value), sound: $("setSound").checked, autoTimer: $("setAuto").checked, tts: $("setTts").checked };
   backend.save("settings", v).then(() => { toast("設定を保存した。"); sfx("ok"); });
 }
 async function backup() {
@@ -2003,9 +2124,12 @@ function renderBodyChart(ws) {
   const line = (vals, lo, hi, color) => { const ok = vals.map((v, i) => v == null ? null : [X(i), H - P - (H - 2 * P) * (v - lo) / Math.max(0.1, hi - lo)]).filter(Boolean); return ok.length > 1 ? `<polyline points="${ok.map(p => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>` + ok.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"/>`).join("") : ""; };
   const wv = pts.map(p => p[1]), bv = pts.map(p => p[2] == null ? null : p[2]), bb = bv.filter(v => v != null);
   const wlo = Math.min(...wv) - 0.5, whi = Math.max(...wv) + 0.5, blo = bb.length ? Math.min(...bb) - 1 : 0, bhi = bb.length ? Math.max(...bb) + 1 : 1;
-  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="体重と体脂肪率の変化">${line(wv, wlo, whi, "var(--lantern)")}${line(bv, blo, bhi, "var(--seal)")}
+  // 7日平均：その日までの7日間に測った体重の平均（毎日の上下に振り回されないように）
+  const avg = pts.map(p => { const win = ws.filter(q => q[0] <= p[0] && daysBetween(q[0], p[0]) < 7); return win.reduce((a, q) => a + q[1], 0) / win.length; });
+  const avgLine = line(avg, wlo, whi, "var(--ink)").replace("<polyline ", '<polyline stroke-dasharray="4 4" opacity=".55" ');
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="体重と体脂肪率の変化">${line(wv, wlo, whi, "var(--lantern)")}${avgLine}${line(bv, blo, bhi, "var(--seal)")}
     <text x="${P}" y="12" font-size="10" fill="var(--muted)">${labelDay(pts[0][0])}</text><text x="${W - P}" y="12" font-size="10" fill="var(--muted)" text-anchor="end">${labelDay(pts[n - 1][0])}</text></svg>
-    <div class="note"><span style="color:var(--lantern)">●</span> 体重　<span style="color:var(--seal)">●</span> 体脂肪率</div>`;
+    <div class="note"><span style="color:var(--lantern)">●</span> 体重　<span style="opacity:.6">┅</span> 7日平均　<span style="color:var(--seal)">●</span> 体脂肪率</div>`;
 }
 
 /* ===== 英語RPG『Aster Ⅰ』（オリジナル） =====
@@ -2652,14 +2776,15 @@ function rpgFightHtml(b, bg, st, firstWin) {
 
 /* ---- 探索：ターゲット1900の問題でモンスターと戦う ---- */
 const RPG_EX_BG = ["village", "ruins", "cave", "canal", "beach", "sea", "storm", "gate", "harbor", "cellar"];
-function rpgExQs() {
+function rpgExQs(onlyWeak, count) {
   const all = typeof TARGET_WORDS !== "undefined" ? TARGET_WORDS : [], seen = (S.words && S.words.w) || {};
   if (!all.length) return [];
   // 間違えたことのある単語を多めに、残りはこれまでに出た範囲から
   const weak = all.filter(w => seen[w[2]] && seen[w[2]][2] > 0), met = all.filter(w => seen[w[2]]);
-  const pool = () => { const r = Math.random(); const src = r < .45 && weak.length ? weak : r < .8 && met.length > 20 ? met : all; return src[Math.floor(Math.random() * src.length)]; };
+  if (onlyWeak && weak.length < 3) return [];
+  const pool = () => { if (onlyWeak) return weak[Math.floor(Math.random() * weak.length)]; const r = Math.random(); const src = r < .45 && weak.length ? weak : r < .8 && met.length > 20 ? met : all; return src[Math.floor(Math.random() * src.length)]; };
   const used = new Set(), qs = [];
-  while (qs.length < 5 && used.size < 60) {
+  while (qs.length < (count || 5) && used.size < 60) {
     const w = pool(); if (used.has(w[2])) continue; used.add(w[2]);
     const wrong = []; while (wrong.length < 3) { const x = all[Math.floor(Math.random() * all.length)]; if (x[0] !== w[0] && !wrong.includes(x)) wrong.push(x); }
     const opts = [w, ...wrong].sort(() => Math.random() - .5), a = opts.indexOf(w);
@@ -2678,7 +2803,8 @@ function rpgExploreHtml(st) {
   return `<div class="rpg-top"><span class="rpg-ch">探索</span><span class="rpg-prog">図鑑 ${got} / 110</span></div>` + rpgScene("ruins") + `<div class="rpg-box">
     <p class="rpg-text">ターゲット1900の単語で、野生のモンスターと戦う。間違えたことのある単語ほど出やすい。</p>
     <p class="note" style="margin:0">勝つと図鑑に登録。今日はあと${left}回まで小判＋${RPG_EX_KOBAN}（そのあとも遊べる）。ときどきアイテムを落とす。</p>
-    <button type="button" class="big-btn" data-r="explore">探索に出る</button></div>`;
+    <button type="button" class="big-btn" data-r="explore">探索に出る</button>
+    <button type="button" class="btn" data-r="wboss">苦手単語のボスと戦う</button></div>`;
 }
 const RPG_AREA_JA = { village: "村はずれ", ruins: "森の遺跡", cave: "水晶の洞窟", canal: "地下水路", beach: "浜辺", sea: "海の底", storm: "嵐の空", gate: "炎の門", harbor: "港の倉庫", cellar: "古い地下室" };
 function rpgStartExplore() {
@@ -2711,6 +2837,12 @@ function bindRPG() {
     if (r === "novel") { rpgMode = "novel"; return renderRPG(); }
     if (r === "nextch") { st.ch++; st.i = 0; return rpgGo(st); }
     if (r === "explore") return rpgStartExplore();
+    if (r === "wboss") { // 間違えたことのある単語だけで出てくる強いボス（10問）
+      const qs = rpgExQs(true, 10); if (!qs.length) return toast("苦手な単語がまだ少ない。単語の練習で間違えると出てくる。");
+      const mon = 1 + Math.floor(Math.random() * 110);
+      rpgX = rpgNewFight(qs, { name: "Lord of Forgotten Words", ja: "忘れ単語の主", mon, boss: true }); rpgX.ex = true; rpgX.bg = "night_hall"; rpgX.areaJa = "苦手単語の間";
+      rpgJa = false; sfx("tap"); return renderRPG();
+    }
     if (r === "opt") { const o = n.opts[Number(b.dataset.k)]; if (o.flag) st.flags[o.flag] = 1; st.i = rpgNodes(st).findIndex(x => x.label === o.go); sfx("ok"); return rpgGo(st); }
     if (r === "herb" && fight) { if (!ready() || !(st.items[1] > 0)) return; fight.php = Math.min(RPG_HP, fight.php + 1); st.items[1]--; sfx("coin"); toast("薬草でハートが1つ回復した"); const keep = rpgB; patchDoc("rpg", v => { v.items = st.items; }).then(() => { rpgB = keep; renderRPG(); }); return renderRPG(); }
     if (r === "ans" && fight && fight.res == null) {
@@ -4878,6 +5010,166 @@ function renderRunbar() {
   if (el.dataset.v !== h) { el.innerHTML = h; el.dataset.v = h; }
 }
 
+/* ===== 11/25 追加：偉人の言葉・ホームのミッション・小判の内訳・間違いノート・1/3/5分モード・
+   単語の読み上げ・タイマー後のメモ・週のふり返り・全クリアの記録 ===== */
+
+/* ---- 共通：下から出るシート ---- */
+function openSheet(html) {
+  let el = $("sheet");
+  if (!el) { el = document.createElement("div"); el.id = "sheet"; el.className = "sheet"; document.body.appendChild(el); el.addEventListener("click", e => { if (e.target === el || e.target.closest("[data-sh=close]")) closeSheet(); }); }
+  el.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true">${html}</div>`; el.hidden = false;
+  requestAnimationFrame(() => el.classList.add("in"));
+}
+function closeSheet() { const el = $("sheet"); if (!el) return; el.classList.remove("in"); setTimeout(() => { el.hidden = true; }, 250); }
+
+/* ---- 偉人の言葉（ホーム） ---- */
+const IJIN = [
+  { id: "edison", name: "トーマス・エジソン", what: "発明家", q: "私は失敗したことがない。うまくいかない方法を1万通り見つけただけだ。" },
+  { id: "einstein", name: "アルベルト・アインシュタイン", what: "物理学者", q: "大切なのは、疑問を持ち続けることだ。" },
+  { id: "lincoln", name: "エイブラハム・リンカーン", what: "アメリカ大統領", q: "私は歩くのが遅い。だが、決して後戻りはしない。" },
+  { id: "gandhi", name: "マハトマ・ガンディー", what: "インド独立の指導者", q: "明日死ぬかのように生きよ。永遠に生きるかのように学べ。" },
+  { id: "newton", name: "アイザック・ニュートン", what: "物理学者", q: "私が遠くを見渡せたのは、巨人の肩の上に立っていたからだ。" },
+  { id: "confucius", name: "孔子", what: "思想家", q: "学びて思はざれば則ち罔し。思ひて学ばざれば則ち殆し。" },
+  { id: "noguchi", name: "野口英世", what: "細菌学者", q: "誰よりも三倍、四倍、五倍勉強する者、それが天才だ。" },
+  { id: "fukuzawa", name: "福沢諭吉", what: "教育者", q: "賢人と愚人との別は、学ぶと学ばざるとによりて出来るものなり。" },
+  { id: "ryoma", name: "坂本龍馬", what: "幕末の志士", q: "世の人は我を何とも言はば言へ。我が成す事は我のみぞ知る。" },
+  { id: "shoin", name: "吉田松陰", what: "思想家・教育者", q: "至誠にして動かざる者は、未だこれ有らざるなり。" },
+  { id: "keller", name: "ヘレン・ケラー", what: "教育者", q: "人生は、勇気ある冒険か、無か、そのどちらかだ。" },
+  { id: "curie", name: "マリー・キュリー", what: "物理学者・化学者", q: "人生で恐れるものは何もない。ただ理解すべきものがあるだけだ。" },
+  { id: "franklin", name: "ベンジャミン・フランクリン", what: "政治家・科学者", q: "失った時間は、二度と見つからない。" },
+  { id: "youzan", name: "上杉鷹山", what: "米沢藩主", q: "為せば成る、為さねば成らぬ何事も。成らぬは人の為さぬなりけり。" }
+];
+let ijinI = null;
+function renderIjin() {
+  const box = $("ijinCard"); if (!box) return;
+  const list = typeof IJIN_IMG !== "undefined" && Object.keys(IJIN_IMG).length ? IJIN.filter(x => IJIN_IMG[x.id]) : IJIN;
+  if (ijinI == null) { const d = new Date(); ijinI = (d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % list.length; }
+  const x = list[ijinI % list.length], img = typeof IJIN_IMG !== "undefined" && IJIN_IMG[x.id];
+  const h = `<div class="ijin-ph">${img ? `<img src="${img}" alt="${esc(x.name)}の肖像">` : `<span>${esc(x.name.slice(0, 1))}</span>`}</div>
+    <div class="ijin-tx"><p>${esc(x.q)}</p><b>${esc(x.name)}</b><small>${esc(x.what)}</small></div>`;
+  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+}
+
+/* ---- ホーム：あと少しのミッション ---- */
+function renderHomeMis() {
+  const box = $("homeMis"); if (!box || typeof misState !== "function") return;
+  const { st, done } = misState();
+  const keys = [...new Set(MISSIONS.map(m => m.key))];
+  const cand = keys.map(k => MISSIONS.find(m => m.key === k && !done.has(m.id))).filter(Boolean)
+    .map(m => ({ m, r: Math.min(1, (st[m.key] || 0) / m.n) })).filter(x => x.r > 0).sort((a, b) => b.r - a.r).slice(0, 2);
+  const list = cand.length ? cand : keys.map(k => MISSIONS.find(m => m.key === k && !done.has(m.id))).filter(Boolean).slice(0, 2).map(m => ({ m, r: 0 }));
+  const h = `<div class="head"><div class="eyebrow">あと少しのミッション</div><button type="button" class="linkbtn" data-goto-mis="1">全部見る</button></div>` +
+    list.map(({ m, r }) => `<div class="hm-row"><span class="sic sm c-gold"><svg><use href="#i-star"/></svg></span><div><b>${esc(m.name)}</b><div class="bar-p"><i style="width:${Math.round(r * 100)}%"></i></div></div><span class="mis-rw"><i class="koban"></i>${m.koban}</span></div>`).join("");
+  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+}
+
+/* ---- 小判の内訳（右上の小判を押す） ---- */
+const SPEND_JA = { gacha: "ガチャ", outfit: "着せ替え", pass: "百鬼の道", bonus: "ボーナス", game: "ゲーム券", video: "動画券" };
+function openCoinSheet() {
+  const e = econ(), sp = {};
+  for (const x of S.game.spend || []) sp[x.kind || "other"] = (sp[x.kind || "other"] || 0) + (x.cost || 0);
+  const row = (n, v, neg) => `<div class="cs-row"><span>${esc(n)}</span><b class="num${neg ? " neg" : ""}">${neg ? "−" : "＋"}${Math.abs(v).toLocaleString()}</b></div>`;
+  openSheet(`<div class="sheet-head"><b>小判の内訳</b><button type="button" class="sheet-x" data-sh="close" aria-label="とじる">✕</button></div>
+    <div class="cs-total"><i class="koban"></i><b class="num">${e.koban.toLocaleString()}</b></div>
+    <div class="cs-sec">もらった ${e.kobanEarn.toLocaleString()}</div>${e.parts.filter(p => p[1]).map(p => row(p[0], p[1])).join("") || '<div class="note">まだなし</div>'}
+    <div class="cs-sec">使った ${e.kobanSpent.toLocaleString()}</div>${Object.entries(sp).filter(([, v]) => v).map(([k, v]) => row(SPEND_JA[k] || k, v, v > 0)).join("") || '<div class="note">まだ使っていない</div>'}
+    <p class="note">小判は記録から毎回計算している。一度もらった分は消えない（使った分だけ減る）。</p>`);
+}
+
+/* ---- 単語の読み上げ（設定でオン／オフ） ---- */
+function speakWord(text) {
+  if (S.settings.tts === false || !("speechSynthesis" in window)) return;
+  try { const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]+>/g, "")); u.lang = "en-US"; u.rate = 0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+}
+
+/* ---- 1分・3分・5分モード ---- */
+let quickMin = 1;
+function startQuick(min) { quickMin = min; if (ready()) startWords(deckOfTab(), "quick"); }
+setInterval(() => {
+  if (typeof sess === "undefined" || !sess || !sess.until) return;
+  const el = $("qmRest"), rest = Math.max(0, Math.ceil((sess.until - Date.now()) / 1000));
+  if (el) el.textContent = "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60);
+  if (rest <= 0 && sess.phase === "ask") nextWord();
+}, 500);
+
+/* ---- 間違いノート（勉強タブ） ---- */
+function renderMiss() {
+  const box = $("missBox"); if (!box) return;
+  const weak = st => Object.entries((st && st.w) || {}).filter(([, s]) => (s[2] || 0) > 0 && (s[0] || 0) < 3);
+  const rows = [["words", "en", "英単語", weak(S.words)], ["kobun", "ko", "古文単語", weak(S.kobun)], ["seikei", "se", "政経", weak(S.seikei)]];
+  const gm = Object.entries(S.grammar.miss || {}).sort((a, b) => b[1] - a[1]);
+  const wordList = (dk, list) => { const D = DECKS[dk]; return list.sort((a, b) => (b[1][2] || 0) - (a[1][2] || 0)).slice(0, 8).map(([id, s]) => { const w = D.items[D.index.get(id)]; return w ? `<li><b>${w.q}</b>${w.kana ? `<small>${esc(w.kana)}</small>` : ""}<span>${w.a}</span><em>×${s[2]}</em></li>` : ""; }).join(""); };
+  const h = `<div class="head"><div><div class="eyebrow">間違いノート</div><h2>間違えたものだけ</h2></div></div>
+    ${rows.map(([tab, dk, nm, list]) => `<div class="mn-sec"><div class="mn-head"><b>${nm}</b><span class="note">${list.length}${DECKS[dk].unit}</span>${list.length ? `<button type="button" class="btn pri sm" data-mn="${tab}" data-dk="${dk}">復習する</button>` : ""}</div>${list.length ? `<ul class="mn-list">${wordList(dk, list)}</ul>` : '<p class="note">なし</p>'}</div>`).join("")}
+    <div class="mn-sec"><div class="mn-head"><b>文法・古文の助動詞</b><span class="note">${gm.length}問</span>${gm.length ? `<button type="button" class="btn pri sm" data-mn="grammar">復習する</button>` : ""}</div>
+      ${gm.length ? `<ul class="mn-list">${gm.slice(0, 6).map(([k, n]) => { const [u, j] = k.split(":"), q = (GQ[u] || [])[Number(j)]; return q ? `<li><span>${esc(q[0])}</span><span>→ ${esc(q[1][q[2]])}</span><em>×${n}</em></li>` : ""; }).join("")}</ul>` : '<p class="note">なし</p>'}</div>
+    <p class="note">復習で正解すると、ノートから消える（単語は3回連続で即答したら消える）。</p>`;
+  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+}
+
+/* ---- タイマー後のひとことメモ ---- */
+const MEMO_OPTS = ["英単語", "英文法", "英語長文", "過去問", "古文", "現代文", "漢字", "政経", "その他"];
+function askMemo(min) {
+  if (min < 3) return;
+  openSheet(`<div class="sheet-head"><b>${hrs(min)}時間、何をやった？</b><button type="button" class="sheet-x" data-sh="close" aria-label="とじる">✕</button></div>
+    <div class="memo-opts">${MEMO_OPTS.map(o => `<button type="button" data-memo="${o}">${o}</button>`).join("")}</div><p class="note">押すだけで記録。あとで週のふり返りに出る。</p>`);
+  $("sheet").onclick = e => {
+    const b = e.target.closest("[data-memo]"); if (!b) return;
+    patchDay(dayKey(), d => { d.memo = [...(d.memo || []), { at: Date.now(), min: Math.round(min * 10) / 10, what: b.dataset.memo }]; }).catch(() => {});
+    sfx("ok"); toast("「" + b.dataset.memo + "」で記録した"); closeSheet();
+  };
+}
+{
+  const stop = timerStop;
+  timerStop = async function () {
+    const t = S.timer || {}; let add = 0;
+    if (t.running && t.phase === "work" && !t.paused) add = Math.min((Date.now() - t.startedAt) / 60000, t.durMin);
+    await stop(); if (add) askMemo(add);
+  };
+}
+
+/* ---- 週のふり返り（記録タブ） ---- */
+function weekRange(off) { const k = dayKey(), w = dow(k), mon = addDays(k, -((w + 6) % 7) - 7 * off); return Array.from({ length: 7 }, (_, i) => addDays(mon, i)); }
+function renderWeek() {
+  const box = $("weekCard"); if (!box) return;
+  const cur = weekRange(0), prev = weekRange(1);
+  const sum = ks => ks.reduce((a, k) => a + minOf(k), 0), subj = ks => { const o = {}; for (const k of ks) for (const [s, m] of Object.entries((S.days[k] || {}).subj || {})) o[s] = (o[s] || 0) + m; return o; };
+  const a = sum(cur), b = sum(prev), sj = subj(cur), tot = Object.values(sj).reduce((x, y) => x + y, 0) || 1;
+  const memo = {}; for (const k of cur) for (const m of (S.days[k] || {}).memo || []) memo[m.what] = (memo[m.what] || 0) + m.min;
+  const best = cur.reduce((x, k) => minOf(k) > minOf(x) ? k : x, cur[0]);
+  const diff = a - b, colors = { en: "var(--lantern)", ja: "var(--c-pink)", se: "var(--c-green)" };
+  const h = `<div class="head"><div><div class="eyebrow">今週のふり返り（月〜日）</div><h2 class="num">${hrs(a)}時間</h2></div><span class="wk-diff ${diff >= 0 ? "up" : "down"}">先週より ${diff >= 0 ? "＋" : "−"}${hrs(Math.abs(diff))}h</span></div>
+    <div class="wk-days">${cur.map(k => { const m = minOf(k), tg = targetFor(modeOf(k)); return `<div class="${k > dayKey() ? "fut" : ""}"><i style="height:${Math.min(100, 100 * m / Math.max(1, tg))}%"></i><small>${"月火水木金土日"[(dow(k) + 6) % 7]}</small></div>`; }).join("")}</div>
+    <div class="wk-split">${Object.entries(sj).map(([s, m]) => `<i style="width:${100 * m / tot}%;background:${colors[s] || "var(--muted)"}"></i>`).join("")}</div>
+    <div class="note">${Object.entries(sj).map(([s, m]) => `${SUBJ[s] || s} ${hrs(m)}h`).join("　") || "まだ記録なし"}${a ? `　／　いちばんやった日：${labelDay(best)}` : ""}</div>
+    ${Object.keys(memo).length ? `<div class="wk-memo">${Object.entries(memo).sort((x, y) => y[1] - x[1]).map(([w, m]) => `<span>${esc(w)} ${hrs(m)}h</span>`).join("")}</div>` : ""}`;
+  if (box.dataset.v !== h) { box.innerHTML = h; box.dataset.v = h; }
+}
+
+/* ---- 全クリアした日は印をつける（あとでノルマが変わっても消えない） ---- */
+let acBusy = false;
+function markClear() {
+  if (acBusy || !backend || !allLoaded()) return;
+  const k = dayKey(), d = S.days[k];
+  if (d && !d.ac && allClearNow(k)) { acBusy = true; patchDay(k, x => { x.ac = 1; }).finally(() => { acBusy = false; }); }
+}
+
+/* ---- つなぎこみ ---- */
+{
+  const rh = renderHome; renderHome = function () { rh(); renderIjin(); renderHomeMis(); };
+  const rr = renderRecord; renderRecord = function () { rr(); renderWeek(); };
+  const rl = renderLearn; renderLearn = function () { rl(); const m = learnTab === "miss"; $("lt-miss").hidden = !m; if (m) renderMiss(); };
+}
+function bindExtras() {
+  onChange(() => setTimeout(markClear, 0));
+  const coin = document.querySelector(".wallet .chip"); if (coin) { coin.style.cursor = "pointer"; coin.setAttribute("role", "button"); coin.onclick = openCoinSheet; }
+  $("coinBreak") && ($("coinBreak").onclick = openCoinSheet);
+  $("homeMis").addEventListener("click", e => { if (e.target.closest("[data-goto-mis]") || e.target.closest(".hm-row")) { go("record"); misOpen = true; renderMissions(); } });
+  $("ijinCard").onclick = () => { ijinI = (ijinI || 0) + 1; renderIjin(); sfx("tap"); };
+  $("missBox").addEventListener("click", e => { const b = e.target.closest("[data-mn]"); if (!b || !ready()) return; const k = b.dataset.mn; if (k === "grammar") return startGQ(null, Object.keys(S.grammar.miss || {})); learnTab = k; startWords(b.dataset.dk, "weak"); });
+  $("quickRow").addEventListener("click", e => { const b = e.target.closest("[data-qm]"); if (b) startQuick(Number(b.dataset.qm)); });
+}
+
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
 const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
 let currentView = "home";
@@ -4945,7 +5237,7 @@ function bindMain() {
   window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   $("homeMode").onclick = () => { if (!ready()) return; const k = dayKey(), m = modeOf(k) === "refresh" ? "normal" : "refresh"; patchDay(k, d => { d.mode = m; }); toast(m === "refresh" ? "今日はリフレッシュ日。ゲームは2時間まで。" : "今日は通常日。"); };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
-  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit(); bindRPG(); bindMissions(); bindAutoTime();
+  bindHome(); bindTimer(); bindLearn(); bindYokai(); bindRecord(); bindFit(); bindRPG(); bindMissions(); bindAutoTime(); bindExtras();
 }
 
 async function boot() {
