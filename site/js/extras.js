@@ -146,7 +146,14 @@ function markClear() {
 {
   const rh = renderHome; renderHome = function () { rh(); renderIjin(); renderHomeMis(); };
   const rr = renderRecord; renderRecord = function () { rr(); renderWeek(); };
-  const rl = renderLearn; renderLearn = function () { rl(); const m = learnTab === "miss"; $("lt-miss").hidden = !m; if (m) renderMiss(); };
+  const rl = renderLearn; renderLearn = function () {
+    rl(); const m = learnTab === "miss"; $("lt-miss").hidden = !m; if (m) renderMiss();
+    // 漢字タブ：文法の画面を借りて、漢字のカードだけ出す
+    const kj = learnTab === "kanji", g = learnTab === "grammar";
+    if (kj) { $("lt-grammar").hidden = false; renderGrammar(); renderGQ(); }
+    document.querySelectorAll("#lt-grammar .gcard").forEach(c => { c.hidden = kj; });
+    document.querySelector("#lt-grammar .kjcard").hidden = !kj && !(g && false);
+  };
 }
 function bindExtras() {
   onChange(() => setTimeout(markClear, 0));
@@ -156,4 +163,15 @@ function bindExtras() {
   $("ijinCard").onclick = () => { ijinI = (ijinI || 0) + 1; renderIjin(); sfx("tap"); };
   $("missBox").addEventListener("click", e => { const b = e.target.closest("[data-mn]"); if (!b || !ready()) return; const k = b.dataset.mn; if (k === "grammar") return startGQ(null, Object.keys(S.grammar.miss || {})); learnTab = k; startWords(b.dataset.dk, "weak"); });
   $("quickRow").addEventListener("click", e => { const b = e.target.closest("[data-qm]"); if (b) startQuick(Number(b.dataset.qm)); });
+}
+
+/* ---- 漢字ドリルで答えた数は、今日のノルマ「漢字」に自動で足す ---- */
+{
+  const pg = pickGQ;
+  pickGQ = function (i) {
+    const before = gq && gq.picked, q = gq && gq.qs[gq.n];
+    pg(i);
+    if (gq && before == null && gq.picked != null && q && String(q.key || "").startsWith("kj") && tasksOf(dayKey()).some(t => t.id === "kanji"))
+      patchDay(dayKey(), d => { d.tasks = d.tasks || {}; d.tasks.kanji = (d.tasks.kanji || 0) + 1; }).catch(() => {});
+  };
 }
