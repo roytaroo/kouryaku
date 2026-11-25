@@ -1110,7 +1110,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 
 <!-- ===== 勉強 ===== -->
 <section class="view" id="v-learn" hidden>
-  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="miss">間違い</button></div>
+  <div class="seg" id="learnSeg"><button type="button" data-t="words">英単語</button><button type="button" data-t="kobun">古文</button><button type="button" data-t="seikei">政経</button><button type="button" data-t="cloze">穴埋め</button><button type="button" data-t="grammar">文法</button><button type="button" data-t="kanji">漢字</button><button type="button" data-t="miss">間違い</button></div>
   <div id="lt-words" class="view">
     <div class="card" id="wStartBox">
       <div class="eyebrow" id="wEyebrow"></div>
@@ -1137,11 +1137,13 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
   </div>
   <div id="lt-grammar" class="view" hidden>
     <div class="card flash" id="gqBox" hidden></div>
-    <div class="card"><div class="head"><div><div class="eyebrow">古文</div><h2>助動詞（全部）</h2></div><span class="note" id="gsum-kb"></span></div>
+    <div class="card kjcard" hidden><div class="head"><div><div class="eyebrow">国語</div><h2>漢字ドリル</h2></div><span class="note" id="gsum-kj"></span></div>
+      <p class="note" style="margin:0">入試に出る書き取り・同音異義語・読み。8問ずつ、まぎらわしい漢字から選ぶ。</p><ul class="units" id="units-kj"></ul></div>
+    <div class="card gcard"><div class="head"><div><div class="eyebrow">古文</div><h2>助動詞（全部）</h2></div><span class="note" id="gsum-kb"></span></div>
       <p class="note" style="margin:0">意味・接続・識別を8問ずつ。間違えた問題は「間違い」タブにたまる。</p><ul class="units" id="units-kb"></ul></div>
-    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
+    <div class="card gcard"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>中学文法</h2></div><span class="note" id="gsum-jh"></span></div>
       <p class="note" style="margin:0">授業を見たら「確認問題」で8問。8割で合格、点は自動で記録される。別の問題集の点は「手で記録」でも入れられる。</p><ul class="units" id="units-jh"></ul></div>
-    <div class="card"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
+    <div class="card gcard"><div class="head"><div><div class="eyebrow">スタサプ</div><h2>ハイレベル英文法</h2></div><span class="note" id="gsum-hl"></span></div><ul class="units" id="units-hl"></ul></div>
   </div>
   <div id="lt-miss" class="view" hidden><div class="card" id="missBox"></div></div>
   <div id="lt-other" class="view" hidden>
@@ -1283,7 +1285,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795621291"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795621975"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
