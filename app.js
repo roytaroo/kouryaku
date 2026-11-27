@@ -5314,6 +5314,51 @@ function bindExtras() {
   };
 }
 
+/* ---- Museに渡す：勉強の現状をまとめて、共有シートかコピーで渡す ----
+   Muse に頼まれた形（mistakes / daily_norm / study_log）に、試験・成績・体づくりを足した JSON。 */
+function museData() {
+  const k = dayKey(), e = econ(), goal = Number(S.settings.goalHours) || 1100;
+  const strip = h => String(h || "").replace(/<br\s*\/?>/g, " / ").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+  const weak = (dk, cat) => { const D = DECKS[dk], st = S[D.store]; return Object.entries((st && st.w) || {}).filter(([, s]) => (s[2] || 0) > 0 && (s[0] || 0) < 3)
+    .sort((a, b) => (b[1][2] || 0) - (a[1][2] || 0)).slice(0, 60).map(([id, s]) => { const w = D.items[D.index.get(id)] || {}; return { category: cat, no: id, word: strip(w.q), reading: w.kana || undefined, meaning: strip(w.a), wrong_count: s[2] || 0, last_seen: s[3] || undefined }; }); };
+  const gram = Object.entries(S.grammar.miss || {}).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([key, n]) => {
+    const [u, j] = key.split(":"), q = (GQ[u] || [])[Number(j)]; if (!q) return null;
+    const cat = u.startsWith("kj") ? "漢字" : u.startsWith("kb") ? "古文助動詞" : "英文法";
+    return { category: cat, unit: gqName(u), question: q[0], answer: q[1][q[2]], choices: q[1], note: q[3], wrong_count: n };
+  }).filter(Boolean);
+  const days = []; for (let i = 13; i >= 0; i--) { const d = addDays(k, -i), x = S.days[d] || {}; days.push({ date: d, minutes: Math.round(minOf(d)), target_minutes: Math.round(targetFor(modeOf(d))), by_subject: x.subj || {}, norm_all_clear: allClear(d), words_answered_fast: wordsTodayCount(d), memo: (x.memo || []).map(m => m.what + " " + Math.round(m.min) + "分") }); }
+  const f = fitOf(k), ws = Object.keys(S.days).sort().filter(d => fitOf(d).weight);
+  const lastW = ws.length ? fitOf(ws[ws.length - 1]) : null;
+  const { st, done } = misState();
+  return {
+    generated_at: new Date().toISOString(), today: k,
+    exams: nextExams().map(x => ({ name: x.label.replace(/（.*?）/g, ""), date: x.key, days_left: Math.ceil((x.at - Date.now()) / 864e5) })),
+    progress: { total_hours: Math.round(e.totalMin / 6) / 10, goal_hours: goal, deadline: S.settings.deadline, streak_days: streakNow(), all_clear_days: e.clears, pomodoros: e.pomos, phase: phaseOf(k).name },
+    daily_norm: { date: k, target_minutes: Math.round(targetFor(modeOf(k))), studied_minutes: Math.round(minOf(k)), tasks: tasksOf(k).map(t => ({ task: t.name, subject: SUBJ[t.subj] || "", done: t.count, goal: t.goal, unit: t.unit })) },
+    study_log: days,
+    mistakes: [...weak("en", "英単語"), ...weak("ko", "古文単語"), ...weak("se", "政経"), ...gram],
+    learned: { english_words_known: Object.values(S.words.w || {}).filter(s => (s[0] || 0) >= 3).length, english_words_total: DECKS.en.items.length, kobun_known: Object.values(S.kobun.w || {}).filter(s => (s[0] || 0) >= 3).length,
+      grammar_units_passed: Object.entries(S.grammar.units || {}).filter(([, u]) => u.passed).map(([id]) => gqName(id)) },
+    scores: (S.scores || []).map(s => ({ date: s.date, kind: s.kind, name: s.name, score: s.score, max: s.max })),
+    fitness: { workouts_total: Object.keys(S.days).filter(fitOk).length, cardio_minutes_total: Object.keys(S.days).reduce((a, d) => a + cardioMin(d), 0), today_workout_done: fitOk(k),
+      latest_weight_kg: lastW ? lastW.weight : null, latest_body_fat_pct: lastW && lastW.bf ? lastW.bf : null, body_fat_device: lastW ? lastW.bfSrc || null : null },
+    missions_almost: MISSIONS.filter(m => !done.has(m.id)).map(m => ({ m, r: (st[m.key] || 0) / m.n })).filter(x => x.r > 0).sort((a, b) => b.r - a.r).slice(0, 5).map(x => ({ mission: x.m.name, progress: Math.round(x.r * 100) + "%" }))
+  };
+}
+function museText() {
+  return "これは私の受験勉強アプリから書き出した最新データです。前に決めた読みやすいルールで返してください。\n" +
+    "この内容をもとに、①今の状況をひとことで ②今日やること3つ ③間違いノート（mistakes）から今夜のクイズ5問 を作ってください。クイズの答えは、私が答えてから返してください。\n\n" +
+    "```json\n" + JSON.stringify(museData()) + "\n```";
+}
+async function sendToMuse(mode) {
+  if (!ready()) return;
+  const text = museText();
+  if (mode !== "copy" && navigator.share) { try { await navigator.share({ text }); toast("共有した。Muse（Meta AI）を選べばOK"); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); toast("コピーした。Museに貼って送って"); sfx("ok"); }
+  catch (e) { openSheet(`<div class="sheet-head"><b>Museに渡すデータ</b><button type="button" class="sheet-x" data-sh="close" aria-label="とじる">✕</button></div><p class="note">自動でコピーできなかった。下を長押しして全部選んでコピーして。</p><textarea class="field" rows="12" readonly style="font-size:11px;user-select:text;-webkit-user-select:text">${esc(text)}</textarea>`); }
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-muse]"); if (b) sendToMuse(b.dataset.muse); });
+
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
 const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
 let currentView = "home";

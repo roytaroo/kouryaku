@@ -1034,7 +1034,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
         <input class="field" id="atUnit" placeholder="回" style="width:4em" maxlength="6" aria-label="単位">
         <button class="btn pri" type="submit">足す</button>
       </form></details>
-    </details><button class="modebtn" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ">通常日</button></div>
+    </details><button class="modebtn" type="button" data-muse="share">Museへ送る</button><button class="modebtn" id="homeMode" type="button" title="押すと通常日とリフレッシュ日を切りかえ">通常日</button></div>
   </div>
 
   <div class="card homemis" id="homeMis"></div>
@@ -1205,6 +1205,9 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 <!-- ===== 記録 ===== -->
 <section class="view" id="v-record" hidden>
   <dl class="stats stats4" id="stats" style="margin:0"></dl>
+  <div class="card musecard"><div class="head"><div><div class="eyebrow">AIに渡す</div><h2>Museに今の状況を送る</h2></div></div>
+    <p class="note" style="margin:0">勉強時間・ノルマ・間違いノート・成績・体づくりを1つにまとめる。「送る」で共有シートが開くから、Meta AI（Muse）を選ぶ。</p>
+    <div class="row"><button class="big-btn" type="button" data-muse="share" style="flex:1">送る</button><button class="btn" type="button" data-muse="copy">コピーだけ</button></div></div>
   <div class="card" id="weekCard"></div>
   <details class="card fold" id="misCard"><summary class="head"><div><div class="eyebrow">ミッション</div><h2 class="num" id="misSum">0</h2></div></summary><div id="misList"></div></details>
   <div class="card"><div class="head"><div><div class="eyebrow">直近30日</div><h2>毎日の勉強時間</h2></div><span class="note">線＝目標</span></div><div id="bars"></div></div>
@@ -1285,7 +1288,7 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
     </form>
   </div>
 </div>
-<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795621975"};</script>
+<script>window.KR_CONFIG = {"supabaseUrl": "https://kbsdvtjkczhnggamnggd.supabase.co", "supabaseAnonKey": "sb_publishable_gnX9yQDpbdilnsSjw_-i7g_D_isweS6", "ver": "1795759931"};</script>
 <script src="supabase.js"></script>
 <script>/* ===== 全画面アプリ版の起動：ログイン → 鍵で単語データを開く → 本体（app.js）を読む =====
    記録は Supabase の kouryaku_docs に保存する（1行＝1文書。col と id は今までの "days/2026-11-13" の形を2つに分けたもの）。
