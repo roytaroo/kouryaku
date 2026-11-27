@@ -171,8 +171,9 @@ function bindExtras() {
   pickGQ = function (i) {
     const before = gq && gq.picked, q = gq && gq.qs[gq.n];
     pg(i);
-    if (gq && before == null && gq.picked != null && q && String(q.key || "").startsWith("kj") && tasksOf(dayKey()).some(t => t.id === "kanji"))
-      patchDay(dayKey(), d => { d.tasks = d.tasks || {}; d.tasks.kanji = (d.tasks.kanji || 0) + 1; }).catch(() => {});
+    const pre = String((q && q.key) || "").slice(0, 2), tid = { kj: "kanji", id: "idiom", kb: "kogo", kh: "kogo" }[pre];
+    if (gq && before == null && gq.picked != null && tid && tasksOf(dayKey()).some(t => t.id === tid))
+      patchDay(dayKey(), d => { d.tasks = d.tasks || {}; d.tasks[tid] = (d.tasks[tid] || 0) + 1; }).catch(() => {});
   };
 }
 
@@ -185,7 +186,7 @@ function museData() {
     .sort((a, b) => (b[1][2] || 0) - (a[1][2] || 0)).slice(0, 60).map(([id, s]) => { const w = D.items[D.index.get(id)] || {}; return { category: cat, no: id, word: strip(w.q), reading: w.kana || undefined, meaning: strip(w.a), wrong_count: s[2] || 0, last_seen: s[3] || undefined }; }); };
   const gram = Object.entries(S.grammar.miss || {}).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([key, n]) => {
     const [u, j] = key.split(":"), q = (GQ[u] || [])[Number(j)]; if (!q) return null;
-    const cat = u.startsWith("kj") ? "漢字" : u.startsWith("kb") ? "古文助動詞" : "英文法";
+    const cat = { kj: "漢字", kb: "古文助動詞", kh: "古文の品詞", id: "英熟語" }[u.slice(0, 2)] || "英文法";
     return { category: cat, unit: gqName(u), question: q[0], answer: q[1][q[2]], choices: q[1], note: q[3], wrong_count: n };
   }).filter(Boolean);
   const days = []; for (let i = 13; i >= 0; i--) { const d = addDays(k, -i), x = S.days[d] || {}; days.push({ date: d, minutes: Math.round(minOf(d)), target_minutes: Math.round(targetFor(modeOf(d))), by_subject: x.subj || {}, norm_all_clear: allClear(d), words_answered_fast: wordsTodayCount(d), memo: (x.memo || []).map(m => m.what + " " + Math.round(m.min) + "分") }); }

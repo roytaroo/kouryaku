@@ -97,6 +97,8 @@ const HOW = {
   kanji: "勉強タブの「漢字」で解くと自動で数える。",
   fix: "今週間違えた問題だけ。",
   bag: "受験票・時計・鉛筆・消しゴム・お金。",
+  idiom: "勉強タブの「文法」→英熟語。解いた数は自動で数える。",
+  kogo: "勉強タブの「文法」→古文の品詞・助動詞。解いた数は自動で数える。",
   exam: "いってらっしゃい。"
 };
 function nextTask() { return tasksOf(dayKey()).find(t => t.count < t.goal) || null; }

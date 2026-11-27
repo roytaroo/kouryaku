@@ -951,3 +951,4 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .wk-split{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface2)}
 .wk-memo{display:flex;flex-wrap:wrap;gap:6px}
 .wk-memo span{background:var(--soft);color:var(--lantern);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800}
+#gqBox,#flash,.card{scroll-margin-top:130px}
