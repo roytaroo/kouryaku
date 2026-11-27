@@ -152,7 +152,8 @@ function markClear() {
     const kj = learnTab === "kanji", g = learnTab === "grammar";
     if (kj) { $("lt-grammar").hidden = false; renderGrammar(); renderGQ(); }
     document.querySelectorAll("#lt-grammar .gcard").forEach(c => { c.hidden = kj; });
-    document.querySelector("#lt-grammar .kjcard").hidden = !kj && !(g && false);
+    document.querySelectorAll("#lt-grammar .kjcard").forEach(c => { c.hidden = !kj; });
+    if (kj && typeof renderKR === "function") renderKR();
   };
 }
 function bindExtras() {
