@@ -222,3 +222,6 @@ async function sendToMuse(mode) {
   catch (e) { openSheet(`<div class="sheet-head"><b>Museに渡すデータ</b><button type="button" class="sheet-x" data-sh="close" aria-label="とじる">✕</button></div><p class="note">自動でコピーできなかった。下を長押しして全部選んでコピーして。</p><textarea class="field" rows="12" readonly style="font-size:11px;user-select:text;-webkit-user-select:text">${esc(text)}</textarea>`); }
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-muse]"); if (b) sendToMuse(b.dataset.muse); });
+
+/* ---- 総ざらい：まだ定着していない語を全部、1語2秒で回す（前日の詰め込み用） ---- */
+document.addEventListener("click", e => { if (e.target.closest("[data-sweep]") && ready()) startWords(deckOfTab(), "sweep"); });

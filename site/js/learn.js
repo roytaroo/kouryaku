@@ -38,6 +38,7 @@ function startWords(dk, mode) {
   const done = clearedToday(dk);
   let nums;
   if (mode === "weak") { const upto = (dayIdx(dk) + 1) * D.per; nums = D.items.slice(0, upto).filter(w => { const s = (st.w || {})[w.id]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w.id).slice(0, D.per); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
+  else if (mode === "sweep") { const sw = st.w || {}; nums = D.items.filter(w => !done.has(w.id) && ((sw[w.id] || [])[0] || 0) < 3).map(w => w.id); if (!nums.length) { toast("全部、定着ずみ！"); return; } }
   else if (mode === "quick") { const upto = Math.max(D.per, (Math.max(dayIdx(dk), wSet[dk] ?? 0) + 1) * D.per); nums = D.items.slice(0, upto).map(w => w.id); }
   else nums = setOf(dk, wSet[dk] ?? dayIdx(dk)).map(w => w.id).filter(n => !done.has(n));
   if (!nums.length) { toast("この" + D.per + "語は今日もう全部即答できた。"); return; }
@@ -91,7 +92,7 @@ function renderFlash() {
   const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
   if (sess.phase === "ask" && sess.spoken !== sess.cur + ":" + sess.tries) { sess.spoken = sess.cur + ":" + sess.tries; if (sess.deck === "en") speakWord(w.q); }
   const rest = sess.until ? Math.max(0, Math.ceil((sess.until - Date.now()) / 1000)) : 0;
-  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
+  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : sess.mode === "sweep" ? "総ざらい" : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
   const lim = limitOf(sess.deck);
   h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>` + (w.kana ? `<div class="kana">${esc(w.kana)}</div>` : "");
   const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;

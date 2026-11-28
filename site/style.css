@@ -988,3 +988,4 @@ i.ticket,.chip .ticket,.ricon.ticket-i i{display:inline-block;width:22px;height:
 .kr-miss li b{font-size:16px;font-weight:900;grid-row:1/3}
 .kr-miss li small{color:var(--muted);font-size:11px}
 .kr-over .row{width:100%}
+.sweep-btn{width:100%;padding:12px;border-color:var(--c-orange);color:var(--c-orange);box-shadow:0 3px 0 color-mix(in srgb,var(--c-orange) 40%,transparent)}
