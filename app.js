@@ -99,7 +99,7 @@ const CRAM = {
     ["past", "英語 本番と同じ時間で通し", "回", 1, "en"], ["idiom", "英熟語 32問（勉強→文法）", "問", 32, "en"], ["pastja", "国語 本番と同じ時間で通し", "回", 1, "ja"], ["kogo", "古文の助詞・敬語 24問（勉強→文法）", "問", 24, "ja"],
     ["fix", "間違えた問題の直し", "問", 30, "en"], ["words", "ターゲット 即答100語", "語", 100, "en", "words"]] },
   "2026-11-28": { theme: "間違いだけ見る・早く寝る", tip: "新しいことはやらない。今週間違えた単語・文法・漢字・助動詞だけ。持ち物をそろえて、日付が変わる前に寝る。", tasks: [
-    ["fix", "今週の間違いだけ見直す", "問", 30, "en"], ["idiom", "英熟語 24問", "問", 24, "en"], ["kogo", "古文の品詞・助動詞 16問", "問", 16, "ja"], ["words", "ターゲット 即答50語（間違えた語）", "語", 50, "en", "words"],
+    ["fix", "今週の間違いだけ見直す", "問", 30, "en"], ["idiom", "英熟語 24問", "問", 24, "en"], ["kogo", "古文の品詞・助動詞 16問", "問", 16, "ja"], ["words", "英単語 総ざらいで即答500語", "語", 500, "en", "words"],
     ["kobun", "古文単語 即答30語", "語", 30, "ja", "kobun"], ["bag", "持ち物（受験票・時計・鉛筆・消しゴム）をそろえる", "回", 1, "ja"]] },
   "2026-11-29": { theme: "本番", tip: "朝は単語を軽く見るだけ。わからない問題は飛ばして、最後に戻る。", tasks: [
     ["words", "朝の単語 即答30語", "語", 30, "en", "words"], ["exam", "東洋 年内入試を受ける", "回", 1, "en"]] }
@@ -1118,6 +1118,7 @@ function startWords(dk, mode) {
   const done = clearedToday(dk);
   let nums;
   if (mode === "weak") { const upto = (dayIdx(dk) + 1) * D.per; nums = D.items.slice(0, upto).filter(w => { const s = (st.w || {})[w.id]; return s && (s[2] || 0) > 0 && (s[0] || 0) < 3; }).map(w => w.id).slice(0, D.per); if (!nums.length) { toast("苦手な単語はまだない。"); return; } }
+  else if (mode === "sweep") { const sw = st.w || {}; nums = D.items.filter(w => !done.has(w.id) && ((sw[w.id] || [])[0] || 0) < 3).map(w => w.id); if (!nums.length) { toast("全部、定着ずみ！"); return; } }
   else if (mode === "quick") { const upto = Math.max(D.per, (Math.max(dayIdx(dk), wSet[dk] ?? 0) + 1) * D.per); nums = D.items.slice(0, upto).map(w => w.id); }
   else nums = setOf(dk, wSet[dk] ?? dayIdx(dk)).map(w => w.id).filter(n => !done.has(n));
   if (!nums.length) { toast("この" + D.per + "語は今日もう全部即答できた。"); return; }
@@ -1171,7 +1172,7 @@ function renderFlash() {
   const D = DECKS[sess.deck], w = D.items[D.index.get(sess.cur)], left = sess.queue.length;
   if (sess.phase === "ask" && sess.spoken !== sess.cur + ":" + sess.tries) { sess.spoken = sess.cur + ":" + sess.tries; if (sess.deck === "en") speakWord(w.q); }
   const rest = sess.until ? Math.max(0, Math.ceil((sess.until - Date.now()) / 1000)) : 0;
-  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
+  let h = `<div class="qprog"><span${sess.until ? ' id="qmRest"' : ""}>${sess.until ? "残り " + Math.floor(rest / 60) + ":" + pad(rest % 60) : "残り " + left + "語"}</span><span>${sess.mode === "weak" ? "苦手の復習" : sess.mode === "quick" ? sess.label : sess.mode === "sweep" ? "総ざらい" : D.per + D.unit}・即答 ${sess.cleared}${sess.until ? "語" : "/" + sess.total}</span></div>`;
   const lim = limitOf(sess.deck);
   h += `<div class="no">No.${esc(w.id)}</div><div class="word${D.small ? " small" : D.mid ? " mid" : ""}">${w.q}</div>` + (w.kana ? `<div class="kana">${esc(w.kana)}</div>` : "");
   const ans = `<div class="mean">${w.a}</div>${w.sub ? `<div class="ex">${w.sub}</div>` : ""}${w.ex ? `<div class="ex">${w.ex}</div>` : ""}`;
@@ -6082,6 +6083,9 @@ async function sendToMuse(mode) {
   catch (e) { openSheet(`<div class="sheet-head"><b>Museに渡すデータ</b><button type="button" class="sheet-x" data-sh="close" aria-label="とじる">✕</button></div><p class="note">自動でコピーできなかった。下を長押しして全部選んでコピーして。</p><textarea class="field" rows="12" readonly style="font-size:11px;user-select:text;-webkit-user-select:text">${esc(text)}</textarea>`); }
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-muse]"); if (b) sendToMuse(b.dataset.muse); });
+
+/* ---- 総ざらい：まだ定着していない語を全部、1語2秒で回す（前日の詰め込み用） ---- */
+document.addEventListener("click", e => { if (e.target.closest("[data-sweep]") && ready()) startWords(deckOfTab(), "sweep"); });
 
 /* ===== 画面の切り替え・毎秒の更新・起動 ===== */
 const VIEWS = ["home", "timer", "learn", "yokai", "rpg", "record"];
